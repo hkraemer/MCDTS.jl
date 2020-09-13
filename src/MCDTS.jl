@@ -10,7 +10,7 @@ end
 mutable struct Node{T}
     τ::Int
     L::T
-    τs::Array{Int,1}
+    τs::Array{Int,1} # the complete vector with all τs chosen along this path
 
     children::Union{Array{Node,1},Nothing}
 end
