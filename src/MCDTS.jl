@@ -69,8 +69,25 @@ function mc_delay(N=100)
     return tree
 end
 
+# given the tree, return the best embedding
+function best_embedding(r::Root)
 
+    not_finished = true
+    current_node = r
+    while not_finished
 
-
+        if current_node.children == nothing
+            not_finished = false
+            return current_node.τs
+        else
+            Ls = []
+            for ic in current_node.children
+                push!(Ls, ic.L)
+            end
+            # traverse down the tree always with minimal L 
+            current_node = current_node.children[argmin(Ls)]
+        end
+    end
+end
 
 end # module
