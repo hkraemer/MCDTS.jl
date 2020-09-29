@@ -11,6 +11,7 @@ mutable struct Node{T}
     τ::Int
     L::T
     τs::Array{Int,1} # the complete vector with all τs chosen along this path
+    ts::Array{Int,1} # vector which of the possibly multivariten time series is used at emebdinning step i
 
     children::Union{Array{Node,1},Nothing}
 end
@@ -18,7 +19,10 @@ end
 
 softmax(xi,X,β=1) = exp(-β*xi)/sum(exp.(-β*X))
 
-function next_embedding(τs::AbstractArray{Int,1})
+function next_embedding(n::Node)
+    τs_old = n.τs
+    L_old = n.L
+    ts_old = n.ts
     # do the next embedding step. input is the delays so far
 
     # return all possible new τs, their Ls, and flag if converged
@@ -38,7 +42,7 @@ function expand(n::Union{Node,Root}, max_depth=20)
     if i=1:max_depth # loops until converged or max_depth is reached
 
         # next embedding step
-        τs, Ls, converged = next_embedding(current_node.τs)
+        τs, Ls, converged = next_embedding(current_node)
 
         if converged
             break
@@ -84,7 +88,7 @@ function best_embedding(r::Root)
             for ic in current_node.children
                 push!(Ls, ic.L)
             end
-            # traverse down the tree always with minimal L 
+            # traverse down the tree always with minimal L
             current_node = current_node.children[argmin(Ls)]
         end
     end
