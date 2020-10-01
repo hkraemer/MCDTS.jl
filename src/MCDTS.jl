@@ -1,7 +1,6 @@
 module MCDTS
 
-
-
+include("pecuzal_methods.jl")
 
 mutable struct Root
     children::Union{Array{Node,1},Nothing}
@@ -11,7 +10,7 @@ mutable struct Node{T}
     τ::Int
     L::T
     τs::Array{Int,1} # the complete vector with all τs chosen along this path
-    ts::Array{Int,1} # vector which of the possibly multivariten time series is used at emebdinning step i
+    ts::Array{Int,1} # vector which of the possibly multivariate time series is used at emebdinning step i
 
     children::Union{Array{Node,1},Nothing}
 end
@@ -19,14 +18,17 @@ end
 
 softmax(xi,X,β=1) = exp(-β*xi)/sum(exp.(-β*X))
 
-function next_embedding(n::Node)
+function next_embedding(n::Node, Ys::Dataset{D, T}, w::Int, τs = 0:100) where {D::Int, T<:Real}
     τs_old = n.τs
     L_old = n.L
     ts_old = n.ts
-    # do the next embedding step. input is the delays so far
+    # do the next embedding step
+    τ_pot, ts_pot, L_pot, flag = give_potential_delays(Ys, w, τs, τs_old,
+                                                                ts_old, L_old)
 
-    # return all possible new τs, their Ls, and flag if converged
-    return τs, Ls, converged
+    # return all possible new τs, their corresponding ts, their Ls, and flag
+    # if converged, i.e. L can not be minimized anymore
+    return τ_pot, ts_pot, L_pot, flag
 end
 
 function choose_next_node(n::Union{Node,Root})
