@@ -23,8 +23,8 @@ function next_embedding(n::Node, Ys::Dataset{D, T}, w::Int, τs = 0:100) where {
     L_old = n.L
     ts_old = n.ts
     # do the next embedding step
-    τ_pot, ts_pot, L_pot, flag = give_potential_delays(Ys, w, τs, τs_old,
-                                                                ts_old, L_old)
+    τ_pot, ts_pot, L_pot, flag = give_potential_delays(Ys, w, τs, Tuple(τs_old),
+                                                           Tuple(ts_old), L_old)
 
     # return all possible new τs, their corresponding ts, their Ls, and flag
     # if converged, i.e. L can not be minimized anymore
