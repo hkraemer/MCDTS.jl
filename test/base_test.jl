@@ -7,8 +7,11 @@ data = trajectory(ds,100)
 
 # start testing everything in little parts here
 # in the end there will be a more complete test
-# this is more of a playingground and debuggin area here.
+# this is more of a playing ground and debugging area here.
 
+
+
+## this is the expand! function, deconstructed to debug it
 r = MCDTS.Root()
 
 # first embedding is a dummy function
