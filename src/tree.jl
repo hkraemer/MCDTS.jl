@@ -66,7 +66,7 @@ function choose_children(n::AbstractTreeElement, τ::Int, t::Int)
     τs=get_children_τs(n)
     ts=get_children_ts(n)
 
-    res = intersect(findall(τs .== τ),findall(ts .== t))
+    res = intersect(findall(τs .== τ), findall(ts .== t))
     if length(res)==0
         return nothing
     elseif length(res)==1
@@ -177,7 +177,6 @@ function expand!(n::Union{Node,Root}, data, w, choose_func, max_depth=20)
             if converged
                 break
             else
-
 
                 # spawn children
                 children = []
