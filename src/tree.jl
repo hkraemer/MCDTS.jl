@@ -138,7 +138,7 @@ end
 softmax(xi,X,β=1) = exp(-β*xi)/sum(exp.(-β*X))
 minL(Ls) = argmin(Ls)
 
-function softmaxL(Ls; β=7)
+function softmaxL(Ls; β=6)
     softmaxnorm = sum(exp.(-β*Ls))
 
     p_L = exp.(-β.*Ls) ./ softmaxnorm

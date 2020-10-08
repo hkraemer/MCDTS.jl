@@ -6,10 +6,10 @@ using DynamicalSystems
 using MCDTS
 
 ds = Systems.lorenz()
-data = trajectory(ds,200)
+data = trajectory(ds,250)
 w = 10
 println("starting...")
-tree = MCDTS.mc_delay(data,w,MCDTS.softmaxL,10)
+tree = MCDTS.mc_delay(data,w,MCDTS.softmaxL,100)
 println("..done")
 best_node = MCDTS.best_embedding(tree)
 println(best_node)
