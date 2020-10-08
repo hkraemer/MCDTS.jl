@@ -42,6 +42,7 @@ A node of the tree. Each node contains its children.
 """
 mutable struct Node{T} <: AbstractTreeElement
     τ::Int
+    t::Int
     L::T
     τs::Array{Int,1}
     ts::Array{Int,1}
@@ -52,6 +53,27 @@ N_children(n::AbstractTreeElement) = n.children == nothing ? 0 : length(n.childr
 get_τs(n::Node) = n.τs
 get_ts(n::Node) = n.ts
 get_children_Ls(n::AbstractTreeElement) = [n.children[i].L for i in 1:N_children(n)]
+get_children_τs(n::AbstractTreeElement) = [n.children[i].τ for i in 1:N_children(n)]
+get_children_ts(n::AbstractTreeElement) = [n.children[i].t for i in 1:N_children(n)]
+
+"""
+    choose_children(n::AbstractTreeElement, τ::Int, t:Int)
+
+Pick one of the children of `n` with values `τ` and `t`. If there is none, return `nothing`.
+"""
+function choose_children(n::AbstractTreeElement, τ::Int, t::Int)
+    τs=get_children_τs(n)
+    ts=get_children_ts(n)
+
+    res = intersect(findall(τs .== τ),findall(ts .== t))
+    if length(res)==0
+        return nothing
+    elseif length(res)==1
+        return n.children[res[1]]
+    else
+        error("There's something wrong, there shouldn't be multiple children with the same values.")
+    end
+end
 
 
 """
@@ -117,35 +139,57 @@ minL(Ls) = argmin(Ls)
 
 
 """
-    expand!(n::Union{Node,Root}, max_depth=20)
+    expand!(n::Union{Node,Root}, data, w, choose_func, max_depth=20)
 
-This is one single rollout of the tree
+This is one single rollout and backprop of the tree.
+
+* `n`: Starting node
+* `data`: data
+* `w`: Theiler Window
+* `choose_func`: Function to choose next node with
 """
 function expand!(n::Union{Node,Root}, data, w, choose_func, max_depth=20)
-
     current_node = n
 
     for i=1:max_depth # loops until converged or max_depth is reached
 
         # next embedding step
-        τs, ts, Ls, converged = next_embedding(current_node, data, w)
 
-        if converged
-            break
+        # only if it was not already computed
+        if current_node.children == nothing
+            τs, ts, Ls, converged = next_embedding(current_node, data, w)
+
+            if converged
+                break
+            end
+
+
+            # spawn children
+            children = []
+            for i in eachindex(τs)
+                push!(children, Node(τs[i],ts[i],Ls[i],[get_τs(current_node); τs[i]], [get_ts(current_node); ts[i]], nothing))
+            end
+            current_node.children = children
         end
-
-        # spawn children
-
-        children = []
-        for i in eachindex(τs)
-            push!(children, MCDTS.Node(τs[i],Ls[i],[MCDTS.get_τs(current_node);τs[i]], [MCDTS.get_ts(current_node);ts[i]], nothing))
-        end
-        current_node.children = children
 
         # choose next node
         current_node = choose_next_node(current_node, choose_func)
     end
+
+    # now backprop the values (actually we go to top to bottom, but we know were to end because we got the correct τs and ts)
+    τs = current_node.τs
+    ts = current_node.ts
+    L_min = current_node.L
+
+    cn = choose_children(n,τs[1],ts[1])
+    for i=2:length(τs)
+        # the initial embedding step is left out of the backprop
+        cn = choose_children(cn,τs[i],ts[i])
+        cn.L = L_min
+    end
 end
+
+
 
 """
     mc_delay(N::Int=100)
