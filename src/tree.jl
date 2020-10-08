@@ -3,7 +3,7 @@ current_dir = pwd()
 Pkg.activate(current_dir)
 
 using DynamicalSystemsBase
-
+import Base.show
 
 abstract type AbstractTreeElement end
 
@@ -55,6 +55,7 @@ get_ts(n::Node) = n.ts
 get_children_Ls(n::AbstractTreeElement) = [n.children[i].L for i in 1:N_children(n)]
 get_children_τs(n::AbstractTreeElement) = [n.children[i].τ for i in 1:N_children(n)]
 get_children_ts(n::AbstractTreeElement) = [n.children[i].t for i in 1:N_children(n)]
+Base.show(io::IO,n::Node) = print(io,string("Node with τ=",n.τ,", i_t=",n.t," ,L=",n.L," - full embd. τ=",n.τs," ,i_ts=",n.ts))
 
 """
     choose_children(n::AbstractTreeElement, τ::Int, t:Int)
@@ -122,7 +123,7 @@ end
 
 Returns one of the children of based on the function `func(Ls)->i_node`
 """
-function choose_next_node(n::Union{Node,Root},func)
+function choose_next_node(n::AbstractTreeElement,func)
     N = N_children(n)
     if N == 0
         return nothing
@@ -137,6 +138,20 @@ end
 softmax(xi,X,β=1) = exp(-β*xi)/sum(exp.(-β*X))
 minL(Ls) = argmin(Ls)
 
+function softmaxL(Ls; β=7)
+    softmaxnorm = sum(exp.(-β*Ls))
+
+    p_L = exp.(-β.*Ls) ./ softmaxnorm
+    p_L = cumsum(p_L)
+    rand_number = rand()
+
+    for i=1:length(p_L)
+        if p_L[i] > rand_number
+            return i
+        end
+    end
+    return length(p_L)
+end
 
 """
     expand!(n::Union{Node,Root}, data, w, choose_func, max_depth=20)
@@ -161,15 +176,16 @@ function expand!(n::Union{Node,Root}, data, w, choose_func, max_depth=20)
 
             if converged
                 break
-            end
+            else
 
 
-            # spawn children
-            children = []
-            for i in eachindex(τs)
-                push!(children, Node(τs[i],ts[i],Ls[i],[get_τs(current_node); τs[i]], [get_ts(current_node); ts[i]], nothing))
+                # spawn children
+                children = []
+                for j in eachindex(τs)
+                    push!(children, Node(τs[j],ts[j],Ls[j],[get_τs(current_node); τs[j]], [get_ts(current_node); ts[j]], nothing))
+                end
+                current_node.children = children
             end
-            current_node.children = children
         end
 
         # choose next node
@@ -177,15 +193,18 @@ function expand!(n::Union{Node,Root}, data, w, choose_func, max_depth=20)
     end
 
     # now backprop the values (actually we go to top to bottom, but we know were to end because we got the correct τs and ts)
-    τs = current_node.τs
-    ts = current_node.ts
-    L_min = current_node.L
+    backprop!(n, current_node.τs, current_node.ts, current_node.L)
 
-    cn = choose_children(n,τs[1],ts[1])
+end
+
+
+
+function backprop!(n::AbstractTreeElement,τs,ts,L_min)
+    current_node = choose_children(n,τs[1],ts[1])
     for i=2:length(τs)
         # the initial embedding step is left out of the backprop
-        cn = choose_children(cn,τs[i],ts[i])
-        cn.L = L_min
+        current_node = choose_children(current_node,τs[i],ts[i])
+        current_node.L = L_min
     end
 end
 
@@ -196,13 +215,19 @@ end
 
 Do the monte carlo run with `N` trials, returns the tree.
 """
-function mc_delay(N::Int=100)
+function mc_delay(data, w, choose_func, N::Int=40)
 
     # initialize tree
     tree = Root()
 
     for i=1:N
-        expand!(tree)
+
+        expand!(tree, data, w, choose_func)
+
+        if (i%1)==0
+            println(i,"/",N)
+            #println(best_embedding(tree))
+        end
     end
 
     return tree
