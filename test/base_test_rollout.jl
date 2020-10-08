@@ -6,7 +6,7 @@ using DynamicalSystems
 using MCDTS
 
 ds = Systems.lorenz()
-data = trajectory(ds,100)
+data = trajectory(ds,200)
 
 w=10
 # start testing everything in little parts here
@@ -15,7 +15,7 @@ w=10
 
 tree = MCDTS.Root()
 
-MCDTS.expand!(tree,data,w,MCDTS.softmaxL,3)
+MCDTS.expand!(tree, data, w, (L)->(MCDTS.softmaxL(L,β=2.)),3)
 
 println(MCDTS.best_embedding(tree))
 

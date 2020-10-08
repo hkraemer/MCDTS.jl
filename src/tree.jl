@@ -138,7 +138,7 @@ end
 softmax(xi,X,β=1) = exp(-β*xi)/sum(exp.(-β*X))
 minL(Ls) = argmin(Ls)
 
-function softmaxL(Ls; β=6)
+function softmaxL(Ls; β=4)
     softmaxnorm = sum(exp.(-β*Ls))
 
     p_L = exp.(-β.*Ls) ./ softmaxnorm
@@ -203,7 +203,9 @@ function backprop!(n::AbstractTreeElement,τs,ts,L_min)
     for i=2:length(τs)
         # the initial embedding step is left out of the backprop
         current_node = choose_children(current_node,τs[i],ts[i])
-        current_node.L = L_min
+        if current_node.L > L_min
+            current_node.L = L_min
+        end
     end
 end
 
@@ -225,7 +227,7 @@ function mc_delay(data, w, choose_func, N::Int=40)
 
         if (i%1)==0
             println(i,"/",N)
-            #println(best_embedding(tree))
+            println(best_embedding(tree))
         end
     end
 

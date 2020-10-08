@@ -6,7 +6,7 @@ using DynamicalSystems
 using MCDTS
 
 ds = Systems.lorenz()
-data = trajectory(ds,250)
+data = trajectory(ds,200)
 w = 10
 println("starting...")
 tree = MCDTS.mc_delay(data,w,MCDTS.softmaxL,100)
