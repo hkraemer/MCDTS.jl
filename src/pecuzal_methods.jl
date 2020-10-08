@@ -1,3 +1,4 @@
+using Pkg
 current_dir = pwd()
 Pkg.activate(current_dir)
 

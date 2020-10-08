@@ -1,3 +1,4 @@
+using Pkg
 current_dir = pwd()
 Pkg.activate(current_dir)
 
@@ -50,8 +51,8 @@ end
 N_children(n::AbstractTreeElement) = n.children == nothing ? 0 : length(n.children)
 get_τs(n::Node) = n.τs
 get_ts(n::Node) = n.ts
+get_children_Ls(n::AbstractTreeElement) = [n.children[i].L for i in 1:N_children(n)]
 
-softmax(xi,X,β=1) = exp(-β*xi)/sum(exp.(-β*X))
 
 """
     next_embedding(n::Node, Ys::Dataset{D, T}, w::Int, τs = 0:100) where {D::Int, T<:Real}
@@ -89,26 +90,30 @@ function next_embedding(n::Root, Ys::Dataset, w::Int, τs = 0:100)
     τ_pot = [0]
     ts_pot = [1]
     L_pot = [1e10]
-    flag = [false]
+    flag = false
 
     return τ_pot, ts_pot, L_pot, flag
 end
 
 """
-    choose_next_node(n::Union{Node,Root})
+    choose_next_node(n::Union{Node,Root}, func)
 
-Returns one of the children of n based on softmax? probability of their L values
+Returns one of the children of based on the function `func(Ls)->i_node`
 """
-function choose_next_node(n::Union{Node,Root})
+function choose_next_node(n::Union{Node,Root},func)
     N = N_children(n)
     if N == 0
         return nothing
     elseif N == 1
         return n.children[1]
     else
+        return n.children[func(get_children_Ls(n))]
         error("Not yet implemented.")
     end
 end
+
+softmax(xi,X,β=1) = exp(-β*xi)/sum(exp.(-β*X))
+minL(Ls) = argmin(Ls)
 
 
 """
@@ -116,28 +121,29 @@ end
 
 This is one single rollout of the tree
 """
-function expand!(n::Union{Node,Root}, max_depth=20)
+function expand!(n::Union{Node,Root}, data, w, choose_func, max_depth=20)
 
     current_node = n
 
     for i=1:max_depth # loops until converged or max_depth is reached
 
         # next embedding step
-        τs, ts, Ls, converged = next_embedding(current_node)
+        τs, ts, Ls, converged = next_embedding(current_node, data, w)
 
         if converged
             break
         end
 
         # spawn children
+
         children = []
-        for iτ in τs, iL in Ls
-            push!(children, Node(iτ,iL,[get_τs(current_node);iτ], [get_ts(current_node);ts], nothing))
+        for i in eachindex(τs)
+            push!(children, MCDTS.Node(τs[i],Ls[i],[MCDTS.get_τs(current_node);τs[i]], [MCDTS.get_ts(current_node);ts[i]], nothing))
         end
         current_node.children = children
 
         # choose next node
-        current_node = choose_next_node(current_node)
+        current_node = choose_next_node(current_node, choose_func)
     end
 end
 
@@ -172,12 +178,10 @@ function best_embedding(r::Root)
 
         if current_node.children == nothing
             not_finished = false
-            return current_node.τs
+            return current_node
         else
-            Ls = []
-            for ic in current_node.children
-                push!(Ls, ic.L)
-            end
+            Ls = get_children_Ls(current_node)
+
             # traverse down the tree always with minimal L
             current_node = current_node.children[argmin(Ls)]
         end

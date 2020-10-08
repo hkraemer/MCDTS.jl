@@ -1,3 +1,4 @@
+using Pkg
 current_dir = pwd()
 Pkg.activate(current_dir)
 
@@ -26,16 +27,24 @@ current_node = r
 # spawn children
 
 children = []
-for iτ in τs, iL in Ls
-    push!(children, MCDTS.Node(iτ,iL,[MCDTS.get_τs(current_node);iτ], [MCDTS.get_ts(current_node);ts], nothing))
+for i in eachindex(τs)
+    push!(children, MCDTS.Node(τs[i],Ls[i],[MCDTS.get_τs(current_node);τs[i]], [MCDTS.get_ts(current_node);ts[i]], nothing))
 end
 current_node.children = children
 
-current_node = MCDTS.choose_next_node(current_node)
+current_node = MCDTS.choose_next_node(current_node, MCDTS.minL)
 
 # this should be a proper embedding
 
-τs, ts, Ls, converged = MCDTS.next_embedding(current_node,data,0)
+τs, ts, Ls, converged = MCDTS.next_embedding(current_node,data,1)
+
+children = []
+for i in eachindex(τs)
+    push!(children, MCDTS.Node(τs[i],Ls[i],[MCDTS.get_τs(current_node);τs[i]], [MCDTS.get_ts(current_node);ts[i]], nothing))
+end
+current_node.children = children
+
+current_node = MCDTS.choose_next_node(current_node, MCDTS.minL)
 
 
 true
