@@ -60,7 +60,8 @@ Base.show(io::IO,n::Node) = print(io,string("Node with τ=",n.τ,", i_t=",n.t," 
 """
     choose_children(n::AbstractTreeElement, τ::Int, t:Int)
 
-Pick one of the children of `n` with values `τ` and `t`. If there is none, return `nothing`.
+Pick one of the children of `n` with values `τ` and `t`. If there is none,
+return `nothing`.
 """
 function choose_children(n::AbstractTreeElement, τ::Int, t::Int)
     τs=get_children_τs(n)
@@ -78,43 +79,45 @@ end
 
 
 """
-    next_embedding(n::Node, Ys::Dataset{D, T}, w::Int, τs = 0:100) where {D::Int, T<:Real}
+    next_embedding(n::Node, Ys::Dataset{D, T}, w::Int, τs = 0:100, KNN:Int = 3)
 
-Performs the next embedding step.
-
-???? What is τs=1:00
+Performs the next embedding step. For the actual embedding contained in `n`
+compute as many conitnuity statistics as there are time series in the Dataset
+`Ys` for a range of possible delays `τs`. Return the values for the best delay
+`τ_pot`, its corresponding time series index `ts_pot` the according L-value
+`L_pot` and `flag`, following the Pecuzal-logic.
 
 # Returns
 
 * `τ_pot`: Next delay
 * `ts_pot`: Index of the time series used (in case of multivariate time series)
-* `L_pot`: L statistic of next embedding step
+* `L_pot`: L statistic of next embedding step with delay `τ_pot` from `ts_pot`.
 * `flag`: Did the embedding converge? i.e. L can not be further minimized anymore
 
 """
-function next_embedding(n::Node, Ys::Dataset, w::Int, τs = 0:100)
+function next_embedding(n::Node, Ys::Dataset{D, T}, w::Int, τs = 0:100, KNN::Int = 3) where {D, T<:Real}
     τs_old = get_τs(n)
     L_old = n.L
     ts_old = get_ts(n)
     # do the next embedding step
     τ_pot, ts_pot, L_pot, flag = give_potential_delays(Ys, τs, w, Tuple(τs_old),
-                                                           Tuple(ts_old), L_old)
-
-
+                                                Tuple(ts_old), L_old; KNN = KNN)
     return τ_pot, ts_pot, L_pot, flag
 end
 
 """
-    next_embedding(n::Node, Ys::Dataset, w::Int, τs = 0:100)
+    next_embedding(n::Node, Ys::Dataset, w::Int, τs = 0:100, KNN = 3)
 
 The first embedding step
 """
-function next_embedding(n::Root, Ys::Dataset, w::Int, τs = 0:100)
-    τ_pot = [0]
-    ts_pot = [1]
-    L_pot = [1e10]
+function next_embedding(n::Root, Ys::Dataset{D, T}, w::Int, τs = 0:100, KNN::Int = 3) where {D, T<:Real}
+    τ_pot = zeros(Int, size(Ys,2))
+    ts_pot = Array(1:size(Ys,2))
+    L_pot = zeros(size(Ys,2))
     flag = false
-
+    for i = 1:size(Ys,2)
+        L_pot[i] = uzal_cost(Dataset(Ys[:,i]); samplesize = 1, K = KNN, w = w, Tw = 4*w)
+    end
     return τ_pot, ts_pot, L_pot, flag
 end
 
@@ -131,10 +134,10 @@ function choose_next_node(n::AbstractTreeElement,func)
         return n.children[1]
     else
         return n.children[func(get_children_Ls(n))]
-        error("Not yet implemented.")
     end
 end
 
+# some function, which choose the next children:
 softmax(xi,X,β=1) = exp(-β*xi)/sum(exp.(-β*X))
 minL(Ls) = argmin(Ls)
 
@@ -154,7 +157,7 @@ function softmaxL(Ls; β=4)
 end
 
 """
-    expand!(n::Union{Node,Root}, data, w, choose_func, max_depth=20)
+    expand!(n::Union{Node,Root}, data::Dataset, w::Int, choose_func, max_depth=20)
 
 This is one single rollout and backprop of the tree.
 
@@ -163,21 +166,20 @@ This is one single rollout and backprop of the tree.
 * `w`: Theiler Window
 * `choose_func`: Function to choose next node with
 """
-function expand!(n::Union{Node,Root}, data, w, choose_func, max_depth=20)
+function expand!(n::Union{Node,Root}, data::Dataset{D, T}, w::Int, choose_func,
+                        max_depth::Int=20; KNN::Int=3) where {D, T<:Real}
     current_node = n
 
     for i=1:max_depth # loops until converged or max_depth is reached
-
         # next embedding step
 
         # only if it was not already computed
         if current_node.children == nothing
-            τs, ts, Ls, converged = next_embedding(current_node, data, w)
+            τs, ts, Ls, converged = next_embedding(current_node, data, w, KNN)
 
             if converged
                 break
             else
-
                 # spawn children
                 children = []
                 for j in eachindex(τs)
@@ -196,8 +198,10 @@ function expand!(n::Union{Node,Root}, data, w, choose_func, max_depth=20)
 
 end
 
-
-
+"""
+    Backpropagation of the tree spanned by all children in `n` (for this run).
+All children-nodes L-values get set to the final value achieved in this run.
+"""
 function backprop!(n::AbstractTreeElement,τs,ts,L_min)
     current_node = choose_children(n,τs[1],ts[1])
     for i=2:length(τs)
@@ -208,7 +212,6 @@ function backprop!(n::AbstractTreeElement,τs,ts,L_min)
         end
     end
 end
-
 
 
 """

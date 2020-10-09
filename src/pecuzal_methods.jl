@@ -103,7 +103,7 @@ function pick_possible_embedding_params(ε★, Y_act, Ys, τs, Tw, KNN, w,
         L_trials, max_idx, _ = local_L_statistics(vec([0; ε★[:,ts]]), Y_act, Ys[:,ts],
                                         τs, Tw, KNN, w, samplesize, metric)
         push!(L_pots, L_trials)
-        push!(τ_pots, τs[max_idx])
+        push!(τ_pots, τs[max_idx.-1])
         push!(ts_pots, fill(ts,length(L_trials)))
     end
     return τ_pots, ts_pots, L_pots
