@@ -126,7 +126,7 @@ end
 
 Returns one of the children of based on the function `func(Ls)->i_node`
 """
-function choose_next_node(n::AbstractTreeElement,func)
+function choose_next_node(n::Node,func)
     N = N_children(n)
     if N == 0
         return nothing
@@ -134,6 +134,22 @@ function choose_next_node(n::AbstractTreeElement,func)
         return n.children[1]
     else
         return n.children[func(get_children_Ls(n))]
+    end
+end
+
+"""
+    choose_next_node(n::Union{Node,Root}, func)
+
+Returns one of the children of based on the function `func(Ls)->i_node`
+"""
+function choose_next_node(n::Root,func)
+    N = N_children(n)
+    if N == 0
+        return nothing
+    elseif N == 1
+        return n.children[1]
+    else
+        return n.children[rand(1:N)]
     end
 end
 
@@ -203,8 +219,8 @@ end
 All children-nodes L-values get set to the final value achieved in this run.
 """
 function backprop!(n::AbstractTreeElement,τs,ts,L_min)
-    current_node = choose_children(n,τs[1],ts[1])
-    for i=2:length(τs)
+    current_node = n
+    for i=1:length(τs)
         # the initial embedding step is left out of the backprop
         current_node = choose_children(current_node,τs[i],ts[i])
         if current_node.L > L_min
