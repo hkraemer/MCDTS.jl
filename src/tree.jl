@@ -26,6 +26,11 @@ end
 Root()=Root(nothing)
 get_τs(n::Root) = Int[]
 get_ts(n::Root) = Int[]
+function Base.show(io::IO,n::Root)
+    best_node = best_embedding(n)
+
+    print(io,string("Embedding tree with current best embedding: L=",best_node.L," - full embd. τ=",n.τs," ,i_ts=",n.ts))
+end
 
 """
     mutable struct Node{T}
