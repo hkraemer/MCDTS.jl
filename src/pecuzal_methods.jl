@@ -46,24 +46,19 @@ function give_potential_delays(Ys::Dataset, τs, w::Int, τ_vals, ts_vals, L_old
                             K, metric, α, p, Tw, KNN, τ_vals, ts_vals)
 
     # transform array of arrays to a single array
-    τ_pot = τ_pots[1]
-    ts_pot = ts_pots[1]
-    L_pot = L_pots[1]
-
-    if length(τ_pots) >1
-        for i = 2:length(τ_pots)
-            τ_pot = vcat(τ_pot, τ_pots[i])
-            ts_pot = vcat(ts_pot, ts_pots[i])
-            L_pot = vcat(L_pot, L_pots[i])
-        end
-    end
+    τ_pot = reduce(vcat, τ_pots)
+    ts_pot = reduce(vcat, ts_pots)
+    L_pot = reduce(vcat, L_pots)
 
     if minimum(L_pot) ≥ L_old
         flag = true
+        return Int[],Int[],eltype(L_pot)[], flag
     else
         flag = false
+
+        ind = L_pot .< L_old
+        return τ_pot[ind],ts_pot[ind],L_pot[ind],flag
     end
-    return τ_pot, ts_pot, L_pot, flag
 end
 
 

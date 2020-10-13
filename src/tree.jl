@@ -197,7 +197,7 @@ This is one single rollout and backprop of the tree.
 * `choose_func`: Function to choose next node with
 """
 function expand!(n::Union{Node,Root}, data::Dataset{D, T}, w::Int, choose_func,
-            delays = 0:100; max_depth::Int=20, KNN::Int=3) where {D, T<:Real}
+            delays = 0:100; max_depth::Int=20, KNN::Int=3, verbose=false) where {D, T<:Real}
     current_node = n
 
     for i=1:max_depth # loops until converged or max_depth is reached
@@ -220,7 +220,9 @@ function expand!(n::Union{Node,Root}, data::Dataset{D, T}, w::Int, choose_func,
 
         # choose next node
         current_node = choose_next_node(current_node, choose_func)
-        println(current_node)
+        if verbose
+            println(current_node)
+        end
     end
     # now backprop the values (actually we go to top to bottom, but we know were to end because we got the correct τs and ts)
     backprop!(n, current_node.τs, current_node.ts, current_node.L)
@@ -247,7 +249,7 @@ end
 
 Do the monte carlo run with `N` trials, returns the tree.
 """
-function mc_delay(data, w, choose_func, delays, N::Int=40;  max_depth::Int=20, KNN::Int = 3)
+function mc_delay(data, w, choose_func, delays, N::Int=40;  max_depth::Int=20, KNN::Int = 3, verbose::Bool=false)
 
     # initialize tree
     tree = Root()
@@ -256,9 +258,12 @@ function mc_delay(data, w, choose_func, delays, N::Int=40;  max_depth::Int=20, K
 
         expand!(tree, data, w, choose_func, delays; KNN = KNN, max_depth = max_depth)
 
-        if (i%1)==0
-            println(i,"/",N)
-            println(best_embedding(tree))
+        if verbose
+            if (i%1)==0
+                println(i,"/",N)
+                println(best_embedding(tree))
+                println("---")
+            end
         end
     end
 
