@@ -206,7 +206,7 @@ This is one single rollout and backprop of the tree.
 * `choose_func`: Function to choose next node with
 """
 function expand!(n::Root, data::Dataset{D, T}, w::Int, choose_func,
-            delays = 0:100; max_depth::Int=20, KNN::Int=3, verbose=true) where {D, T<:Real}
+            delays = 0:100; max_depth::Int=20, KNN::Int=3, verbose=false) where {D, T<:Real}
     current_node = n
 
     for i=1:max_depth # loops until converged or max_depth is reached
