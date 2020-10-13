@@ -22,8 +22,9 @@ The 'start'/root of Tree. Each node contains its children. The root contains the
 """
 mutable struct Root <: AbstractTreeElement
     children
+    Lmin
 end
-Root()=Root(nothing)
+Root()=Root(nothing,Inf)
 get_τs(n::Root) = Int[]
 get_ts(n::Root) = Int[]
 function Base.show(io::IO,n::Root)
@@ -136,27 +137,35 @@ function next_embedding(n::Root, Ys::Dataset{D, T}, w::Int, τs; KNN::Int = 3) w
 end
 
 """
-    choose_next_node(n::Union{Node,Root}, func)
+    choose_next_node(n::Union{Node,Root}, func, Lmin_global)
 
-Returns one of the children of based on the function `func(Ls)->i_node`
+Returns one of the children of based on the function `func(Ls)->i_node`, Lmin_global is the best L value so far in the optimization process, if any of the input Ls to choose from is smaller than it, it is always chosen.
 """
-function choose_next_node(n::Node,func)
+function choose_next_node(n::Node,func, Lmin_global)
     N = N_children(n)
     if N == 0
         return nothing
     elseif N == 1
         return n.children[1]
     else
-        return n.children[func(get_children_Ls(n))]
+        Ls = get_children_Ls(n)
+        # check if any is smaller than the global min
+        Lmins = findall(Ls .< Lmin_global)
+
+        if isempty(Lmins)
+            return n.children[func(get_children_Ls(n))]
+        else
+            return n.children[argmin(Ls)]
+        end
     end
 end
 
 """
-    choose_next_node(n::Union{Node,Root}, func)
+    choose_next_node(n::Union{Node,Root}, func, Lmin_global)
 
 Returns one of the children of based on the function `func(Ls)->i_node`
 """
-function choose_next_node(n::Root,func)
+function choose_next_node(n::Root,func,Lmin_global)
     N = N_children(n)
     if N == 0
         return nothing
@@ -196,8 +205,8 @@ This is one single rollout and backprop of the tree.
 * `w`: Theiler Window
 * `choose_func`: Function to choose next node with
 """
-function expand!(n::Union{Node,Root}, data::Dataset{D, T}, w::Int, choose_func,
-            delays = 0:100; max_depth::Int=20, KNN::Int=3, verbose=false) where {D, T<:Real}
+function expand!(n::Root, data::Dataset{D, T}, w::Int, choose_func,
+            delays = 0:100; max_depth::Int=20, KNN::Int=3, verbose=true) where {D, T<:Real}
     current_node = n
 
     for i=1:max_depth # loops until converged or max_depth is reached
@@ -219,7 +228,7 @@ function expand!(n::Union{Node,Root}, data::Dataset{D, T}, w::Int, choose_func,
         end
 
         # choose next node
-        current_node = choose_next_node(current_node, choose_func)
+        current_node = choose_next_node(current_node, choose_func, n.Lmin)
         if verbose
             println(current_node)
         end
@@ -232,7 +241,12 @@ end
     Backpropagation of the tree spanned by all children in `n` (for this run).
 All children-nodes L-values get set to the final value achieved in this run.
 """
-function backprop!(n::AbstractTreeElement,τs,ts,L_min)
+function backprop!(n::Root,τs,ts,L_min)
+
+    if n.Lmin > L_min
+        n.Lmin = L_min
+    end
+
     current_node = n
     for i=1:length(τs)
         # the initial embedding step is left out of the backprop
