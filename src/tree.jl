@@ -26,6 +26,16 @@ end
 Root()=Root(nothing)
 get_τs(n::Root) = Int[]
 get_ts(n::Root) = Int[]
+function Base.show(io::IO,n::Root)
+
+    if n.children == nothing
+        return print(io,string("Embedding tree, no tree search yet performed"))
+    else
+        best_node = best_embedding(n)
+
+        return print(io,string("Embedding tree with current best embedding: L=",best_node.L," - full embd. τ=",best_node.τs," ,i_ts=",best_node.ts))
+    end
+end
 
 """
     mutable struct Node{T}
@@ -161,7 +171,7 @@ end
 softmax(xi,X,β=1) = exp(-β*xi)/sum(exp.(-β*X))
 minL(Ls) = argmin(Ls)
 
-function softmaxL(Ls; β=1)
+function softmaxL(Ls; β=1.5)
     softmaxnorm = sum(exp.(-β*Ls))
 
     p_L = exp.(-β.*Ls) ./ softmaxnorm
@@ -207,6 +217,7 @@ function expand!(n::Union{Node,Root}, data::Dataset{D, T}, w::Int, choose_func,
                 current_node.children = children
             end
         end
+
         # choose next node
         current_node = choose_next_node(current_node, choose_func)
         println(current_node)
