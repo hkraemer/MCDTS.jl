@@ -161,7 +161,7 @@ end
 softmax(xi,X,β=1) = exp(-β*xi)/sum(exp.(-β*X))
 minL(Ls) = argmin(Ls)
 
-function softmaxL(Ls; β=4)
+function softmaxL(Ls; β=1)
     softmaxnorm = sum(exp.(-β*Ls))
 
     p_L = exp.(-β.*Ls) ./ softmaxnorm
@@ -209,6 +209,7 @@ function expand!(n::Union{Node,Root}, data::Dataset{D, T}, w::Int, choose_func,
         end
         # choose next node
         current_node = choose_next_node(current_node, choose_func)
+        println(current_node)
     end
     # now backprop the values (actually we go to top to bottom, but we know were to end because we got the correct τs and ts)
     backprop!(n, current_node.τs, current_node.ts, current_node.L)
