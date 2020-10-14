@@ -19,6 +19,7 @@ The 'start'/root of Tree. Each node contains its children. The root contains the
 # Fields:
 
 * `children::Union{Array{Node,1},Nothing}`: The first nodes of the tree.
+* `Lmin`; Is the global minimum of the L statistic found so far.
 """
 mutable struct Root <: AbstractTreeElement
     children
@@ -141,7 +142,7 @@ end
 
 Returns one of the children of based on the function `func(Ls)->i_node`, Lmin_global is the best L value so far in the optimization process, if any of the input Ls to choose from is smaller than it, it is always chosen.
 """
-function choose_next_node(n::Node,func, Lmin_global)
+function choose_next_node(n::Node,func, Lmin_global=-Inf)
     N = N_children(n)
     if N == 0
         return nothing
@@ -165,7 +166,7 @@ end
 
 Returns one of the children of based on the function `func(Ls)->i_node`
 """
-function choose_next_node(n::Root,func,Lmin_global)
+function choose_next_node(n::Root,func,Lmin_global=-Inf)
     N = N_children(n)
     if N == 0
         return nothing
@@ -176,10 +177,13 @@ function choose_next_node(n::Root,func,Lmin_global)
     end
 end
 
-# some function, which choose the next children:
-softmax(xi,X,β=1) = exp(-β*xi)/sum(exp.(-β*X))
 minL(Ls) = argmin(Ls)
 
+"""
+    softmaxL(Ls; β=1.5)
+
+Return an index with prob computed by a softmax of all Ls.
+"""
 function softmaxL(Ls; β=1.5)
     softmaxnorm = sum(exp.(-β*Ls))
 
@@ -284,7 +288,6 @@ function mc_delay(data, w, choose_func, delays, N::Int=40;  max_depth::Int=20, K
     return tree
 end
 
-# given the tree, return the best embedding
 """
     best_embedding(r::Root)
 
