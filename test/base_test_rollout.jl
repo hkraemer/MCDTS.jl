@@ -15,7 +15,7 @@ w=15
 
 tree = MCDTS.Root()
 
-MCDTS.expand!(tree, data, w, (L)->(MCDTS.softmaxL(L,β=2.)),0:100)
+MCDTS.expand!(tree, Dataset(data[:,1]), w, (L)->(MCDTS.softmaxL(L,β=2.)),0:100)
 
 println(MCDTS.best_embedding(tree))
 
