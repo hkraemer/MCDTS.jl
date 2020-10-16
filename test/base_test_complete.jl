@@ -9,7 +9,7 @@ using MCDTS
 
 ds = Systems.lorenz()
 data = trajectory(ds,200)
-data = data[1:5000,:]
+data = data[1:10000,:]
 w1 = estimate_delay(data[:,1],"mi_min")
 w2 = estimate_delay(data[:,2],"mi_min")
 w3 = estimate_delay(data[:,3],"mi_min")
@@ -25,7 +25,6 @@ println("starting PECUZAL univariate...")
 L_pec = minimum(Ls_pec)
 println("L=$L_pec, τs=$τ_vals_pec, ts=$ts_vals_pec")
 println("..done")
-println(tree)
 
 println("starting MCDTS multivariate...")
 @time tree = MCDTS.mc_delay(data,w,(L)->(MCDTS.softmaxL(L,β=2.)),0:100,15)
@@ -38,7 +37,7 @@ println("starting PECUZAL multivariate...")
 L_pec = minimum(Ls_pec)
 println("L=$L_pec, τs=$τ_vals_pec, ts=$ts_vals_pec")
 println("..done")
-println(tree)
+
 
 
 true
