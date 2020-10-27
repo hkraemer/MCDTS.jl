@@ -91,7 +91,7 @@ end
 
 
 """
-    next_embedding(n::Node, Ys::Dataset{D, T}, w::Int, τs; KNN:Int = 3)
+    next_embedding(n::Node, Ys::Dataset{D, T}, w::Int, τs; KNN:Int = 3, FNN::Bool = false)
 
 Performs the next embedding step. For the actual embedding contained in `n`
 compute as many conitnuity statistics as there are time series in the Dataset
@@ -102,6 +102,8 @@ compute as many conitnuity statistics as there are time series in the Dataset
 # Keyword arguments
 * `KNN = 3`: The number of nearest neighbors considered in the computation of
   the L-statistic.
+* `FNN:Bool = false`: Determines whether the algorithm should minimize the
+  L-statistic or the FNN-statistic.
 
 # Returns
 
@@ -111,13 +113,14 @@ compute as many conitnuity statistics as there are time series in the Dataset
 * `flag`: Did the embedding converge? i.e. L can not be further minimized anymore
 
 """
-function next_embedding(n::Node, Ys::Dataset{D, T}, w::Int, τs; KNN::Int = 3) where {D, T<:Real}
+function next_embedding(n::Node, Ys::Dataset{D, T}, w::Int, τs; KNN::Int = 3,
+                                        FNN::Bool = false) where {D, T<:Real}
     τs_old = get_τs(n)
     L_old = n.L
     ts_old = get_ts(n)
     # do the next embedding step
     τ_pot, ts_pot, L_pot, flag = give_potential_delays(Ys, τs, w, Tuple(τs_old),
-                                                Tuple(ts_old), L_old; KNN = KNN)
+                                    Tuple(ts_old), L_old; KNN = KNN, FNN = FNN)
     return τ_pot, ts_pot, L_pot, flag
 end
 
@@ -126,15 +129,18 @@ end
 
 The first embedding step
 """
-function next_embedding(n::Root, Ys::Dataset{D, T}, w::Int, τs; KNN::Int = 3) where {D, T<:Real}
+function next_embedding(n::Root, Ys::Dataset{D, T}, w::Int, τs; KNN::Int = 3, FNN::Bool = false) where {D, T<:Real}
     τ_pot = zeros(Int, size(Ys,2))
     ts_pot = Array(1:size(Ys,2))
-    L_pot = zeros(size(Ys,2))
-    flag = false
-    for i = 1:size(Ys,2)
-        L_pot[i] = uzal_cost(Dataset(Ys[:,i]); samplesize = 1, K = KNN, w = w, Tw = 4*w)
+    if FNN
+        L_pot = ones(size(Ys,2))
+    else
+        L_pot = zeros(size(Ys,2))
+        for i = 1:size(Ys,2)
+            L_pot[i] = uzal_cost(Dataset(Ys[:,i]); samplesize = 1, K = KNN, w = w, Tw = 4*w)
+        end
     end
-    return τ_pot, ts_pot, L_pot, flag
+    return τ_pot, ts_pot, L_pot, false
 end
 
 """
@@ -200,7 +206,8 @@ function softmaxL(Ls; β=1.5)
 end
 
 """
-    expand!(n::Union{Node,Root}, data::Dataset, w::Int, choose_func, max_depth=20)
+    expand!(n::Union{Node,Root}, data::Dataset, w::Int, choose_func, delays;
+                                        max_depth=20, KNN=3, FNN=false)
 
 This is one single rollout and backprop of the tree.
 
@@ -210,7 +217,7 @@ This is one single rollout and backprop of the tree.
 * `choose_func`: Function to choose next node with
 """
 function expand!(n::Root, data::Dataset{D, T}, w::Int, choose_func,
-            delays = 0:100; max_depth::Int=20, KNN::Int=3, verbose=false) where {D, T<:Real}
+            delays = 0:100; max_depth::Int=20, KNN::Int=3, verbose=false, FNN::Bool = false) where {D, T<:Real}
     current_node = n
 
     for i=1:max_depth # loops until converged or max_depth is reached
@@ -218,7 +225,7 @@ function expand!(n::Root, data::Dataset{D, T}, w::Int, choose_func,
 
         # only if it was not already computed
         if current_node.children == nothing
-            τs, ts, Ls, converged = next_embedding(current_node, data, w, delays; KNN = KNN)
+            τs, ts, Ls, converged = next_embedding(current_node, data, w, delays; KNN = KNN, FNN = FNN)
             if converged
                 break
             else
@@ -267,14 +274,14 @@ end
 
 Do the monte carlo run with `N` trials, returns the tree.
 """
-function mc_delay(data, w, choose_func, delays, N::Int=40;  max_depth::Int=20, KNN::Int = 3, verbose::Bool=false)
+function mc_delay(data, w, choose_func, delays, N::Int=40;  max_depth::Int=20, KNN::Int = 3, FNN::Bool = false, verbose::Bool=false)
 
     # initialize tree
     tree = Root()
 
     for i=1:N
 
-        expand!(tree, data, w, choose_func, delays; KNN = KNN, max_depth = max_depth)
+        expand!(tree, data, w, choose_func, delays; KNN = KNN, FNN = FNN, max_depth = max_depth)
 
         if verbose
             if (i%1)==0

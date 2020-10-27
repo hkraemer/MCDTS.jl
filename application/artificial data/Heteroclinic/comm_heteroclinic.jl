@@ -1,5 +1,10 @@
-using DynamicalSystems, Distributions
+using Pkg
+current_dir = pwd()
+Pkg.activate(current_dir)
+
 using MCDTS
+using DynamicalSystems, Distributions
+
 
 ## We apply the MCDTS-approach to the Lorenz system and compare the results of
 # the reconstruction to the ones gained from PECUZAL and standard TDE.
@@ -7,17 +12,17 @@ using MCDTS
 # generate data
 
 function drhcdyn!(du, u, p, t)
-        c, e, delta = p 
+        c, e, delta = p
         x11, x12, x13, x21, x22, x23, x31, x32, x33 = u
-    
+
         du[1] = x11*(1-(x11^2+x12^2+x13^2)+e*x12^2-c*x13^2) + delta*(x21-x11)
         du[2] = x12*(1-(x11^2+x12^2+x13^2)+e*x13^2-c*x11^2) + delta*(x22-x12)
         du[3] = x13*(1-(x11^2+x12^2+x13^2)+e*x11^2-c*x12^2) + delta*(x23-x13)
-    
+
         du[4] = x21*(1-(x21^2+x22^2+x23^2)+e*x22^2-c*x23^2) + delta*(x31-x21)
         du[5] = x22*(1-(x21^2+x22^2+x23^2)+e*x23^2-c*x21^2) + delta*(x32-x22)
         du[6] = x23*(1-(x21^2+x22^2+x23^2)+e*x21^2-c*x22^2) + delta*(x33-x23)
-    
+
         du[7] = x31*(1-(x31^2+x32^2+x33^2)+e*x32^2-c*x33^2) + delta*(x11-x31)
         du[8] = x32*(1-(x31^2+x32^2+x33^2)+e*x33^2-c*x31^2) + delta*(x12-x32)
         du[9] = x33*(1-(x31^2+x32^2+x33^2)+e*x31^2-c*x32^2) + delta*(x13-x33)
@@ -27,7 +32,8 @@ delta_dist = Uniform(0.,0.02)
 delta = ()->rand(delta_dist)
 
 pars = [0.25, 0.2, delta()]
-  
+#pars = [0.25, 0.2, 0.0104]
+
 icdist = Uniform(0.1,0.9);
 ic = rand(icdist,9)
 
@@ -216,5 +222,3 @@ println("Transitivity_mcdts multi: $(abs.(TRANS[5,:].-TRANS[1,:]))")
 println("Transitivity_pec multi: $(abs.(TRANS[6,:].-TRANS[1,:]))")
 
 println("*******")
-
-

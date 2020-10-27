@@ -33,18 +33,22 @@ of multivariate time series input choose `w` as the maximum of all `wᵢ's`.
 * `α::Real = 0.05`: The significance level for obtaining the continuity statistic
 * `p::Real = 0.5`: The p-parameter for the binomial distribution used for the
   computation of the continuity statistic ⟨ε★⟩.
+* `FNN:Bool = false`: Determines whether the algorithm should minimize the L-statistic
+  or the FNN-statistic
 """
 function give_potential_delays(Yss::Dataset, τs, w::Int, τ_vals, ts_vals, L_old;
                 samplesize::Real=1, K::Int = 13, α::Real = 0.05, p::Real = 0.5,
-                Tw::Int = 4*w, KNN::Int = 3)
+                Tw::Int = 4*w, KNN::Int = 3, FNN::Bool = false)
     metric = Euclidean()
     Ys = regularize(Yss)
     # compute Y_act
     Y_act = genembed(Ys, τ_vals, ts_vals)
+
     # compute potential delay values with corresponding time series values and
-    # L-statistic-values
+    # L-statistic-values (or FNN-statistic-values, these will be binded in
+    # `L_pots` for simplicity, anyway)
     τ_pots, ts_pots, L_pots = embedding_cycle_pecuzal(Y_act, Ys, τs, w, samplesize,
-                            K, metric, α, p, Tw, KNN, τ_vals, ts_vals)
+                            K, metric, α, p, Tw, KNN, τ_vals, ts_vals, FNN)
 
     # transform array of arrays to a single array
     τ_pot = reduce(vcat, τ_pots)
@@ -67,17 +71,18 @@ end
 Perform a potential embedding cycle from the multi- or univariate Dataset `Ys`.
 Return the possible delays `τ_pot`, the associated time series `ts_pot` and
 the corresponding L-statistic-values, `L_pot` for each peak, i.e. for each
-(`τ_pot`, `ts_pot`) pair.
+(`τ_pot`, `ts_pot`) pair. If `FNN=true`, `L_pot` stores the corresponding
+fnn-statistic-values.
 """
 function embedding_cycle_pecuzal(Y_act, Ys, τs, w, samplesize,
-                    K, metric, α, p, Tw, KNN, τ_vals, ts_vals)
+                    K, metric, α, p, Tw, KNN, τ_vals, ts_vals, FNN)
 
     ε★, _ = pecora(Ys, Tuple(τ_vals), Tuple(ts_vals); delays = τs, w = w,
             samplesize = samplesize, K = K, metric = metric, α = α,
             p = p, undersampling = false)
     # update τ_vals, ts_vals, Ls, ε★s
     τ_pot, ts_pot, L_pot = pick_possible_embedding_params(ε★, Y_act, Ys, τs, Tw,
-                                                    KNN, w, samplesize, metric)
+                                                KNN, w, samplesize, metric, FNN)
 
     return τ_pot, ts_pot, L_pot
 end
@@ -85,10 +90,11 @@ end
 
 """
     Compute all possible τ-values (and according time series numbers) and their
-corresponding L-statistics for the input continuity statistic ε★.
+corresponding L-statistics (or FNN-statistics, if `FNN=true`) for the input
+continuity statistic ε★.
 """
 function pick_possible_embedding_params(ε★, Y_act, Ys, τs, Tw, KNN, w,
-                                                            samplesize, metric)
+                                                        samplesize, metric, FNN)
     L_pots = []
     τ_pots = []
     ts_pots = []
@@ -96,8 +102,13 @@ function pick_possible_embedding_params(ε★, Y_act, Ys, τs, Tw, KNN, w,
     for ts = 1:size(Ys,2)
         # zero-padding of ⟨ε★⟩ in order to also cover τ=0 (important for the multivariate case)
         # get the L-statistic for each peak in ⟨ε★⟩
-        L_trials, max_idx, _ = local_L_statistics(vec([0; ε★[:,ts]]), Y_act, Ys[:,ts],
-                                        τs, Tw, KNN, w, samplesize, metric)
+        if FNN
+            L_trials, max_idx, _ = local_fnn_statistics(vec([0; ε★[:,ts]]), Y_act,
+                                   Ys[:,ts], τs, w, metric)
+        else
+            L_trials, max_idx, _ = local_L_statistics(vec([0; ε★[:,ts]]), Y_act,
+                                  Ys[:,ts], τs, Tw, KNN, w, samplesize, metric)
+        end
         push!(L_pots, L_trials)
         push!(τ_pots, τs[max_idx.-1])
         push!(ts_pots, fill(ts,length(L_trials)))
@@ -122,6 +133,35 @@ function local_L_statistics(ε★, Y_act, s, τs, Tw, KNN, w, samplesize, metric
         ξ_trials[i] = L_trials[i]*maxima[i]
     end
     return L_trials, max_idx, ξ_trials
+end
+
+"""
+Return the FNN-statistic `FNN` and indices `max_idx` and weighted peak height
+`ξ = peak-height * L` for all local maxima in ε★
+"""
+function local_fnn_statistics(ε★, Y_act, s, τs, w, metric; r=2)
+
+    maxima, max_idx = get_maxima(ε★) # determine local maxima in ⟨ε★⟩
+    FNN_trials = zeros(Float64, length(max_idx))
+    ξ_trials = zeros(Float64, length(max_idx))
+
+    # compute nearest-neighbor-distances for actual trajectory
+    Y_act2 = Y_act[1:end-τs[maximum(max_idx)-1],:]
+    Y_act2 = regularize(Y_act2)
+    vtree = KDTree(Y_act2, metric)
+    _, NNdist_old = DelayEmbeddings.all_neighbors(vtree, Y_act2, 1:length(Y_act2), 1, w)
+
+    for (i,τ_idx) in enumerate(max_idx)
+        # create candidate phase space vector for this peak/τ-value
+        Y_trial = DelayEmbeddings.hcat_lagged_values(Y_act,s,τs[τ_idx-1])
+        Y_trial = regularize(Y_trial)
+        vtree = KDTree(Y_trial, metric)
+        _, NNdist_new = DelayEmbeddings.all_neighbors(vtree, Y_trial, 1:length(Y_trial), 1, w)
+        # compute FNN-statistic
+        FNN_trials[i] = fnn_embedding_cycle(NNdist_old, NNdist_new[1:length(NNdist_old)], r)
+        ξ_trials[i] = FNN_trials[i]*maxima[i]
+    end
+    return FNN_trials, max_idx, ξ_trials
 end
 
 
@@ -162,7 +202,36 @@ function get_maxima(s::Vector{T}) where {T}
     return maximas, maximas_idx
 end
 
-
+"""
+    fnn_embedding_cycle(NNdist, NNdistnew, r=2) -> FNNs
+Compute the amount of false nearest neighbors `FNNs`, when adding another component
+to a given (vector-) time series. This new component is the `τ`-lagged version
+of a univariate time series. `NNdist` is storing the distances of the nearest
+neighbor for all considered fiducial points and `NNdistnew` is storing the
+distances of the nearest neighbor for each fiducial point in one embedding
+dimension higher using a given `τ`. The obligatory threshold `r` is by default
+set to 2.
+"""
+function fnn_embedding_cycle(NNdist, NNdistnew, r::Real=2)
+    @assert length(NNdist) == length(NNdistnew) "Both input vectors need to store the same number of distances."
+    N = length(NNdist)
+    fnns = 0
+    fnns2= 0
+    inverse_r = 1/r
+    @inbounds for i = 1:N
+        if NNdistnew[i][1]/NNdist[i][1] > r && NNdist[i][1] < inverse_r
+            fnns +=1
+        end
+        if NNdist[i][1] < inverse_r
+            fnns2 +=1
+        end
+    end
+    if fnns==0
+        return 1
+    else
+        return fnns/fnns2
+    end
+end
 
 """
     pecuzal_embedding(s; kwargs...) → Y, τ_vals, ts_vals, Ls ,⟨ε★⟩
