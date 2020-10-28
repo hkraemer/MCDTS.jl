@@ -28,11 +28,11 @@ function drhcdyn!(du, u, p, t)
         du[9] = x33*(1-(x31^2+x32^2+x33^2)+e*x31^2-c*x32^2) + delta*(x13-x33)
 end
 
-delta_dist = Uniform(0.,0.02)
-delta = ()->rand(delta_dist)
-
-pars = [0.25, 0.2, delta()]
-#pars = [0.25, 0.2, 0.0104]
+# delta_dist = Uniform(0.,0.02)
+# delta = ()->rand(delta_dist)
+#
+# pars = [0.25, 0.2, delta()]
+pars = [0.25, 0.2, 0.0104]
 
 icdist = Uniform(0.1,0.9);
 ic = rand(icdist,9)
@@ -42,6 +42,7 @@ data = trajectory(ds,1000; dt = 0.2, Ttr = 2)
 
 
 # set parameters
+FNN = true              # base cost function on FNN or L
 softmax_beta = 2.       # β-value for softmax function
 τs = 0:200              # possible delay values
 Trials = 50             # Trials for MCDTS
@@ -85,7 +86,7 @@ for (i,N) in enumerate(Ns)
     w = maximum(hcat(w1,w2,w3))
 
     # MCDTS
-    tree = MCDTS.mc_delay(Dataset(tr[:,2]),w,(L)->(MCDTS.softmaxL(L,β=softmax_beta)),τs,Trials)
+    tree = MCDTS.mc_delay(Dataset(tr[:,2]),w,(L)->(MCDTS.softmaxL(L,β=softmax_beta)),τs,Trials; FNN = FNN)
     best_node = MCDTS.best_embedding(tree)
     push!(τs_mcdts, best_node.τs)
     push!(ts_mcdts, best_node.ts)
@@ -93,7 +94,7 @@ for (i,N) in enumerate(Ns)
     L[1,i] = best_node.L
     dims[1,i] = size(Y_mcdts,2)
     # multivariate
-    tree_m = MCDTS.mc_delay(tr,w,(L)->(MCDTS.softmaxL(L,β=softmax_beta)),τs,Trials)
+    tree_m = MCDTS.mc_delay(tr,w,(L)->(MCDTS.softmaxL(L,β=softmax_beta)),τs,Trials; FNN = FNN)
     best_node_m = MCDTS.best_embedding(tree_m)
     push!(τs_mcdts_multi, best_node_m.τs)
     push!(ts_mcdts_multi, best_node_m.ts)
