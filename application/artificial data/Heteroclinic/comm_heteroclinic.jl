@@ -223,3 +223,5 @@ println("Transitivity_mcdts multi: $(abs.(TRANS[5,:].-TRANS[1,:]))")
 println("Transitivity_pec multi: $(abs.(TRANS[6,:].-TRANS[1,:]))")
 
 println("*******")
+
+println("Dimensionality of the reconstructions: $dims")
