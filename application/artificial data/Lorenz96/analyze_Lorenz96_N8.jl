@@ -8,13 +8,15 @@ using PyPlot
 pygui(true)
 using DelimitedFiles
 
+# determine from which trial you want to process the data
+trial = 1
+
 # bind variables
+t_idx = vec(Int.(readdlm("./application/artificial data/Lorenz96/Results/trial $(trial)/chosen_time_series.csv")))
 
-t_idx = vec(Int.(readdlm("./application/artificial data/Lorenz96/Results/chosen_time_series.csv")))
-
-tau_tde = Int.(readdlm("./application/artificial data/Lorenz96/Results/tau_tde.csv"))
-tau_pecs = readdlm("./application/artificial data/Lorenz96/Results/tau_pec.csv")
-tau_MCDTSs = readdlm("./application/artificial data/Lorenz96/Results/tau_MCDTS.csv")
+tau_tde = Int.(readdlm("./application/artificial data/Lorenz96/Results/trial $(trial)/tau_tde.csv"))
+tau_pecs = readdlm("./application/artificial data/Lorenz96/Results/trial $(trial)/tau_pec.csv")
+tau_MCDTSs = readdlm("./application/artificial data/Lorenz96/Results/trial $(trial)/tau_MCDTS.csv")
 # convert taus into right shape in case of PECUZAL and MCDTS
 tau_pec = []
 tau_MCDTS = []
@@ -25,8 +27,8 @@ for i = 1:size(tau_pecs,1)
     push!(tau_MCDTS, tau_MCDTSs[i,index])
 end
 
-ts_pecs = readdlm("./application/artificial data/Lorenz96/Results/results_Lorenz96_N_8_ts_pec.csv")
-ts_MCDTSs = readdlm("./application/artificial data/Lorenz96/Results/results_Lorenz96_N_8_ts_MCDTS.csv")
+ts_pecs = readdlm("./application/artificial data/Lorenz96/Results/trial $(trial)/results_Lorenz96_N_8_ts_pec.csv")
+ts_MCDTSs = readdlm("./application/artificial data/Lorenz96/Results/trial $(trial)/results_Lorenz96_N_8_ts_MCDTS.csv")
 ts_pec = []
 ts_MCDTS = []
 for i = 1:size(ts_pecs,1)
@@ -36,21 +38,22 @@ for i = 1:size(ts_pecs,1)
     push!(ts_MCDTS, ts_MCDTSs[i,index])
 end
 
-optimal_d_tde = Int.(readdlm("./application/artificial data/Lorenz96/Results/results_Lorenz96_N_8_optimal_d_tde.csv"))
-optimal_d_pec = Int.(readdlm("./application/artificial data/Lorenz96/Results/results_Lorenz96_N_8_optimal_d_pec.csv"))
-optimal_d_mcdts = Int.(readdlm("./application/artificial data/Lorenz96/Results/results_Lorenz96_N_8_optimal_d_mcdts.csv"))
+optimal_d_tde = Int.(readdlm("./application/artificial data/Lorenz96/Results/trial $(trial)/results_Lorenz96_N_8_optimal_d_tde.csv"))
+optimal_d_pec = Int.(readdlm("./application/artificial data/Lorenz96/Results/trial $(trial)/results_Lorenz96_N_8_optimal_d_pec.csv"))
+optimal_d_mcdts = Int.(readdlm("./application/artificial data/Lorenz96/Results/trial $(trial)/results_Lorenz96_N_8_optimal_d_mcdts.csv"))
 
-L_tde = readdlm("./application/artificial data/Lorenz96/Results/results_Lorenz96_N_8_L_tde.csv")
-L_pec = readdlm("./application/artificial data/Lorenz96/Results/results_Lorenz96_N_8_L_pec.csv")
-L_mcdts = readdlm("./application/artificial data/Lorenz96/Results/results_Lorenz96_N_8_L_mcdts.csv")
+L_tde = readdlm("./application/artificial data/Lorenz96/Results/trial $(trial)/results_Lorenz96_N_8_L_tde.csv")
+L_pec = readdlm("./application/artificial data/Lorenz96/Results/trial $(trial)/results_Lorenz96_N_8_L_pec.csv")
+L_mcdts = readdlm("./application/artificial data/Lorenz96/Results/trial $(trial)/results_Lorenz96_N_8_L_mcdts.csv")
 
-RQA_tde = readdlm("./application/artificial data/Lorenz96/Results/results_Lorenz96_N_8_RQA_tde.csv")
-RQA_pec = readdlm("./application/artificial data/Lorenz96/Results/results_Lorenz96_N_8_RQA_pec.csv")
-RQA_mcdts = readdlm("./application/artificial data/Lorenz96/Results/results_Lorenz96_N_8_RQA_mcdts.csv")
+RQA_tde = readdlm("./application/artificial data/Lorenz96/Results/trial $(trial)/results_Lorenz96_N_8_RQA_tde.csv")
+RQA_pec = readdlm("./application/artificial data/Lorenz96/Results/trial $(trial)/results_Lorenz96_N_8_RQA_pec.csv")
+RQA_mcdts = readdlm("./application/artificial data/Lorenz96/Results/trial $(trial)/results_Lorenz96_N_8_RQA_mcdts.csv")
+
+Fs = = readdlm("./application/artificial data/Lorenz96/Results/trial $(trial)/results_Lorenz96_N_8_Fs.csv")
 
 ##
-F = 2.5:0.01:6
-λs = readdlm("./application/artificial data/Lorenz96/Lyapunov spectrum/Lyaps_Lo96_N_8_3.csv")
+λs = readdlm("./application/artificial data/Lorenz96/Lyapunov spectrum/Lyaps_Lo96_N_8_4.csv")
 
 pos_Lyap_idx = λs[:,1] .> 10^-3
 

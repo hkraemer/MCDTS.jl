@@ -20,7 +20,7 @@ addprocs(SlurmManager(N_worker))
 
     # Parameters data:
     N = 8 # number of oscillators
-    Fs = 2.5:0.01:6 # parameter spectrum
+    Fs = 3.5:0.002:5 # parameter spectrum
     dt = 0.01 # sampling time
     total = 5000  # time series length
 
@@ -28,7 +28,7 @@ addprocs(SlurmManager(N_worker))
     ε = 0.05  # recurrence threshold
     dmax = 10   # maximum dimension for traditional tde
     lmin = 2   # minimum line length for RQA
-    trials = 50 # trials for MCDTS
+    trials = 80 # trials for MCDTS
     taus = 0:100 # possible delays
     Tw = 100    # time window for obtaining the L-value
 
@@ -36,7 +36,7 @@ addprocs(SlurmManager(N_worker))
     t_idx = [1,4,7]
 
     # init Lorenz96
-    lo96 = Systems.lorenz96(N; F = 2.5)
+    lo96 = Systems.lorenz96(N; F = 3.5)
 end
 
 @time begin
@@ -45,7 +45,7 @@ results = @distributed (vcat) for i in eachindex(Fs)
 #for (i, F) in enumerate(Fs)
     F = Fs[i]
     set_parameter!(lo96, 1, F)
-    data = trajectory(lo96, total*dt; dt = 0.01, Ttr = 40)
+    data = trajectory(lo96, total*dt; dt = 0.01, Ttr = 50)
     data_sample = data[:,t_idx]
 
     # for ts perform classic TDE
@@ -59,12 +59,12 @@ results = @distributed (vcat) for i in eachindex(Fs)
         R = RecurrenceMatrix(𝒟, ε; fixedrate = true)
         RQA = rqa(R; theiler = τ_tde[i], lmin = lmin)
         RQA_tde[:,i] = hcat(RQA...)
-        L_tde[i] = uzal_cost(regularize(𝒟); w = τ_tde[i], samplesize=1)
+        L_tde[i] = uzal_cost(regularize(𝒟); w = τ_tde[i], samplesize=1, Tw=Tw)
     end
 
     # PECUZAL
     theiler = Int(floor(mean(τ_tde)))
-    𝒟_pec, τ_pec, ts_pec, Ls_pec , _ = pecuzal_embedding(data_sample; τs = taus , w = theiler)
+    𝒟_pec, τ_pec, ts_pec, Ls_pec , _ = pecuzal_embedding(data_sample; τs = taus , w = theiler, Tw = Tw)
     optimal_d_pec = size(𝒟_pec,2)
     R = RecurrenceMatrix(𝒟_pec, ε; fixedrate = true)
     RQA = rqa(R; theiler = theiler, lmin = lmin)
@@ -72,7 +72,7 @@ results = @distributed (vcat) for i in eachindex(Fs)
     L_pec = minimum(Ls_pec)
 
     # MCDTS
-    tree = MCDTS.mc_delay(data_sample, theiler, (L)->(MCDTS.softmaxL(L,β=2.)), taus, trials)
+    tree = MCDTS.mc_delay(data_sample, theiler, (L)->(MCDTS.softmaxL(L,β=2.)), taus, trials; Tw = Tw)
     best_node = MCDTS.best_embedding(tree)
     𝒟_mcdts = genembed(data_sample, best_node.τs, best_node.ts)
     optimal_d_mcdts = size(𝒟_mcdts,2)
@@ -91,6 +91,7 @@ end
 end
 
 writedlm("results_Lorenz96_N_$(N)_chosen_time_series.csv", t_idx)
+writedlm("results_Lorenz96_N_$(N)_Fs.csv", Fs)
 
 varnames = ["tau_tde", "optimal_d_tde", "RQA_tde", "L_tde",
     "tau_pec", "ts_pec", "optimal_d_pec", "RQA_pec", "L_pec",

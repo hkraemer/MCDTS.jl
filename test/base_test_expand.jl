@@ -15,7 +15,7 @@ data = trajectory(ds,200)
 
 w = 20
 delays = 0:100
-FNN = true # true for FNN-statistic minimization and false for L-statistic
+FNN = false # true for FNN-statistic minimization and false for L-statistic
 ## this is the expand! function, deconstructed to debug it
 r = MCDTS.Root()
 
@@ -24,7 +24,7 @@ r = MCDTS.Root()
 # next embedding step
 current_node = r
 
-τs, ts, Ls, converged = MCDTS.next_embedding(current_node,data,w, delays; FNN = FNN)
+τs, ts, Ls, converged = MCDTS.next_embedding(current_node,data,w, delays; FNN = FNN, Tw = 100)
 # spawn children
 println(Ls)
 children = []

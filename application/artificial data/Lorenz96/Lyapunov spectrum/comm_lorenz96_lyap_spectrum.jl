@@ -12,9 +12,9 @@ using DelimitedFiles
 
 N = 8 # number of oscillators
 # init lorenz96
-lo96 = Systems.lorenz96(N; F = .1)
+lo96 = Systems.lorenz96(N; F = 3.5)
 # check Lyapunox spectrum
-Fs = 2.5:0.01:6
+Fs = 3.5:0.002:5
 λs = zeros(length(Fs),N)
 for (i,F) in enumerate(Fs)
   println(i)
@@ -22,7 +22,7 @@ for (i,F) in enumerate(Fs)
   λs[i,:] = lyapunovs(lo96, 100000; Ttr = 10000)
 end
 
-writedlm("./application/artificial data/Lorenz96/Lyapunov spectrum/Lyaps_Lo96_N_$(N)_3.csv", λs)
+writedlm("./application/artificial data/Lorenz96/Lyapunov spectrum/Lyaps_Lo96_N_$(N)_4.csv", λs)
 
 ##
 using PyPlot
