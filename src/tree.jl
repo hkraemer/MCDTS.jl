@@ -114,7 +114,7 @@ compute as many conitnuity statistics as there are time series in the Dataset
 
 """
 function next_embedding(n::Node, Ys::Dataset{D, T}, w::Int, τs; KNN::Int = 3,
-                                        FNN::Bool = false) where {D, T<:Real}
+                            FNN::Bool = false, Tw::Int = 4*w) where {D, T<:Real}
     τs_old = get_τs(n)
     L_old = n.L
     ts_old = get_ts(n)
@@ -129,7 +129,7 @@ end
 
 The first embedding step
 """
-function next_embedding(n::Root, Ys::Dataset{D, T}, w::Int, τs; KNN::Int = 3, FNN::Bool = false) where {D, T<:Real}
+function next_embedding(n::Root, Ys::Dataset{D, T}, w::Int, τs; KNN::Int = 3, FNN::Bool = false, Tw::Int = 4*w) where {D, T<:Real}
     τ_pot = zeros(Int, size(Ys,2))
     ts_pot = Array(1:size(Ys,2))
     if FNN
@@ -137,7 +137,7 @@ function next_embedding(n::Root, Ys::Dataset{D, T}, w::Int, τs; KNN::Int = 3, F
     else
         L_pot = zeros(size(Ys,2))
         for i = 1:size(Ys,2)
-            L_pot[i] = uzal_cost(Dataset(Ys[:,i]); samplesize = 1, K = KNN, w = w, Tw = 4*w)
+            L_pot[i] = uzal_cost(Dataset(Ys[:,i]); samplesize = 1, K = KNN, w = w, Tw = Tw)
         end
     end
     return τ_pot, ts_pot, L_pot, false
@@ -217,7 +217,8 @@ This is one single rollout and backprop of the tree.
 * `choose_func`: Function to choose next node with
 """
 function expand!(n::Root, data::Dataset{D, T}, w::Int, choose_func,
-            delays = 0:100; max_depth::Int=20, KNN::Int=3, verbose=false, FNN::Bool = false) where {D, T<:Real}
+            delays = 0:100; max_depth::Int=20, KNN::Int=3, verbose=false,
+                            FNN::Bool = false, Tw::Int = 4*w) where {D, T<:Real}
     current_node = n
 
     for i=1:max_depth # loops until converged or max_depth is reached
@@ -225,7 +226,7 @@ function expand!(n::Root, data::Dataset{D, T}, w::Int, choose_func,
 
         # only if it was not already computed
         if current_node.children == nothing
-            τs, ts, Ls, converged = next_embedding(current_node, data, w, delays; KNN = KNN, FNN = FNN)
+            τs, ts, Ls, converged = next_embedding(current_node, data, w, delays; KNN = KNN, FNN = FNN, Tw = Tw)
             if converged
                 break
             else
@@ -274,14 +275,14 @@ end
 
 Do the monte carlo run with `N` trials, returns the tree.
 """
-function mc_delay(data, w, choose_func, delays, N::Int=40;  max_depth::Int=20, KNN::Int = 3, FNN::Bool = false, verbose::Bool=false)
+function mc_delay(data, w, choose_func, delays, N::Int=40;  max_depth::Int=20, KNN::Int = 3, FNN::Bool = false, verbose::Bool=false, Tw::Int = 4*w)
 
     # initialize tree
     tree = Root()
 
     for i=1:N
 
-        expand!(tree, data, w, choose_func, delays; KNN = KNN, FNN = FNN, max_depth = max_depth)
+        expand!(tree, data, w, choose_func, delays; KNN = KNN, FNN = FNN, max_depth = max_depth, Tw = Tw)
 
         if verbose
             if (i%1)==0
