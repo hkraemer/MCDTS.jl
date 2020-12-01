@@ -28,26 +28,24 @@ function drhcdyn!(du, u, p, t)
         du[9] = x33*(1-(x31^2+x32^2+x33^2)+e*x31^2-c*x32^2) + delta*(x13-x33)
 end
 
-# delta_dist = Uniform(0.,0.02)
-# delta = ()->rand(delta_dist)
-#
-# pars = [0.25, 0.2, delta()]
-pars = [0.25, 0.2, 0.0104]
+delta_dist = Uniform(0.,0.02)
+delta = ()->rand(delta_dist)
+
+pars = [0.25, 0.2, delta()]
 
 icdist = Uniform(0.1,0.9);
 ic = rand(icdist,9)
 
 ds = ContinuousDynamicalSystem(drhcdyn!, ic, pars)
-data = trajectory(ds,1000; dt = 0.2, Ttr = 2)
+data = trajectory(ds,1000; dt = 0.2, Ttr = 100)
 
 
 # set parameters
-FNN = true              # base cost function on FNN or L
 softmax_beta = 2.       # β-value for softmax function
 τs = 0:200              # possible delay values
 Trials = 50             # Trials for MCDTS
 rec_threshold = 0.08    # recurrence threshold for RQA etc.
-σ = 0.01                 # noise level
+σ = 0.005                 # noise level
 Ns = 5000:5000:5000  # encountered time series lengths
 
 # preallocation
@@ -73,97 +71,105 @@ ENTR = zeros(6,length(Ns))
 LAM = zeros(6,length(Ns))
 TRANS = zeros(6,length(Ns))
 
-for (i,N) in enumerate(Ns)
+#for (i,N) in enumerate(Ns)
+i = 1
+N = 5000
 
-    println("Run no: $i")
+println("Run no: $i")
 
-    tr = data[1:N,:]
-    tr = regularize(tr)
-    tr = Dataset(Matrix(tr) .+ σ.*randn(size(tr,1),size(tr,2)))
-    w1 = estimate_delay(tr[:,1],"mi_min")
-    w2 = estimate_delay(tr[:,2],"mi_min")
-    w3 = estimate_delay(tr[:,3],"mi_min")
-    w = maximum(hcat(w1,w2,w3))
+tr = data[1:N,:]
+tr = regularize(tr)
+tr = Dataset(Matrix(tr) .+ σ.*randn(size(tr,1),size(tr,2)))
+w1 = estimate_delay(tr[:,1],"mi_min")
+w2 = estimate_delay(tr[:,2],"mi_min")
+w3 = estimate_delay(tr[:,3],"mi_min")
+w4 = estimate_delay(tr[:,4],"mi_min")
+w5 = estimate_delay(tr[:,5],"mi_min")
+w6 = estimate_delay(tr[:,6],"mi_min")
+w7 = estimate_delay(tr[:,7],"mi_min")
+w8 = estimate_delay(tr[:,8],"mi_min")
+w9 = estimate_delay(tr[:,9],"mi_min")
+w = maximum(hcat(w1,w2,w3,w4,w5,w6,w7,w8,w9))
 
-    # MCDTS
-    tree = MCDTS.mc_delay(Dataset(tr[:,2]),w,(L)->(MCDTS.softmaxL(L,β=softmax_beta)),τs,Trials; FNN = FNN)
-    best_node = MCDTS.best_embedding(tree)
-    push!(τs_mcdts, best_node.τs)
-    push!(ts_mcdts, best_node.ts)
-    Y_mcdts = genembed(tr, Tuple(best_node.τs), Tuple(best_node.ts))
-    L[1,i] = best_node.L
-    dims[1,i] = size(Y_mcdts,2)
-    # multivariate
-    tree_m = MCDTS.mc_delay(tr,w,(L)->(MCDTS.softmaxL(L,β=softmax_beta)),τs,Trials; FNN = FNN)
-    best_node_m = MCDTS.best_embedding(tree_m)
-    push!(τs_mcdts_multi, best_node_m.τs)
-    push!(ts_mcdts_multi, best_node_m.ts)
-    Y_mcdts_m = genembed(tr, Tuple(best_node_m.τs), Tuple(best_node_m.ts))
-    L[4,i] = best_node_m.L
-    dims[4,i] = size(Y_mcdts_m,2)
+# MCDTS
+tree = MCDTS.mc_delay(Dataset(tr[:,2]),w2,(L)->(MCDTS.softmaxL(L,β=softmax_beta)),τs,Trials)
+best_node = MCDTS.best_embedding(tree)
+push!(τs_mcdts, best_node.τs)
+push!(ts_mcdts, best_node.ts)
+Y_mcdts = genembed(tr, Tuple(best_node.τs), Tuple(best_node.ts))
+L[1,i] = best_node.L
+dims[1,i] = size(Y_mcdts,2)
+# multivariate
+tree_m = MCDTS.mc_delay(tr,w,(L)->(MCDTS.softmaxL(L,β=softmax_beta)),τs,Trials)
+best_node_m = MCDTS.best_embedding(tree_m)
+push!(τs_mcdts_multi, best_node_m.τs)
+push!(ts_mcdts_multi, best_node_m.ts)
+Y_mcdts_m = genembed(tr, Tuple(best_node_m.τs), Tuple(best_node_m.ts))
+L[4,i] = best_node_m.L
+dims[4,i] = size(Y_mcdts_m,2)
 
 
-    # PECUZAL
-    Y_pec, τspec, tspec, Ls_pec, _ = MCDTS.pecuzal_embedding(tr[:,2]; τs = τs, w = w)
-    push!(τs_pec, τspec)
-    push!(ts_pec, tspec)
-    L[2,i] = minimum(Ls_pec)
-    dims[2,i] = size(Y_pec,2)
-    # multivariate
-    Y_pec_m, τspec_m, tspec_m, Ls_pec_m, _ = MCDTS.pecuzal_embedding(tr; τs = τs, w = w)
-    push!(τs_pec_multi, τspec_m)
-    push!(ts_pec_multi, tspec_m)
-    L[5,i] = minimum(Ls_pec_m)
-    dims[5,i] = size(Y_pec_m,2)
+# PECUZAL
+Y_pec, τspec, tspec, Ls_pec, _ = MCDTS.pecuzal_embedding(tr[:,2]; τs = τs, w = w2)
+push!(τs_pec, τspec)
+push!(ts_pec, tspec)
+L[2,i] = minimum(Ls_pec)
+dims[2,i] = size(Y_pec,2)
+# multivariate
+Y_pec_m, τspec_m, tspec_m, Ls_pec_m, _ = MCDTS.pecuzal_embedding(tr; τs = τs, w = w)
+push!(τs_pec_multi, τspec_m)
+push!(ts_pec_multi, tspec_m)
+L[5,i] = minimum(Ls_pec_m)
+dims[5,i] = size(Y_pec_m,2)
 
-    # TDE
-    Y_tde, tau_TDE, _ = MCDTS.standard_embedding_cao(tr[:,2])
-    L[3,i] = uzal_cost(Y_tde, Tw = (4*w), w = w, samplesize=1)
-    push!(τs_tde, [(i-1)*tau_TDE for i = 1:size(Y_tde,2)])
-    push!(ts_tde, fill(1, size(Y_tde,2)))
-    dims[3,i] = size(Y_tde,2)
+# TDE
+Y_tde, tau_TDE, _ = MCDTS.standard_embedding_cao(tr[:,2])
+L[3,i] = uzal_cost(Y_tde, Tw = (4*w), w = w2, samplesize=1)
+push!(τs_tde, [(i-1)*tau_TDE for i = 1:size(Y_tde,2)])
+push!(ts_tde, fill(1, size(Y_tde,2)))
+dims[3,i] = size(Y_tde,2)
 
-    # Peform analysis on the reconstructions
-    mfnn[1,i], mfnn[2,i], mfnn[3,i], jrrf[1,i], jrrf[2,i],
-    jrrf[3,i], RQA_ref, RQA1, RQA2, RQA3, _, _, _, _ =
-        MCDTS.perform_recurrence_analysis(tr, Dataset(Y_mcdts), Dataset(Y_pec),
-                    Dataset(Y_tde); ε = rec_threshold, w = w, kNN = 1)
-    # multivariate
-    mfnn[4,i], mfnn[5,i], _, jrrf[4,i], jrrf[5,i],
-    _, _, RQA1m, RQA2m, _, _, _, _, _ =
-        MCDTS.perform_recurrence_analysis(tr, Dataset(Y_mcdts_m), Dataset(Y_pec_m),
-                    Dataset(Y_tde); ε = rec_threshold, w = w, kNN = 1)
+# Peform analysis on the reconstructions
+mfnn[1,i], mfnn[2,i], mfnn[3,i], jrrf[1,i], jrrf[2,i],
+jrrf[3,i], RQA_ref, RQA1, RQA2, RQA3, _, _, _, _ =
+    MCDTS.perform_recurrence_analysis(tr, Dataset(Y_mcdts), Dataset(Y_pec),
+                Dataset(Y_tde); ε = rec_threshold, w = w, kNN = 5)
+# multivariate
+mfnn[4,i], mfnn[5,i], _, jrrf[4,i], jrrf[5,i],
+_, _, RQA1m, RQA2m, _, _, _, _, _ =
+    MCDTS.perform_recurrence_analysis(tr, Dataset(Y_mcdts_m), Dataset(Y_pec_m),
+                Dataset(Y_tde); ε = rec_threshold, w = w, kNN = 5)
 
-    RTE[1,i] = RQA_ref.RTE
-    ENTR[1,i] = RQA_ref.ENTR
-    LAM[1,i] = RQA_ref.LAM
-    TRANS[1,i] = RQA_ref.TRANS
+RTE[1,i] = RQA_ref.RTE
+ENTR[1,i] = RQA_ref.ENTR
+LAM[1,i] = RQA_ref.LAM
+TRANS[1,i] = RQA_ref.TRANS
 
-    RTE[2,i] = RQA1.RTE
-    ENTR[2,i] = RQA1.ENTR
-    LAM[2,i] = RQA1.LAM
-    TRANS[2,i] = RQA1.TRANS
+RTE[2,i] = RQA1.RTE
+ENTR[2,i] = RQA1.ENTR
+LAM[2,i] = RQA1.LAM
+TRANS[2,i] = RQA1.TRANS
 
-    RTE[3,i] = RQA2.RTE
-    ENTR[3,i] = RQA2.ENTR
-    LAM[3,i] = RQA2.LAM
-    TRANS[3,i] = RQA2.TRANS
+RTE[3,i] = RQA2.RTE
+ENTR[3,i] = RQA2.ENTR
+LAM[3,i] = RQA2.LAM
+TRANS[3,i] = RQA2.TRANS
 
-    RTE[4,i] = RQA3.RTE
-    ENTR[4,i] = RQA3.ENTR
-    LAM[4,i] = RQA3.LAM
-    TRANS[4,i] = RQA3.TRANS
+RTE[4,i] = RQA3.RTE
+ENTR[4,i] = RQA3.ENTR
+LAM[4,i] = RQA3.LAM
+TRANS[4,i] = RQA3.TRANS
 
-    RTE[5,i] = RQA1m.RTE
-    ENTR[5,i] = RQA1m.ENTR
-    LAM[5,i] = RQA1m.LAM
-    TRANS[5,i] = RQA1m.TRANS
+RTE[5,i] = RQA1m.RTE
+ENTR[5,i] = RQA1m.ENTR
+LAM[5,i] = RQA1m.LAM
+TRANS[5,i] = RQA1m.TRANS
 
-    RTE[6,i] = RQA2m.RTE
-    ENTR[6,i] = RQA2m.ENTR
-    LAM[6,i] = RQA2m.LAM
-    TRANS[6,i] = RQA2m.TRANS
-end
+RTE[6,i] = RQA2m.RTE
+ENTR[6,i] = RQA2m.ENTR
+LAM[6,i] = RQA2m.LAM
+TRANS[6,i] = RQA2m.TRANS
+#end
 
 println("Results for σ=$σ on ts lengths N=$Ns")
 
@@ -223,5 +229,3 @@ println("Transitivity_mcdts multi: $(abs.(TRANS[5,:].-TRANS[1,:]))")
 println("Transitivity_pec multi: $(abs.(TRANS[6,:].-TRANS[1,:]))")
 
 println("*******")
-
-println("Dimensionality of the reconstructions: $dims")
