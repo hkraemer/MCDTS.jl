@@ -120,7 +120,7 @@ function next_embedding(n::Node, Ys::Dataset{D, T}, w::Int, τs; KNN::Int = 3,
     ts_old = get_ts(n)
     # do the next embedding step
     τ_pot, ts_pot, L_pot, flag = give_potential_delays(Ys, τs, w, Tuple(τs_old),
-                                    Tuple(ts_old), L_old; KNN = KNN, FNN = FNN)
+                            Tuple(ts_old), L_old; KNN = KNN, FNN = FNN, Tw = Tw)
     return τ_pot, ts_pot, L_pot, flag
 end
 

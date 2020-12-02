@@ -9,14 +9,14 @@ pygui(true)
 using DelimitedFiles
 
 # determine from which trial you want to process the data
-trial = 1
+trial = 2
 
 # bind variables
-t_idx = vec(Int.(readdlm("./application/artificial data/Lorenz96/Results/trial $(trial)/chosen_time_series.csv")))
+t_idx = vec(Int.(readdlm("./application/artificial data/Lorenz96/Results/trial $(trial)/results_Lorenz96_N_8_chosen_time_series.csv")))
 
-tau_tde = Int.(readdlm("./application/artificial data/Lorenz96/Results/trial $(trial)/tau_tde.csv"))
-tau_pecs = readdlm("./application/artificial data/Lorenz96/Results/trial $(trial)/tau_pec.csv")
-tau_MCDTSs = readdlm("./application/artificial data/Lorenz96/Results/trial $(trial)/tau_MCDTS.csv")
+tau_tde = Int.(readdlm("./application/artificial data/Lorenz96/Results/trial $(trial)/results_Lorenz96_N_8_tau_tde.csv"))
+tau_pecs = readdlm("./application/artificial data/Lorenz96/Results/trial $(trial)/results_Lorenz96_N_8_tau_pec.csv")
+tau_MCDTSs = readdlm("./application/artificial data/Lorenz96/Results/trial $(trial)/results_Lorenz96_N_8_tau_MCDTS.csv")
 # convert taus into right shape in case of PECUZAL and MCDTS
 tau_pec = []
 tau_MCDTS = []
@@ -50,7 +50,7 @@ RQA_tde = readdlm("./application/artificial data/Lorenz96/Results/trial $(trial)
 RQA_pec = readdlm("./application/artificial data/Lorenz96/Results/trial $(trial)/results_Lorenz96_N_8_RQA_pec.csv")
 RQA_mcdts = readdlm("./application/artificial data/Lorenz96/Results/trial $(trial)/results_Lorenz96_N_8_RQA_mcdts.csv")
 
-Fs = = readdlm("./application/artificial data/Lorenz96/Results/trial $(trial)/results_Lorenz96_N_8_Fs.csv")
+Fs = readdlm("./application/artificial data/Lorenz96/Results/trial $(trial)/results_Lorenz96_N_8_Fs.csv")
 
 ##
 λs = readdlm("./application/artificial data/Lorenz96/Lyapunov spectrum/Lyaps_Lo96_N_8_4.csv")
@@ -59,7 +59,7 @@ pos_Lyap_idx = λs[:,1] .> 10^-3
 
 
 figure(figsize=(10,10))
-axis1 = subplot(411)
+axis1 = subplot(421)
 plot(F, λs)
 ylims1 = axis1.get_ylim()
 vlines(F[pos_Lyap_idx], ylims1[1], ylims1[2], linestyle="dashed", linewidth=0.5)
@@ -67,27 +67,62 @@ title("Lyaps")
 ylabel("embedding dimension")
 grid()
 
-axis2 = subplot(412)
+axis1 = subplot(422)
+plot(F, λs)
+ylims1 = axis1.get_ylim()
+vlines(F[pos_Lyap_idx], ylims1[1], ylims1[2], linestyle="dashed", linewidth=0.5)
+title("Lyaps")
+ylabel("embedding dimension")
+grid()
+
+axis2 = subplot(423)
 #plot(F, optimal_d_tde[:,1])
 plot(F, (L_tde[:,1]-L_mcdts))
+ylims2 = axis2.get_ylim()
+vlines(F[pos_Lyap_idx], ylims2[1], ylims2[2], linestyle="dashed", linewidth=0.5)
+title("TDE")
+ylabel("L_tde - L_mcdts")
+grid()
+
+axis2 = subplot(424)
+plot(F, optimal_d_tde[:,1])
+#plot(F, (L_tde[:,1]-L_mcdts))
 ylims2 = axis2.get_ylim()
 vlines(F[pos_Lyap_idx], ylims2[1], ylims2[2], linestyle="dashed", linewidth=0.5)
 title("TDE")
 ylabel("embedding dimension")
 grid()
 
-axis3 = subplot(413)
+axis3 = subplot(425)
 #plot(F, optimal_d_pec)
 plot(F, (L_pec-L_mcdts))
+ylims3 = axis3.get_ylim()
+vlines(F[pos_Lyap_idx], ylims3[1], ylims3[2], linestyle="dashed", linewidth=0.5)
+title("PECUZAL")
+ylabel("L_pec - L_mcdts")
+grid()
+
+axis3 = subplot(426)
+plot(F, optimal_d_pec)
+#plot(F, (L_pec-L_mcdts))
 ylims3 = axis3.get_ylim()
 vlines(F[pos_Lyap_idx], ylims3[1], ylims3[2], linestyle="dashed", linewidth=0.5)
 title("PECUZAL")
 ylabel("embedding dimension")
 grid()
 
-axis4 = subplot(414)
+axis4 = subplot(427)
 #plot(F, optimal_d_mcdts)
 plot(F, (L_mcdts-L_mcdts))
+ylims4 = axis4.get_ylim()
+vlines(F[pos_Lyap_idx], ylims4[1], ylims4[2], linestyle="dashed", linewidth=0.5)
+title("MCDTS")
+ylabel("L_mcdts - L_mcdts")
+grid()
+
+axis4 = subplot(428)
+plot(F, optimal_d_mcdts)
+#plot(F, (L_mcdts-L_mcdts))
 ylims4 = axis4.get_ylim()
 vlines(F[pos_Lyap_idx], ylims4[1], ylims4[2], linestyle="dashed", linewidth=0.5)
 title("MCDTS")
