@@ -34,7 +34,8 @@ addprocs(SlurmManager(N_worker))
     Tw = 100    # time window for obtaining the L-value
 
     # randomly pick 3 time series
-    t_idx = 2
+    t_idx = [2,4,7]
+    #t_idx = 2
 
     Random.seed!(1234)
     # init Lorenz96
@@ -53,29 +54,31 @@ results = @distributed (vcat) for i in eachindex(Fs)
     data_sample = data[:,t_idx]
 
     # for ts perform classic TDE
-    # τ_tde = zeros(Int,3)
-    # optimal_d_tde = zeros(Int,3)
-    # RQA_tde = zeros(15,3)
-    # L_tde = zeros(3)
-    # for i = 1:3
-    #     𝒟, τ_tde[i], _ = optimal_traditional_de(data_sample[:,i], "fnn"; dmax = dmax)
-    #     optimal_d_tde[i] = size(𝒟, 2)
-    #     R = RecurrenceMatrix(𝒟, ε; fixedrate = true)
-    #     RQA = rqa(R; theiler = τ_tde[i], lmin = lmin)
-    #     RQA_tde[:,i] = hcat(RQA...)
-    #     L_tde[i] = uzal_cost(regularize(𝒟); w = τ_tde[i], samplesize=1, Tw=Tw)
-    # end
-    𝒟, τ_tde, _ = optimal_traditional_de(data_sample, "fnn"; dmax = dmax)
-    optimal_d_tde = size(𝒟, 2)
-    R = RecurrenceMatrix(𝒟, ε; fixedrate = true)
-    RQA = rqa(R; theiler = τ_tde, lmin = lmin)
-    RQA_tde = hcat(RQA...)
-    L_tde = uzal_cost(regularize(𝒟); w = τ_tde, samplesize=1, Tw=Tw)
+    τ_tde = zeros(Int,3)
+    optimal_d_tde = zeros(Int,3)
+    RQA_tde = zeros(15,3)
+    L_tde = zeros(3)
+    for i = 1:3
+        𝒟, τ_tde[i], _ = optimal_traditional_de(data_sample[:,i], "fnn"; dmax = dmax)
+        optimal_d_tde[i] = size(𝒟, 2)
+        R = RecurrenceMatrix(𝒟, ε; fixedrate = true)
+        RQA = rqa(R; theiler = τ_tde[i], lmin = lmin)
+        RQA_tde[:,i] = hcat(RQA...)
+        L_tde[i] = uzal_cost(regularize(𝒟); w = τ_tde[i], samplesize=1, Tw=Tw)
+    end
+
+
+    # 𝒟, τ_tde, _ = optimal_traditional_de(data_sample, "fnn"; dmax = dmax)
+    # optimal_d_tde = size(𝒟, 2)
+    # R = RecurrenceMatrix(𝒟, ε; fixedrate = true)
+    # RQA = rqa(R; theiler = τ_tde, lmin = lmin)
+    # RQA_tde = hcat(RQA...)
+    # L_tde = uzal_cost(regularize(𝒟); w = τ_tde, samplesize=1, Tw=Tw)
 
 
     # PECUZAL
-    # theiler = Int(floor(mean(τ_tde)))
-    theiler = τ_tde
+    theiler = Int(floor(mean(τ_tde)))
+    #theiler = τ_tde
     𝒟_pec, τ_pec, ts_pec, Ls_pec , _ = pecuzal_embedding(data_sample; τs = taus , w = theiler, Tw = Tw)
     optimal_d_pec = size(𝒟_pec,2)
     R = RecurrenceMatrix(𝒟_pec, ε; fixedrate = true)
@@ -102,15 +105,15 @@ end
 
 end
 
-writedlm("results_Lorenz96_N_$(N)_1d_params.csv", params)
-writedlm("results_Lorenz96_N_$(N)_1d_Fs.csv", Fs)
+writedlm("results_Lorenz96_N_$(N)_3d_params.csv", params)
+writedlm("results_Lorenz96_N_$(N)_3d_Fs.csv", Fs)
 
 varnames = ["tau_tde", "optimal_d_tde", "RQA_tde", "L_tde",
     "tau_pec", "ts_pec", "optimal_d_pec", "RQA_pec", "L_pec",
     "tau_MCDTS", "ts_MCDTS", "optimal_d_mcdts", "RQA_mcdts", "L_mcdts"]
 
 for i = 1:length(varnames)
-    writestr = "results_Lorenz96_N_$(N)_1d_"*varnames[i]*".csv"
+    writestr = "results_Lorenz96_N_$(N)_3d_"*varnames[i]*".csv"
     data = []
     for j = 1:length(results)
         push!(data,results[j][i])

@@ -9,7 +9,12 @@ pygui(true)
 using DelimitedFiles
 
 # determine from which trial you want to process the data
-trial = 2
+# trial 1: N=8; Fs = 2.5:0.01:6, 3-dim input to PECUZAL AND MCDTS (50 trials), ts-length = 3000
+# trial 2: N=8; Fs = 3.5:0.002:5, 3-dim input to PECUZAL AND MCDTS (80 trials), ts-length = 5000
+# trial 3: N=8; Fs = 3.5:0.002:5, 1-dim input to PECUZAL AND MCDTS (80 trials), ts-length = 5000
+# trial 4: N=8; Fs = 3.5:0.002:5, 3-dim input to PECUZAL AND MCDTS (100 trials), ts-length = 5000
+
+trial = 4
 
 # bind variables
 t_idx = vec(Int.(readdlm("./application/artificial data/Lorenz96/Results/trial $(trial)/results_Lorenz96_N_8_chosen_time_series.csv")))
@@ -50,81 +55,84 @@ RQA_tde = readdlm("./application/artificial data/Lorenz96/Results/trial $(trial)
 RQA_pec = readdlm("./application/artificial data/Lorenz96/Results/trial $(trial)/results_Lorenz96_N_8_RQA_pec.csv")
 RQA_mcdts = readdlm("./application/artificial data/Lorenz96/Results/trial $(trial)/results_Lorenz96_N_8_RQA_mcdts.csv")
 
-Fs = readdlm("./application/artificial data/Lorenz96/Results/trial $(trial)/results_Lorenz96_N_8_Fs.csv")
-
+if trial == 1
+    Fs = 2.5:0.01:6
+else
+    Fs = readdlm("./application/artificial data/Lorenz96/Results/trial $(trial)/results_Lorenz96_N_8_Fs.csv")
+end
 ##
-λs = readdlm("./application/artificial data/Lorenz96/Lyapunov spectrum/Lyaps_Lo96_N_8_4.csv")
+λs = readdlm("./application/artificial data/Lorenz96/Lyapunov spectrum/Lyaps_Lo96_N_8_$(trial).csv")
 
 pos_Lyap_idx = λs[:,1] .> 10^-3
 
+non_embedding_idx = findall(optimal_d_pec.==1)
+n_e_i = [non_embedding_idx[i][1] for i in eachindex(non_embedding_idx)]
 
-figure(figsize=(10,10))
+l_width_vert = 0.1
+
+figure(figsize=(20,10))
 axis1 = subplot(421)
-plot(F, λs)
+plot(Fs, λs)
 ylims1 = axis1.get_ylim()
-vlines(F[pos_Lyap_idx], ylims1[1], ylims1[2], linestyle="dashed", linewidth=0.5)
+vlines(Fs[pos_Lyap_idx], ylims1[1], ylims1[2], linestyle="dashed", linewidth=l_width_vert)
 title("Lyaps")
 ylabel("embedding dimension")
 grid()
 
 axis1 = subplot(422)
-plot(F, λs)
+plot(Fs, λs)
 ylims1 = axis1.get_ylim()
-vlines(F[pos_Lyap_idx], ylims1[1], ylims1[2], linestyle="dashed", linewidth=0.5)
+vlines(Fs[pos_Lyap_idx], ylims1[1], ylims1[2], linestyle="dashed", linewidth=l_width_vert)
 title("Lyaps")
 ylabel("embedding dimension")
 grid()
 
 axis2 = subplot(423)
-#plot(F, optimal_d_tde[:,1])
-plot(F, (L_tde[:,1]-L_mcdts))
+plot(Fs, (L_tde[:,1]-L_mcdts))
 ylims2 = axis2.get_ylim()
-vlines(F[pos_Lyap_idx], ylims2[1], ylims2[2], linestyle="dashed", linewidth=0.5)
+vlines(Fs[pos_Lyap_idx], ylims2[1], ylims2[2], linestyle="dashed", linewidth=l_width_vert)
 title("TDE")
 ylabel("L_tde - L_mcdts")
 grid()
 
 axis2 = subplot(424)
-plot(F, optimal_d_tde[:,1])
-#plot(F, (L_tde[:,1]-L_mcdts))
+plot(Fs, optimal_d_tde[:,1])
 ylims2 = axis2.get_ylim()
-vlines(F[pos_Lyap_idx], ylims2[1], ylims2[2], linestyle="dashed", linewidth=0.5)
+vlines(Fs[pos_Lyap_idx], ylims2[1], ylims2[2], linestyle="dashed", linewidth=l_width_vert)
 title("TDE")
 ylabel("embedding dimension")
 grid()
 
 axis3 = subplot(425)
-#plot(F, optimal_d_pec)
-plot(F, (L_pec-L_mcdts))
+plot(Fs, (L_pec-L_mcdts))
+plot(Fs[n_e_i], (L_pec[n_e_i]-L_mcdts[n_e_i]),"*")
 ylims3 = axis3.get_ylim()
-vlines(F[pos_Lyap_idx], ylims3[1], ylims3[2], linestyle="dashed", linewidth=0.5)
+vlines(Fs[pos_Lyap_idx], ylims3[1], ylims3[2], linestyle="dashed", linewidth=l_width_vert)
 title("PECUZAL")
 ylabel("L_pec - L_mcdts")
 grid()
 
 axis3 = subplot(426)
-plot(F, optimal_d_pec)
-#plot(F, (L_pec-L_mcdts))
+plot(Fs, optimal_d_pec)
+plot(Fs[n_e_i], optimal_d_pec[n_e_i],"*")
 ylims3 = axis3.get_ylim()
-vlines(F[pos_Lyap_idx], ylims3[1], ylims3[2], linestyle="dashed", linewidth=0.5)
+vlines(Fs[pos_Lyap_idx], ylims3[1], ylims3[2], linestyle="dashed", linewidth=l_width_vert)
 title("PECUZAL")
 ylabel("embedding dimension")
 grid()
 
 axis4 = subplot(427)
-#plot(F, optimal_d_mcdts)
-plot(F, (L_mcdts-L_mcdts))
+plot(Fs, (L_mcdts-L_mcdts))
 ylims4 = axis4.get_ylim()
-vlines(F[pos_Lyap_idx], ylims4[1], ylims4[2], linestyle="dashed", linewidth=0.5)
+vlines(Fs[pos_Lyap_idx], ylims4[1], ylims4[2], linestyle="dashed", linewidth=l_width_vert)
 title("MCDTS")
 ylabel("L_mcdts - L_mcdts")
 grid()
 
 axis4 = subplot(428)
-plot(F, optimal_d_mcdts)
-#plot(F, (L_mcdts-L_mcdts))
+plot(Fs, optimal_d_mcdts)
 ylims4 = axis4.get_ylim()
-vlines(F[pos_Lyap_idx], ylims4[1], ylims4[2], linestyle="dashed", linewidth=0.5)
+vlines(Fs[pos_Lyap_idx], ylims4[1], ylims4[2], linestyle="dashed", linewidth=l_width_vert)
 title("MCDTS")
 ylabel("embedding dimension")
 grid()
@@ -132,37 +140,71 @@ grid()
 RQA_names = ["RR", "TRANS", "DET", "L_mean", "L_max", "DIV", "ENTR", "TREND",
     "LAM", "TT", "V_max", "V_ENTR", "MRT", "RTE", "NMPRT"]
 
-for RQA_val = 1:15
 
-    figure(figsize=(10,10))
-    axis1 = subplot(411)
-    plot(F, λs)
+for RQA_val = 1:2:14
+
+    figure(figsize=(20,10))
+    axis1 = subplot(421)
+    plot(Fs, λs)
     ylims1 = axis1.get_ylim()
-    vlines(F[pos_Lyap_idx], ylims1[1], ylims1[2], linestyle="dashed", linewidth=0.5)
+    vlines(Fs[pos_Lyap_idx], ylims1[1], ylims1[2], linestyle="dashed", linewidth=l_width_vert)
     title("Lyaps")
     grid()
 
-    axis2 = subplot(412)
-    plot(F, RQA_tde[:,RQA_val])
+    axis1 = subplot(422)
+    plot(Fs, λs)
+    ylims1 = axis1.get_ylim()
+    vlines(Fs[pos_Lyap_idx], ylims1[1], ylims1[2], linestyle="dashed", linewidth=l_width_vert)
+    title("Lyaps")
+    grid()
+
+    axis2 = subplot(423)
+    plot(Fs, RQA_tde[:,RQA_val])
     ylims2 = axis2.get_ylim()
-    vlines(F[pos_Lyap_idx], ylims2[1], ylims2[2], linestyle="dashed", linewidth=0.5)
+    vlines(Fs[pos_Lyap_idx], ylims2[1], ylims2[2], linestyle="dashed", linewidth=l_width_vert)
     title("TDE")
     ylabel(RQA_names[RQA_val])
     grid()
 
-    axis3 = subplot(413)
-    plot(F, RQA_pec[:,RQA_val])
+    axis2 = subplot(424)
+    plot(Fs, RQA_tde[:,RQA_val+1])
+    ylims2 = axis2.get_ylim()
+    vlines(Fs[pos_Lyap_idx], ylims2[1], ylims2[2], linestyle="dashed", linewidth=l_width_vert)
+    title("TDE")
+    ylabel(RQA_names[RQA_val+1])
+    grid()
+
+    axis3 = subplot(425)
+    plot(Fs, RQA_pec[:,RQA_val])
+    plot(Fs[n_e_i], RQA_pec[n_e_i,RQA_val],"*")
     ylims3 = axis3.get_ylim()
-    vlines(F[pos_Lyap_idx], ylims3[1], ylims3[2], linestyle="dashed", linewidth=0.5)
+    vlines(Fs[pos_Lyap_idx], ylims3[1], ylims3[2], linestyle="dashed", linewidth=l_width_vert)
     title("PECUZAL")
     ylabel(RQA_names[RQA_val])
     grid()
 
-    axis4 = subplot(414)
-    plot(F, RQA_mcdts[:,RQA_val])
+    axis3 = subplot(426)
+    plot(Fs, RQA_pec[:,RQA_val+1])
+    plot(Fs[n_e_i], RQA_pec[n_e_i,RQA_val+1],"*")
+    ylims3 = axis3.get_ylim()
+    vlines(Fs[pos_Lyap_idx], ylims3[1], ylims3[2], linestyle="dashed", linewidth=l_width_vert)
+    title("PECUZAL")
+    ylabel(RQA_names[RQA_val+1])
+    grid()
+
+    axis4 = subplot(427)
+    plot(Fs, RQA_mcdts[:,RQA_val])
     ylims4 = axis4.get_ylim()
-    vlines(F[pos_Lyap_idx], ylims4[1], ylims4[2], linestyle="dashed", linewidth=0.5)
+    vlines(Fs[pos_Lyap_idx], ylims4[1], ylims4[2], linestyle="dashed", linewidth=l_width_vert)
     title("MCDTS")
     ylabel(RQA_names[RQA_val])
+    grid()
+
+    axis4 = subplot(428)
+    plot(Fs, RQA_mcdts[:,RQA_val+1])
+    ylims4 = axis4.get_ylim()
+    vlines(Fs[pos_Lyap_idx], ylims4[1], ylims4[2], linestyle="dashed", linewidth=l_width_vert)
+    title("MCDTS")
+    ylabel(RQA_names[RQA_val+1])
     grid()
 end
