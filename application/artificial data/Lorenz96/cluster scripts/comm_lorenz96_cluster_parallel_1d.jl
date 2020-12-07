@@ -22,7 +22,7 @@ addprocs(SlurmManager(N_worker))
     # Parameters data:
     N = 8 # number of oscillators
     Fs = 3.5:0.002:5 # parameter spectrum
-    dt = 0.05 # sampling time
+    dt = 0.1 # sampling time
     total = 2500  # time series length
 
     # Parameters analysis:
@@ -33,7 +33,7 @@ addprocs(SlurmManager(N_worker))
     taus = 0:100 # possible delays
     Tw = 100    # time window for obtaining the L-value
 
-    # randomly pick 3 time series
+    # randomly pick one time series
     t_idx = 2
 
     Random.seed!(1234)
@@ -49,7 +49,7 @@ results = @distributed (vcat) for i in eachindex(Fs)
 
     F = Fs[i]
     set_parameter!(lo96, 1, F)
-    data = trajectory(lo96, total*dt; dt = 0.01, Ttr = 50)
+    data = trajectory(lo96, total*dt; dt = dt, Ttr = 2500 * dt)
     data_sample = data[:,t_idx]
 
     # for ts perform classic TDE

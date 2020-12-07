@@ -9,20 +9,20 @@ pygui(true)
 using DelimitedFiles
 
 # determine from which trial you want to process the data
-# trial 1: N=8; Fs = 2.5:0.01:6, 3-dim input to PECUZAL AND MCDTS (50 trials), ts-length = 3000
-# trial 2: N=8; Fs = 3.5:0.002:5, 3-dim input to PECUZAL AND MCDTS (80 trials), ts-length = 5000
-# trial 3: N=8; Fs = 3.5:0.002:5, 1-dim input to PECUZAL AND MCDTS (80 trials), ts-length = 5000
-# trial 4: N=8; Fs = 3.5:0.002:5, 3-dim input to PECUZAL AND MCDTS (100 trials), ts-length = 5000
+# trial 1: N=8; Fs = 3.5:0.002:5, MCDTS (80 trials), ts-length = 12500, dt = 0.01
+# trial 2: N=8; Fs = 3.5:0.002:5, MCDTS (80 trials), ts-length = 2500, dt = 0.1
 
-
-trial = 4
+trial = 1
+ts_trial = 1
 
 # bind variables
-t_idx = vec(Int.(readdlm("./application/artificial data/Lorenz96/Results/trial $(trial)/results_Lorenz96_N_8_chosen_time_series.csv")))
+params = readdlm("./application/artificial data/Lorenz96/Results/3 dimensional input/trial $(trial)/results_Lorenz96_N_8_3d_params.csv")
+N,dt,total,ε,dmax,lmin,trials,taus,Tw,t_idx = params
+Fs = readdlm("./application/artificial data/Lorenz96/Results/3 dimensional input/trial $(trial)/results_Lorenz96_N_8_3d_Fs.csv")
 
-tau_tde = Int.(readdlm("./application/artificial data/Lorenz96/Results/trial $(trial)/results_Lorenz96_N_8_tau_tde.csv"))
-tau_pecs = readdlm("./application/artificial data/Lorenz96/Results/trial $(trial)/results_Lorenz96_N_8_tau_pec.csv")
-tau_MCDTSs = readdlm("./application/artificial data/Lorenz96/Results/trial $(trial)/results_Lorenz96_N_8_tau_MCDTS.csv")
+tau_tde = Int.(readdlm("./application/artificial data/Lorenz96/Results/3 dimensional input/trial $(trial)/results_Lorenz96_N_8_3d_tau_tde.csv"))
+tau_pecs = readdlm("./application/artificial data/Lorenz96/Results/3 dimensional input/trial $(trial)/results_Lorenz96_N_8_3d_tau_pec.csv")
+tau_MCDTSs = readdlm("./application/artificial data/Lorenz96/Results/3 dimensional input/trial $(trial)/results_Lorenz96_N_8_3d_tau_MCDTS.csv")
 # convert taus into right shape in case of PECUZAL and MCDTS
 tau_pec = []
 tau_MCDTS = []
@@ -33,8 +33,8 @@ for i = 1:size(tau_pecs,1)
     push!(tau_MCDTS, tau_MCDTSs[i,index])
 end
 
-ts_pecs = readdlm("./application/artificial data/Lorenz96/Results/trial $(trial)/results_Lorenz96_N_8_ts_pec.csv")
-ts_MCDTSs = readdlm("./application/artificial data/Lorenz96/Results/trial $(trial)/results_Lorenz96_N_8_ts_MCDTS.csv")
+ts_pecs = readdlm("./application/artificial data/Lorenz96/Results/3 dimensional input/trial $(trial)/results_Lorenz96_N_8_3d_ts_pec.csv")
+ts_MCDTSs = readdlm("./application/artificial data/Lorenz96/Results/3 dimensional input/trial $(trial)/results_Lorenz96_N_8_3d_ts_MCDTS.csv")
 ts_pec = []
 ts_MCDTS = []
 for i = 1:size(ts_pecs,1)
@@ -44,25 +44,20 @@ for i = 1:size(ts_pecs,1)
     push!(ts_MCDTS, ts_MCDTSs[i,index])
 end
 
-optimal_d_tde = Int.(readdlm("./application/artificial data/Lorenz96/Results/trial $(trial)/results_Lorenz96_N_8_optimal_d_tde.csv"))
-optimal_d_pec = Int.(readdlm("./application/artificial data/Lorenz96/Results/trial $(trial)/results_Lorenz96_N_8_optimal_d_pec.csv"))
-optimal_d_mcdts = Int.(readdlm("./application/artificial data/Lorenz96/Results/trial $(trial)/results_Lorenz96_N_8_optimal_d_mcdts.csv"))
+optimal_d_tde = Int.(readdlm("./application/artificial data/Lorenz96/Results/3 dimensional input/trial $(trial)/results_Lorenz96_N_8_3d_optimal_d_tde.csv"))
+optimal_d_pec = Int.(readdlm("./application/artificial data/Lorenz96/Results/3 dimensional input/trial $(trial)/results_Lorenz96_N_8_3d_optimal_d_pec.csv"))
+optimal_d_mcdts = Int.(readdlm("./application/artificial data/Lorenz96/Results/3 dimensional input/trial $(trial)/results_Lorenz96_N_8_3d_optimal_d_mcdts.csv"))
 
-L_tde = readdlm("./application/artificial data/Lorenz96/Results/trial $(trial)/results_Lorenz96_N_8_L_tde.csv")
-L_pec = readdlm("./application/artificial data/Lorenz96/Results/trial $(trial)/results_Lorenz96_N_8_L_pec.csv")
-L_mcdts = readdlm("./application/artificial data/Lorenz96/Results/trial $(trial)/results_Lorenz96_N_8_L_mcdts.csv")
+L_tde = readdlm("./application/artificial data/Lorenz96/Results/3 dimensional input/trial $(trial)/results_Lorenz96_N_8_3d_L_tde.csv")
+L_pec = readdlm("./application/artificial data/Lorenz96/Results/3 dimensional input/trial $(trial)/results_Lorenz96_N_8_3d_L_pec.csv")
+L_mcdts = readdlm("./application/artificial data/Lorenz96/Results/3 dimensional input/trial $(trial)/results_Lorenz96_N_8_3d_L_mcdts.csv")
 
-RQA_tde = readdlm("./application/artificial data/Lorenz96/Results/trial $(trial)/results_Lorenz96_N_8_RQA_tde.csv")
-RQA_pec = readdlm("./application/artificial data/Lorenz96/Results/trial $(trial)/results_Lorenz96_N_8_RQA_pec.csv")
-RQA_mcdts = readdlm("./application/artificial data/Lorenz96/Results/trial $(trial)/results_Lorenz96_N_8_RQA_mcdts.csv")
+RQA_tde = readdlm("./application/artificial data/Lorenz96/Results/3 dimensional input/trial $(trial)/results_Lorenz96_N_8_3d_RQA_tde.csv")
+RQA_pec = readdlm("./application/artificial data/Lorenz96/Results/3 dimensional input/trial $(trial)/results_Lorenz96_N_8_3d_RQA_pec.csv")
+RQA_mcdts = readdlm("./application/artificial data/Lorenz96/Results/3 dimensional input/trial $(trial)/results_Lorenz96_N_8_3d_RQA_mcdts.csv")
 
-if trial == 1
-    Fs = 2.5:0.01:6
-else
-    Fs = readdlm("./application/artificial data/Lorenz96/Results/trial $(trial)/results_Lorenz96_N_8_Fs.csv")
-end
 ##
-λs = readdlm("./application/artificial data/Lorenz96/Lyapunov spectrum/Lyaps_Lo96_N_8_$(trial).csv")
+λs = readdlm("./application/artificial data/Lorenz96/Results/3 dimensional input/trial $(trial)/Lyaps_Lo96_N_8.csv")
 
 pos_Lyap_idx = λs[:,1] .> 10^-3
 
@@ -89,7 +84,7 @@ ylabel("embedding dimension")
 grid()
 
 axis2 = subplot(423)
-plot(Fs, (L_tde[:,1]-L_mcdts))
+plot(Fs, (L_tde[:,ts_trial]-L_mcdts))
 ylims2 = axis2.get_ylim()
 vlines(Fs[pos_Lyap_idx], ylims2[1], ylims2[2], linestyle="dashed", linewidth=l_width_vert)
 title("TDE")
@@ -97,7 +92,7 @@ ylabel("L_tde - L_mcdts")
 grid()
 
 axis2 = subplot(424)
-plot(Fs, optimal_d_tde[:,1])
+plot(Fs, optimal_d_tde[:,ts_trial])
 ylims2 = axis2.get_ylim()
 vlines(Fs[pos_Lyap_idx], ylims2[1], ylims2[2], linestyle="dashed", linewidth=l_width_vert)
 title("TDE")
