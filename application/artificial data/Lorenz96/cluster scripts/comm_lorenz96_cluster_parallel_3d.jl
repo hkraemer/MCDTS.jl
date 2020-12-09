@@ -23,7 +23,7 @@ addprocs(SlurmManager(N_worker))
     N = 8 # number of oscillators
     Fs = 3.5:0.002:5 # parameter spectrum
     dt = 0.1 # sampling time
-    total = 2500  # time series length
+    total = 5000  # time series length
 
     # Parameters analysis:
     ε = 0.05  # recurrence threshold
@@ -31,7 +31,7 @@ addprocs(SlurmManager(N_worker))
     lmin = 2   # minimum line length for RQA
     trials = 80 # trials for MCDTS
     taus = 0:100 # possible delays
-    Tw = 100    # time window for obtaining the L-value
+    #Tw = 100    # time window for obtaining the L-value
 
     # randomly pick 3 time series
     t_idx = [2,4,7]
@@ -49,11 +49,12 @@ end
 results = @distributed (vcat) for i in eachindex(Fs)
 
     F = Fs[i]
+    Random.seed!(1234)
     set_parameter!(lo96, 1, F)
     data = trajectory(lo96, total*dt; dt = dt, Ttr = 2500*dt)
     data_sample = data[:,t_idx]
 
-    # for ts perform classic TDE
+    # Traditional time delay embedding
     τ_tde = zeros(Int,3)
     optimal_d_tde = zeros(Int,3)
     RQA_tde = zeros(15,3)
@@ -64,18 +65,10 @@ results = @distributed (vcat) for i in eachindex(Fs)
         R = RecurrenceMatrix(𝒟, ε; fixedrate = true)
         RQA = rqa(R; theiler = τ_tde[i], lmin = lmin)
         RQA_tde[:,i] = hcat(RQA...)
-        L_tde[i] = uzal_cost(regularize(𝒟); w = τ_tde[i], samplesize=1, Tw=Tw)
+        L_tde[i] = uzal_cost(regularize(𝒟); w = τ_tde[i], samplesize=1, Tw = 4*τ_tde[1])
     end
-
-
-    # 𝒟, τ_tde, _ = optimal_traditional_de(data_sample, "fnn"; dmax = dmax)
-    # optimal_d_tde = size(𝒟, 2)
-    # R = RecurrenceMatrix(𝒟, ε; fixedrate = true)
-    # RQA = rqa(R; theiler = τ_tde, lmin = lmin)
-    # RQA_tde = hcat(RQA...)
-    # L_tde = uzal_cost(regularize(𝒟); w = τ_tde, samplesize=1, Tw=Tw)
-
-
+    Tw = 4*τ_tde[1]
+    
     # PECUZAL
     theiler = Int(floor(mean(τ_tde)))
     #theiler = τ_tde

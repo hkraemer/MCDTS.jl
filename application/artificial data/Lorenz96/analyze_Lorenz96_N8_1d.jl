@@ -9,10 +9,12 @@ pygui(true)
 using DelimitedFiles
 
 # determine from which trial you want to process the data
-# trial 1: N=8; Fs = 3.5:0.002:5, MCDTS (80 trials), ts-length = 12500, dt = 0.01
-# trial 2: N=8; Fs = 3.5:0.002:5, MCDTS (80 trials), ts-length = 2500, dt = 0.1
+# trial 1: N=8; Fs = 3.5:0.002:5, MCDTS (80 trials), ts-length = 12500, dt = 0.01, Tw = 100
+# trial 2: N=8; Fs = 3.5:0.002:5, MCDTS (80 trials), ts-length = 2500, dt = 0.1, Tw = 100
+# trial 3: N=8; Fs = 3.5:0.002:5, MCDTS (80 trials), ts-length = 5000, dt = 0.1, Tw = 100
+# trial 4: N=8; Fs = 3.5:0.002:5, MCDTS (80 trials), ts-length = 5000, dt = 0.1, Tw = 4*tau_tde
 
-trial = 1
+trial = 3
 
 # bind variables
 params = readdlm("./application/artificial data/Lorenz96/Results/1 dimensional input/trial $(trial)/results_Lorenz96_N_8_1d_params.csv")
