@@ -14,8 +14,9 @@ using DelimitedFiles
 # trial 3: N=8; Fs = 3.5:0.002:5, MCDTS (80 trials), ts-length = 5000, dt = 0.1, Tw = 100
 # trial 4: N=8; Fs = 3.5:0.002:5, MCDTS (80 trials), ts-length = 5000, dt = 0.1, Tw = 4*tau_tde
 # trial 5: N=8; Fs = 3.5:0.002:5, MCDTS (80 trials), ts-length = 5000, dt = 0.1, Tw = 4*tau_tde, fixed ic's
+# trial 6: N=8; Fs = 3.5:0.002:5, MCDTS (80 trials), ts-length = 5000, dt = 0.1, Tw = tau_tde, fixed ic's
 
-trial = 3
+trial = 4
 ts_trial = 1
 
 # bind variables

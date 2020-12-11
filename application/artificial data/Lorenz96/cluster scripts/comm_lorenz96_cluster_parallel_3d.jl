@@ -64,9 +64,9 @@ results = @distributed (vcat) for i in eachindex(Fs)
         R = RecurrenceMatrix(𝒟, ε; fixedrate = true)
         RQA = rqa(R; theiler = τ_tde[i], lmin = lmin)
         RQA_tde[:,i] = hcat(RQA...)
-        L_tde[i] = uzal_cost(regularize(𝒟); w = τ_tde[i], samplesize=1, Tw = 4*τ_tde[1])
+        L_tde[i] = uzal_cost(regularize(𝒟); w = τ_tde[i], samplesize=1, Tw = τ_tde[1])
     end
-    Tw = 4*τ_tde[1]
+    Tw = τ_tde[1]
 
     # PECUZAL
     theiler = Int(floor(mean(τ_tde)))
