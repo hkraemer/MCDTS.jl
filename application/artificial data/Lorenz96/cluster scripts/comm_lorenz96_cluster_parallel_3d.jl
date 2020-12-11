@@ -31,14 +31,14 @@ addprocs(SlurmManager(N_worker))
     lmin = 2   # minimum line length for RQA
     trials = 80 # trials for MCDTS
     taus = 0:100 # possible delays
-    #Tw = 100    # time window for obtaining the L-value
+    Tw = 0    # time window for obtaining the L-value
 
     # randomly pick 3 time series
     t_idx = [2,4,7]
     #t_idx = 2
 
-    Random.seed!(1234)
     # init Lorenz96
+    u0 = [0.590; 0.766; 0.566; 0.460; 0.794; 0.854; 0.200; 0.298]
     lo96 = Systems.lorenz96(N; F = 3.5)
 
     params = tuple(N,dt,total,ε,dmax,lmin,trials,taus,Tw,t_idx)
@@ -49,7 +49,6 @@ end
 results = @distributed (vcat) for i in eachindex(Fs)
 
     F = Fs[i]
-    Random.seed!(1234)
     set_parameter!(lo96, 1, F)
     data = trajectory(lo96, total*dt; dt = dt, Ttr = 2500*dt)
     data_sample = data[:,t_idx]
@@ -68,7 +67,7 @@ results = @distributed (vcat) for i in eachindex(Fs)
         L_tde[i] = uzal_cost(regularize(𝒟); w = τ_tde[i], samplesize=1, Tw = 4*τ_tde[1])
     end
     Tw = 4*τ_tde[1]
-    
+
     # PECUZAL
     theiler = Int(floor(mean(τ_tde)))
     #theiler = τ_tde
