@@ -16,7 +16,7 @@ using DelimitedFiles
 # trial 5: N=8; Fs = 3.5:0.002:5, MCDTS (80 trials), ts-length = 5000, dt = 0.1, Tw = 4*tau_tde, fixed ic's
 # trial 6: N=8; Fs = 3.5:0.002:5, MCDTS (80 trials), ts-length = 5000, dt = 0.1, Tw = tau_tde, fixed ic's
 
-trial = 5
+trial = 6
 
 # bind variables
 params = readdlm("./application/artificial data/Lorenz96/Results/1 dimensional input/trial $(trial)/results_Lorenz96_N_8_1d_params.csv")
