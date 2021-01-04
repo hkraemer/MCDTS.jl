@@ -31,17 +31,15 @@ addprocs(SlurmManager(N_worker))
     lmin = 2   # minimum line length for RQA
     trials = 80 # trials for MCDTS
     taus = 0:100 # possible delays
-    Tw = 0    # time window for obtaining the L-value
 
-    # randomly pick 3 time series
+    # pick 3 time series
     t_idx = [2,4,7]
-    #t_idx = 2
 
     # init Lorenz96
     u0 = [0.590; 0.766; 0.566; 0.460; 0.794; 0.854; 0.200; 0.298]
     lo96 = Systems.lorenz96(N; F = 3.5)
 
-    params = tuple(N,dt,total,ε,dmax,lmin,trials,taus,Tw,t_idx)
+    params = tuple(N,dt,total,ε,dmax,lmin,trials,taus,t_idx)
 end
 
 @time begin
@@ -64,22 +62,21 @@ results = @distributed (vcat) for i in eachindex(Fs)
         R = RecurrenceMatrix(𝒟, ε; fixedrate = true)
         RQA = rqa(R; theiler = τ_tde[i], lmin = lmin)
         RQA_tde[:,i] = hcat(RQA...)
-        L_tde[i] = uzal_cost(regularize(𝒟); w = τ_tde[i], samplesize=1, Tw = τ_tde[1])
+        τ_tdes = [(k-1)*τ_tde[i] for k = 1:optimal_d_tde[i]]
+        L_tde[i] = compute_delta_L(data_sample[:,i], τ_tdes, taus[end]; w = τ_tde[i])
     end
-    Tw = τ_tde[1]
 
     # PECUZAL
     theiler = Int(floor(mean(τ_tde)))
-    #theiler = τ_tde
-    𝒟_pec, τ_pec, ts_pec, Ls_pec , _ = pecuzal_embedding(data_sample; τs = taus , w = theiler, Tw = Tw)
+    𝒟_pec, τ_pec, ts_pec, Ls_pec , _ = MCDTS.pecuzal_embedding(data_sample; τs = taus , w = theiler)
     optimal_d_pec = size(𝒟_pec,2)
     R = RecurrenceMatrix(𝒟_pec, ε; fixedrate = true)
     RQA = rqa(R; theiler = theiler, lmin = lmin)
     RQA_pec = hcat(RQA...)
-    L_pec = minimum(Ls_pec)
+    L_pec = sum(Ls_pec)
 
     # MCDTS
-    tree = MCDTS.mc_delay(Dataset(data_sample), theiler, (L)->(MCDTS.softmaxL(L,β=2.)), taus, trials; Tw = Tw)
+    tree = MCDTS.mc_delay(Dataset(data_sample), theiler, (L)->(MCDTS.softmaxL(L,β=2.)), taus, trials)
     best_node = MCDTS.best_embedding(tree)
     𝒟_mcdts = genembed(data_sample, best_node.τs, best_node.ts)
     optimal_d_mcdts = size(𝒟_mcdts,2)

@@ -28,7 +28,6 @@ t_idx = rand(1:N, 3)
 # init Lorenz96
 lo96 = Systems.lorenz96(N; F = 2.5)
 
-
 # loop over different ic's
 results = []
 @time begin
@@ -71,9 +70,10 @@ for (i, F) in enumerate(Fs)
     L_mcdts = best_node.L
 
     # Output
-    push!(results,tuple(τ_tde, optimal_d_tde, RQA_tde, L_tde,
+    push!(results,tuple(t_idx, τ_tde, optimal_d_tde, RQA_tde, L_tde,
         τ_pec, ts_pec, optimal_d_pec, RQA_pec, L_pec,
         best_node.τs, best_node.ts, optimal_d_mcdts, RQA_mcdts, L_mcdts))
 
 end
 end
+writedlm("results_Lorenz98_N_$N.csv", results)
