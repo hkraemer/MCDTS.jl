@@ -1,6 +1,3 @@
-using Pkg
-current_dir = pwd()
-Pkg.activate(current_dir)
 import Random
 Random.seed!(1234)
 
@@ -17,11 +14,13 @@ w = maximum(hcat(w1,w2,w3))
 println("starting MCDTS univariate...")
 @time tree = MCDTS.mc_delay(Dataset(data[:,1]),w1,(L)->(MCDTS.softmaxL(L,β=2.)),0:100,15)
 println("..done")
-println(tree)
+best_node = MCDTS.best_embedding(tree)
+println(best_node)
 
 println("starting MCDTS univariate FNN...")
 @time tree = MCDTS.mc_delay(Dataset(data[:,1]),w1,(L)->(MCDTS.softmaxL(L,β=2.)),0:100,15; FNN = true)
 best_node = MCDTS.best_embedding(tree)
+println(best_node)
 YY = genembed(data[:,1],best_node.τs)
 YY = regularize(YY)
 L_YY = uzal_cost(YY; w = w1, Tw = 4*w1, samplesize=1)

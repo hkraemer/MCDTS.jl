@@ -57,7 +57,7 @@ L_tde[idx]
 # PECUZAL
 # theiler = Int(floor(mean(τ_tde)))
 theiler = τ_tdess
-𝒟_pecs, τ_pecs, ts_pecs, Ls_pecs , epss = pecuzal_embedding(data_sample; τs = taus , w = theiler, Tw = theiler)
+𝒟_pecs, τ_pecs, ts_pecs, Ls_pecs , epss = pecuzal_embedding(data_sample; τs = taus , w = theiler, Tw = 32)
 optimal_d_pecs = size(𝒟_pecs,2)
 R = RecurrenceMatrix(𝒟_pec, ε; fixedrate = true)
 RQA = rqa(R; theiler = theiler, lmin = lmin)
@@ -78,10 +78,48 @@ Lsss = zeros(100)
 ss = Dataset(data_sample)
 for Tw = 1:100
     Lsss[Tw] = uzal_cost(ss; Tw = Tw, w=theiler,samplesize=1)
-    Lss[Tw] = uzal_cost(DelayEmbeddings.hcat_lagged_values(ss, vec(Matrix(ss)), taus[max_idx[1]]); Tw = Tw, w=theiler,samplesize=1)
+    Lss[Tw] = uzal_cost(DelayEmbeddings.hcat_lagged_values(ss, vec(Matrix(ss)), taus[max_idx[1]])); Tw = Tw, w=theiler,samplesize=1)
 end
 figure()
 plot(1:100, Lss, label="multi")
 plot(1:100, Lsss, label="single")
 legend()
 grid()
+
+t = 1:1000
+data = sin.(2*π*t/60)
+
+figure()
+plot(data)
+
+
+𝒟_pecs, τ_pecs, ts_pecs, Ls_pecs , epss = pecuzal_embedding(data; τs = 0:200 , w = 15, Tw = 15)
+
+𝒟d, τ_tdess, _ = optimal_traditional_de(data, "fnn"; dmax = dmax)
+estimate_delay(data, "ac_zero")
+
+theiler = 1
+Lss = zeros(100)
+Lsss = zeros(100)
+ss = Dataset(data.+0.000001*randn(1000))
+ss = Dataset(randn(1000))
+for Tw = 1:100
+    Lsss[Tw] = uzal_cost(ss; Tw = Tw, w=theiler,samplesize=1)
+    Lss[Tw] = uzal_cost(DelayEmbeddings.hcat_lagged_values(ss, vec(Matrix(ss)), 1); Tw = Tw, w=theiler,samplesize=1)
+end
+figure()
+plot(1:100, Lss, label="multi")
+plot(1:100, Lsss, label="single")
+legend()
+grid()
+
+
+
+using DelimitedFiles
+data = readdlm("milankovitch_data.txt")
+
+milo_inso = data[:,5]
+
+w = estimate_delay(milo_inso, "mi_min")
+
+𝒟d, τ_tdess, _ = optimal_traditional_de(milo_inso, "fnn"; dmax = dmax)

@@ -24,12 +24,12 @@ r = MCDTS.Root()
 # next embedding step
 current_node = r
 
-τs, ts, Ls, converged = MCDTS.next_embedding(current_node,data,w, delays; FNN = FNN, Tw = 100)
+τs, ts, Ls, converged = MCDTS.next_embedding(current_node,data,w, delays; FNN = FNN)
 # spawn children
 println(Ls)
 children = []
 for i in eachindex(τs)
-    push!(children, MCDTS.Node(τs[i],ts[i],Ls[i],[MCDTS.get_τs(current_node);τs[i]], [MCDTS.get_ts(current_node);ts[i]], nothing))
+    push!(children, MCDTS.Node(τs[i],ts[i],(current_node.Lmin + Ls[i]),[MCDTS.get_τs(current_node);τs[i]], [MCDTS.get_ts(current_node);ts[i]], nothing))
 end
 current_node.children = children
 
@@ -41,7 +41,7 @@ current_node = MCDTS.choose_next_node(current_node, MCDTS.softmaxL)
 println(Ls)
 children = []
 for i in eachindex(τs)
-    push!(children, MCDTS.Node(τs[i],ts[i],Ls[i],[MCDTS.get_τs(current_node);τs[i]], [MCDTS.get_ts(current_node);ts[i]], nothing))
+    push!(children, MCDTS.Node(τs[i],ts[i],(current_node.L+ Ls[i]),[MCDTS.get_τs(current_node);τs[i]], [MCDTS.get_ts(current_node);ts[i]], nothing))
 end
 current_node.children = children
 
@@ -52,7 +52,7 @@ current_node = MCDTS.choose_next_node(current_node, MCDTS.softmaxL)
 println(Ls)
 children = []
 for i in eachindex(τs)
-    push!(children, MCDTS.Node(τs[i],ts[i],Ls[i],[MCDTS.get_τs(current_node);τs[i]], [MCDTS.get_ts(current_node);ts[i]], nothing))
+    push!(children, MCDTS.Node(τs[i],ts[i],(current_node.L+ Ls[i]),[MCDTS.get_τs(current_node);τs[i]], [MCDTS.get_ts(current_node);ts[i]], nothing))
 end
 current_node.children = children
 
@@ -62,7 +62,7 @@ current_node = MCDTS.choose_next_node(current_node, MCDTS.softmaxL)
 println(Ls)
 children = []
 for i in eachindex(τs)
-    push!(children, MCDTS.Node(τs[i],ts[i],Ls[i],[MCDTS.get_τs(current_node);τs[i]], [MCDTS.get_ts(current_node);ts[i]], nothing))
+    push!(children, MCDTS.Node(τs[i],ts[i],(current_node.L+ Ls[i]),[MCDTS.get_τs(current_node);τs[i]], [MCDTS.get_ts(current_node);ts[i]], nothing))
 end
 current_node.children = children
 
@@ -72,7 +72,7 @@ current_node = MCDTS.choose_next_node(current_node, MCDTS.softmaxL)
 println(Ls)
 children = []
 for i in eachindex(τs)
-    push!(children, MCDTS.Node(τs[i],ts[i],Ls[i],[MCDTS.get_τs(current_node);τs[i]], [MCDTS.get_ts(current_node);ts[i]], nothing))
+    push!(children, MCDTS.Node(τs[i],ts[i],(current_node.L+ Ls[i]),[MCDTS.get_τs(current_node);τs[i]], [MCDTS.get_ts(current_node);ts[i]], nothing))
 end
 current_node.children = children
 
@@ -82,7 +82,7 @@ current_node = MCDTS.choose_next_node(current_node, MCDTS.softmaxL)
 println(Ls)
 children = []
 for i in eachindex(τs)
-    push!(children, MCDTS.Node(τs[i],ts[i],Ls[i],[MCDTS.get_τs(current_node);τs[i]], [MCDTS.get_ts(current_node);ts[i]], nothing))
+    push!(children, MCDTS.Node(τs[i],ts[i],(current_node.L+ Ls[i]),[MCDTS.get_τs(current_node);τs[i]], [MCDTS.get_ts(current_node);ts[i]], nothing))
 end
 current_node.children = children
 
@@ -92,7 +92,7 @@ current_node = MCDTS.choose_next_node(current_node, MCDTS.softmaxL)
 println(Ls)
 children = []
 for i in eachindex(τs)
-    push!(children, MCDTS.Node(τs[i],ts[i],Ls[i],[MCDTS.get_τs(current_node);τs[i]], [MCDTS.get_ts(current_node);ts[i]], nothing))
+    push!(children, MCDTS.Node(τs[i],ts[i],(current_node.L+ Ls[i]),[MCDTS.get_τs(current_node);τs[i]], [MCDTS.get_ts(current_node);ts[i]], nothing))
 end
 current_node.children = children
 

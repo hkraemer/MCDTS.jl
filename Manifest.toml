@@ -186,9 +186,9 @@ version = "1.2.4"
 
 [[FFTW_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg"]
-git-tree-sha1 = "f10c3009373a2d5c4349b8a2932d8accb892892d"
+git-tree-sha1 = "5a0d4b6a22a34d17d53543bd124f4b08ed78e8b0"
 uuid = "f5851436-0d7a-5f13-b9de-f02708fd171a"
-version = "3.3.9+6"
+version = "3.3.9+7"
 
 [[FileWatching]]
 uuid = "7b1f6079-737a-58dc-b8bc-7a2ca5c1b5ee"
@@ -364,9 +364,9 @@ version = "0.4.7"
 
 [[Neighborhood]]
 deps = ["Distances", "NearestNeighbors", "Random", "Test"]
-git-tree-sha1 = "f77b854e2090db24e09697035d78b441666deb8e"
+git-tree-sha1 = "1227172718a5315452be1f30682072c7db604425"
 uuid = "645ca80c-8b79-4109-87ea-e1f58159d116"
-version = "0.2.0"
+version = "0.2.2"
 
 [[OffsetArrays]]
 git-tree-sha1 = "a416e2f267e2c8729f25bcaf1ce19d2893faf393"

@@ -1,7 +1,3 @@
-using Pkg
-current_dir = pwd()
-Pkg.activate(current_dir)
-
 using DynamicalSystems
 using DelayEmbeddings
 using MCDTS

@@ -1,7 +1,3 @@
-using Pkg
-current_dir = pwd()
-Pkg.activate(current_dir)
-
 using DynamicalSystemsBase
 import Base.show
 
@@ -19,13 +15,13 @@ The 'start'/root of Tree. Each node contains its children. The root contains the
 # Fields:
 
 * `children::Union{Array{Node,1},Nothing}`: The first nodes of the tree.
-* `Lmin`; Is the global minimum of the L statistic found so far.
+* `Lmin`; Is the global minimum of the cumulative ΔL statistic found so far.
 """
 mutable struct Root <: AbstractTreeElement
     children
     Lmin
 end
-Root()=Root(nothing,Inf)
+Root()=Root(nothing,0)
 get_τs(n::Root) = Int[]
 get_ts(n::Root) = Int[]
 function Base.show(io::IO,n::Root)
@@ -47,7 +43,7 @@ A node of the tree. Each node contains its children.
 # Fields:
 
 * `τ::Int`: The delay value of this node
-* `L::T`: The value of the L statistic at this node
+* `L::T`: The value of the cumulative ΔL statistic at this node
 * `τs::Array{Int,1}`: The complete vector with all τs chosen along this path up until this node
 * `ts::Array{Int,1}`: The complex vector which of the possibly multivariate time series is used at each embedding step i
 * `children::Union{Array{Node,1},Nothing}`: The children of this node
@@ -114,13 +110,13 @@ compute as many conitnuity statistics as there are time series in the Dataset
 
 """
 function next_embedding(n::Node, Ys::Dataset{D, T}, w::Int, τs; KNN::Int = 3,
-                            FNN::Bool = false, Tw::Int = 4*w) where {D, T<:Real}
+                            FNN::Bool = false) where {D, T<:Real}
     τs_old = get_τs(n)
-    L_old = n.L
     ts_old = get_ts(n)
+    L_old = n.L
     # do the next embedding step
     τ_pot, ts_pot, L_pot, flag = give_potential_delays(Ys, τs, w, Tuple(τs_old),
-                            Tuple(ts_old), L_old; KNN = KNN, FNN = FNN, Tw = Tw)
+                            Tuple(ts_old), L_old; KNN = KNN, FNN = FNN)
     return τ_pot, ts_pot, L_pot, flag
 end
 
@@ -129,24 +125,25 @@ end
 
 The first embedding step
 """
-function next_embedding(n::Root, Ys::Dataset{D, T}, w::Int, τs; KNN::Int = 3, FNN::Bool = false, Tw::Int = 4*w) where {D, T<:Real}
+function next_embedding(n::Root, Ys::Dataset{D, T}, w::Int, τs; KNN::Int = 3,
+                            FNN::Bool = false) where {D, T<:Real}
     τ_pot = zeros(Int, size(Ys,2))
     ts_pot = Array(1:size(Ys,2))
     if FNN
         L_pot = ones(size(Ys,2))
     else
         L_pot = zeros(size(Ys,2))
-        for i = 1:size(Ys,2)
-            L_pot[i] = uzal_cost(Dataset(Ys[:,i]); samplesize = 1, K = KNN, w = w, Tw = Tw)
-        end
     end
+
     return τ_pot, ts_pot, L_pot, false
 end
 
 """
     choose_next_node(n::Union{Node,Root}, func, Lmin_global)
 
-Returns one of the children of based on the function `func(Ls)->i_node`, Lmin_global is the best L value so far in the optimization process, if any of the input Ls to choose from is smaller than it, it is always chosen.
+Returns one of the children of based on the function `func(Ls)->i_node`,
+Lmin_global is the best L value so far in the optimization process, if any of
+the input Ls to choose from is smaller than it, it is always chosen.
 """
 function choose_next_node(n::Node,func, Lmin_global=-Inf)
     N = N_children(n)
@@ -218,7 +215,7 @@ This is one single rollout and backprop of the tree.
 """
 function expand!(n::Root, data::Dataset{D, T}, w::Int, choose_func,
             delays = 0:100; max_depth::Int=20, KNN::Int=3, verbose=false,
-                            FNN::Bool = false, Tw::Int = 4*w) where {D, T<:Real}
+                            FNN::Bool = false) where {D, T<:Real}
     current_node = n
 
     for i=1:max_depth # loops until converged or max_depth is reached
@@ -226,14 +223,23 @@ function expand!(n::Root, data::Dataset{D, T}, w::Int, choose_func,
 
         # only if it was not already computed
         if current_node.children == nothing
-            τs, ts, Ls, converged = next_embedding(current_node, data, w, delays; KNN = KNN, FNN = FNN, Tw = Tw)
+            τs, ts, Ls, converged = next_embedding(current_node, data, w, delays;
+                                                        KNN = KNN, FNN = FNN)
             if converged
                 break
             else
                 # spawn children
                 children = []
                 for j = 1:length(τs)
-                    push!(children, Node(τs[j],ts[j],Ls[j],[get_τs(current_node); τs[j]], [get_ts(current_node); ts[j]], nothing))
+                    if FNN
+                        push!(children, Node(τs[j],ts[j],Ls[j],[get_τs(current_node); τs[j]], [get_ts(current_node); ts[j]], nothing))
+                    else
+                        if typeof(current_node) == MCDTS.Root
+                            push!(children, Node(τs[j],ts[j],(current_node.Lmin+Ls[j]),[get_τs(current_node); τs[j]], [get_ts(current_node); ts[j]], nothing))
+                        else
+                            push!(children, Node(τs[j],ts[j],(current_node.L+Ls[j]),[get_τs(current_node); τs[j]], [get_ts(current_node); ts[j]], nothing))
+                        end
+                    end
                 end
                 current_node.children = children
             end
@@ -275,14 +281,14 @@ end
 
 Do the monte carlo run with `N` trials, returns the tree.
 """
-function mc_delay(data, w, choose_func, delays, N::Int=40;  max_depth::Int=20, KNN::Int = 3, FNN::Bool = false, verbose::Bool=false, Tw::Int = 4*w)
+function mc_delay(data, w, choose_func, delays, N::Int=40;  max_depth::Int=20, KNN::Int = 3, FNN::Bool = false, verbose::Bool=false)
 
     # initialize tree
     tree = Root()
 
     for i=1:N
 
-        expand!(tree, data, w, choose_func, delays; KNN = KNN, FNN = FNN, max_depth = max_depth, Tw = Tw)
+        expand!(tree, data, w, choose_func, delays; KNN = KNN, FNN = FNN, max_depth = max_depth)
 
         if verbose
             if (i%1)==0
