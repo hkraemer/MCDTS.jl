@@ -63,7 +63,7 @@ results = @distributed (vcat) for i in eachindex(Fs)
         RQA = rqa(R; theiler = τ_tde[i], lmin = lmin)
         RQA_tde[:,i] = hcat(RQA...)
         τ_tdes = [(k-1)*τ_tde[i] for k = 1:optimal_d_tde[i]]
-        L_tde[i] = compute_delta_L(data_sample[:,i], τ_tdes, taus[end]; w = τ_tde[i])
+        L_tde[i] = MCDTS.compute_delta_L(data_sample[:,i], τ_tdes, taus[end]; w = τ_tde[i])
     end
 
     # PECUZAL

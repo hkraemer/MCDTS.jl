@@ -9,7 +9,7 @@ pygui(true)
 using DelimitedFiles
 
 # determine from which trial you want to process the data
-# trial 1: N=8; Fs = 3.5:0.002:5, MCDTS (80 trials), ts-length = 5000, dt = 0.1, fixed ic's
+# trial 1: N=8; Fs = 3.5:0.004:5, MCDTS (80 trials), ts-length = 5000, dt = 0.1, fixed ic's
 
 trial = 1
 ts_trial = 1

@@ -1,22 +1,8 @@
+using MCDTS
 using DelayEmbeddings
 using DynamicalSystemsBase
 
-idxs = findall(optimal_d_pec .== 1)
-idx_uni = zeros(Int, length(idxs))
-for i = 1:length(idxs)
-    idx_uni[i] = idxs[i][1]
-end
 
-idxs = findall(optimal_d_pec .== 1)
-idx_multi = zeros(Int, length(idxs))
-for i = 1:length(idxs)
-    idx_multi[i] = idxs[i][1]
-end
-
-idx = idx_uni[1]
-
-
-F = Fs[idx]
 
 N = 8 # number of oscillators
 Fs = 3.5:0.002:5 # parameter spectrum

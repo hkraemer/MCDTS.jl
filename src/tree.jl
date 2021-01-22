@@ -87,7 +87,9 @@ end
 
 
 """
-    next_embedding(n::Node, Ys::Dataset{D, T}, w::Int, τs; KNN:Int = 3, FNN::Bool = false)
+    next_embedding(n::Node, Ys::Dataset{D, T}, w::Int, τs; KNN:Int = 3,
+                        FNN::Bool = false, threshold::Real = 0,
+                        tws::AbstractRange = 2:τs[end]) → τ_pot, ts_pot, L_pot, flag
 
 Performs the next embedding step. For the actual embedding contained in `n`
 compute as many conitnuity statistics as there are time series in the Dataset
@@ -100,6 +102,14 @@ compute as many conitnuity statistics as there are time series in the Dataset
   the L-statistic.
 * `FNN:Bool = false`: Determines whether the algorithm should minimize the
   L-statistic or the FNN-statistic.
+* `threshold::Real = 0`: The algorithm does not pick a peak from the continuity
+  statistic, when its corresponding `ΔL`/FNN-value exceeds this threshold. Please
+  provide a positive number for both, `L` and `FNN`-statistic option (since the
+  `ΔL`-values are negative numbers for meaningful embedding cycles, this threshold
+  gets internally sign-switched).
+* `tws::Range = 2:τs[end]`: Customization of the sampling of the different T's,
+  when computing Uzal's L-statistics. Here any kind of integer ranges (starting
+  at 2) are allowed, up to `τs[end]`.
 
 # Returns
 
@@ -110,13 +120,15 @@ compute as many conitnuity statistics as there are time series in the Dataset
 
 """
 function next_embedding(n::Node, Ys::Dataset{D, T}, w::Int, τs; KNN::Int = 3,
-                            FNN::Bool = false) where {D, T<:Real}
+                            FNN::Bool = false, tws::AbstractRange{Int} = 2:τs[end],
+                            threshold::Real = 0) where {D, T<:Real}
     τs_old = get_τs(n)
     ts_old = get_ts(n)
     L_old = n.L
     # do the next embedding step
     τ_pot, ts_pot, L_pot, flag = give_potential_delays(Ys, τs, w, Tuple(τs_old),
-                            Tuple(ts_old), L_old; KNN = KNN, FNN = FNN)
+                            Tuple(ts_old), L_old; KNN = KNN, FNN = FNN, tws = tws,
+                            threshold = threshold)
     return τ_pot, ts_pot, L_pot, flag
 end
 
@@ -126,7 +138,8 @@ end
 The first embedding step
 """
 function next_embedding(n::Root, Ys::Dataset{D, T}, w::Int, τs; KNN::Int = 3,
-                            FNN::Bool = false) where {D, T<:Real}
+                            FNN::Bool = false, tws::AbstractRange{Int} = 2:τs[end],
+                            threshold::Real = 0) where {D, T<:Real}
     τ_pot = zeros(Int, size(Ys,2))
     ts_pot = Array(1:size(Ys,2))
     if FNN
@@ -204,7 +217,8 @@ end
 
 """
     expand!(n::Union{Node,Root}, data::Dataset, w::Int, choose_func, delays;
-                                        max_depth=20, KNN=3, FNN=false)
+                            max_depth=20, KNN=3, FNN=false, L_threshold=0,
+                            tws=2:delays[end])
 
 This is one single rollout and backprop of the tree.
 
@@ -212,10 +226,34 @@ This is one single rollout and backprop of the tree.
 * `data`: data
 * `w`: Theiler Window
 * `choose_func`: Function to choose next node with
+* `delays = 0:100`: The possible time lags
+
+# Keyword arguments
+* `max_depth = 20`: Threshold, which determines the algorithm. It either breaks,
+  when it converges, i.e. when there is no way to reduce the cost-function any
+  further, or when this threshold is reached.
+* `KNN = 3`: The number of nearest neighbors considered in the computation of
+  the L-statistic.
+* `FNN:Bool = false`: Determines whether the algorithm should minimize the
+  L-statistic or the FNN-statistic.
+* `threshold::Real = 0`: The algorithm does not pick a peak from the continuity
+  statistic, when its corresponding `ΔL`/FNN-value exceeds this threshold. Please
+  provide a positive number for both, `L` and `FNN`-statistic option (since the
+  `ΔL`-values are negative numbers for meaningful embedding cycles, this threshold
+  gets internally sign-switched).
+* `tws::Range = 2:delays[end]`: Customization of the sampling of the different T's,
+  when computing Uzal's L-statistics. Here any kind of integer ranges (starting
+  at 2) are allowed, up to `delays[end]`.
+
 """
 function expand!(n::Root, data::Dataset{D, T}, w::Int, choose_func,
-            delays = 0:100; max_depth::Int=20, KNN::Int=3, verbose=false,
-                            FNN::Bool = false) where {D, T<:Real}
+            delays::AbstractRange{DT} = 0:100; max_depth::Int=20, KNN::Int=3,
+            verbose=false, FNN::Bool = false, tws::AbstractRange{DT} = 2:delays[end],
+            threshold::Real = 0) where {D, DT, T<:Real}
+
+    @assert threshold ≥ 0
+    @assert tws[1] == 2
+    @assert w > 0
     current_node = n
 
     for i=1:max_depth # loops until converged or max_depth is reached
@@ -224,7 +262,8 @@ function expand!(n::Root, data::Dataset{D, T}, w::Int, choose_func,
         # only if it was not already computed
         if current_node.children == nothing
             τs, ts, Ls, converged = next_embedding(current_node, data, w, delays;
-                                                        KNN = KNN, FNN = FNN)
+                                                KNN = KNN, FNN = FNN, tws = tws,
+                                                threshold = threshold)
             if converged
                 break
             else
@@ -281,14 +320,17 @@ end
 
 Do the monte carlo run with `N` trials, returns the tree.
 """
-function mc_delay(data, w, choose_func, delays, N::Int=40;  max_depth::Int=20, KNN::Int = 3, FNN::Bool = false, verbose::Bool=false)
+function mc_delay(data, w::Int, choose_func, delays::AbstractRange{D}, N::Int=40;
+            max_depth::Int=20, KNN::Int = 3, FNN::Bool = false, verbose::Bool=false,
+            tws::AbstractRange{D} = 2:delays[end], threshold::Real = 0) where {D}
 
     # initialize tree
     tree = Root()
 
     for i=1:N
 
-        expand!(tree, data, w, choose_func, delays; KNN = KNN, FNN = FNN, max_depth = max_depth)
+        expand!(tree, data, w, choose_func, delays; KNN = KNN, FNN = FNN,
+                    max_depth = max_depth, tws = tws, threshold = threshold)
 
         if verbose
             if (i%1)==0

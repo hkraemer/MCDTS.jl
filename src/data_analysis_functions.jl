@@ -305,7 +305,7 @@ This is similar to the procedure in [`genembed`]@ref. The computations are based
 on z-standardized input for ensuring comparability.
 """
 function compute_delta_L(s::Vector{T}, τs::Vector{Int}, T_max::Int;
-        KNN::Int = 3, w::Int = 1, metric = Euclidean()
+        KNN::Int = 3, w::Int = 1, metric = Euclidean(), tws::AbstractRange{Int} = 2:T_max
     ) where {T}
     ts = regularize(Dataset(s))
     tss = vec(Matrix(Dataset(ts)))
@@ -316,14 +316,16 @@ function compute_delta_L(s::Vector{T}, τs::Vector{Int}, T_max::Int;
         # embedding one cycle
         Y_next = DelayEmbeddings.hcat_lagged_values(Y_act, tss, τ)
         # compute ΔL for this cycle
-        ΔL += uzal_cost_pecuzal(Y_act, Y_next, T_max; K = KNN, w = w, metric = metric)
+        ΔL += uzal_cost_pecuzal_mcdts(Y_act, Y_next, T_max; K = KNN, w = w,
+                                                    metric = metric, tws = tws)
         Y_act = Y_next
     end
     return ΔL
 end
 
 function compute_delta_L(Y::Dataset{D, T}, τs::Vector{Int}, js::Vector{Int},
-        T_max::Int; KNN::Int = 3, w::Int = 1, metric = Euclidean()) where {D, T}
+        T_max::Int; KNN::Int = 3, w::Int = 1, metric = Euclidean(),
+        tws::AbstractRange{Int} = 2:T_max) where {D, T}
     @assert length(τs) == length(js)
     ts = regularize(Y)
     ΔL = 0
@@ -333,8 +335,8 @@ function compute_delta_L(Y::Dataset{D, T}, τs::Vector{Int}, js::Vector{Int},
         # embedding one cycle
         Y_next = DelayEmbeddings.hcat_lagged_values(Y_act, ts[:,js[i+1]], τ)
         # compute ΔL for this cycle
-        ΔL += uzal_cost_pecuzal(Y_act, Y_next, T_max; K = KNN, w = w,
-        metric = metric)
+        ΔL += uzal_cost_pecuzal_mcdts(Y_act, Y_next, T_max; K = KNN, w = w,
+                                                    metric = metric, tws = tws)
         Y_act = Y_next
     end
     return ΔL
