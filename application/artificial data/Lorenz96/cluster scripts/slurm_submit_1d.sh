@@ -2,7 +2,7 @@
 
 #SBATCH --qos=medium
 #SBATCH --partition=standard
-#SBATCH --job-name=mcdts_lo96_1d
+#SBATCH --job-name=lo96_1d
 #SBATCH --account=synet
 #SBATCH --output=name-%j.out
 #SBATCH --error=name-%j.err

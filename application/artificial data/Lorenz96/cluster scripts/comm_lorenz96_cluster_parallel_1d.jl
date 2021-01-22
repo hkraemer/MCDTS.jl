@@ -21,7 +21,7 @@ addprocs(SlurmManager(N_worker))
 
     # Parameters data:
     N = 8 # number of oscillators
-    Fs = 3.5:0.002:5 # parameter spectrum
+    Fs = 3.5:0.004:5 # parameter spectrum
     dt = 0.1 # sampling time
     total = 5000  # time series length
 
@@ -31,6 +31,7 @@ addprocs(SlurmManager(N_worker))
     lmin = 2   # minimum line length for RQA
     trials = 80 # trials for MCDTS
     taus = 0:100 # possible delays
+    L_threshold = 0.05 # threshold for minimum tolerable ΔL decrease per embedding cycle
 
     # pick one time series
     t_idx = 2
@@ -39,11 +40,11 @@ addprocs(SlurmManager(N_worker))
     u0 = [0.590; 0.766; 0.566; 0.460; 0.794; 0.854; 0.200; 0.298]
     lo96 = Systems.lorenz96(N, u0; F = 3.5)
 
-    params = tuple(N,dt,total,ε,dmax,lmin,trials,taus,t_idx)
+    params = tuple(N,dt,total,ε,dmax,lmin,trials,taus,t_idx,L_threshold)
 end
 
 @time begin
-# loop over different ic's
+# loop over different F's
 results = @distributed (vcat) for i in eachindex(Fs)
 
     F = Fs[i]
@@ -58,11 +59,11 @@ results = @distributed (vcat) for i in eachindex(Fs)
     RQA = rqa(R; theiler = τ_tde, lmin = lmin)
     RQA_tde = hcat(RQA...)
     τ_tdes = [(i-1)*τ_tde for i = 1:optimal_d_tde]
-    L_tde = MCDTS.compute_delta_L(data_sample, τ_tdes, taus[end]; w = τ_tde)
+    L_tde = MCDTS.compute_delta_L(data_sample, τ_tdes, taus[end]; w = τ_tde, tws = 2:2:taus[end])
 
     # PECUZAL
     theiler = τ_tde
-    𝒟_pec, τ_pec, ts_pec, Ls_pec , _ = MCDTS.pecuzal_embedding(data_sample; τs = taus , w = theiler)
+    𝒟_pec, τ_pec, ts_pec, Ls_pec , _ = DelayEmbeddings.pecuzal_embedding(data_sample; τs = taus , w = theiler, econ = true, L_threshold = L_threshold)
     optimal_d_pec = size(𝒟_pec,2)
     R = RecurrenceMatrix(𝒟_pec, ε; fixedrate = true)
     RQA = rqa(R; theiler = theiler, lmin = lmin)
@@ -70,7 +71,7 @@ results = @distributed (vcat) for i in eachindex(Fs)
     L_pec = sum(Ls_pec)
 
     # MCDTS
-    tree = MCDTS.mc_delay(Dataset(data_sample), theiler, (L)->(MCDTS.softmaxL(L,β=2.)), taus, trials)
+    tree = MCDTS.mc_delay(Dataset(data_sample), theiler, (L)->(MCDTS.softmaxL(L,β=2.)), taus, trials; tws = 2:2:taus[end], threshold = L_threshold, max_depth = 15)
     best_node = MCDTS.best_embedding(tree)
     𝒟_mcdts = genembed(data_sample, best_node.τs, best_node.ts)
     optimal_d_mcdts = size(𝒟_mcdts,2)
