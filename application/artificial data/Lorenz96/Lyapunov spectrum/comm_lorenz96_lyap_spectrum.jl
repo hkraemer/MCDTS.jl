@@ -1,7 +1,3 @@
-using Pkg
-current_dir = pwd()
-Pkg.activate(current_dir)
-
 using DynamicalSystems
 using MCDTS
 using DelimitedFiles
@@ -10,11 +6,11 @@ using DelimitedFiles
 # the reconstruction to the ones gained from PECUZAL and standard TDE. Here we
 # compute the Lyapunov spectra for a bunch of parameter-settings
 
-N = 8 # number of oscillators
+N = 40 # number of oscillators
 # init lorenz96
 lo96 = Systems.lorenz96(N; F = 3.5)
 # check Lyapunox spectrum
-Fs = 3.5:0.002:5
+Fs = 3.5:0.004:5
 λs = zeros(length(Fs),N)
 for (i,F) in enumerate(Fs)
   println(i)
@@ -22,7 +18,7 @@ for (i,F) in enumerate(Fs)
   λs[i,:] = lyapunovs(lo96, 100000; Ttr = 10000)
 end
 
-writedlm("./application/artificial data/Lorenz96/Lyapunov spectrum/Lyaps_Lo96_N_$(N)_4.csv", λs)
+writedlm("./application/artificial data/Lorenz96/Lyapunov spectrum/Lyaps_Lo96_N_$(N).csv", λs)
 
 ##
 using PyPlot
