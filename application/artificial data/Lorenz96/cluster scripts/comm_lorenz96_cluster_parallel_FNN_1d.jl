@@ -61,7 +61,7 @@ results = @distributed (vcat) for i in eachindex(Fs)
 
 
     # MCDTS
-    tree = MCDTS.mc_delay(Dataset(data_sample), theiler, (L)->(MCDTS.softmaxL(L,β=2.)),
+    tree = MCDTS.mc_delay(Dataset(data_sample), τ_tde, (L)->(MCDTS.softmaxL(L,β=2.)),
             taus, trials; tws = 2:2:taus[end], threshold = fnn_threshold, max_depth = 15, FNN = true)
     best_node = MCDTS.best_embedding(tree)
     𝒟_mcdts = genembed(data_sample, best_node.τs, best_node.ts)
