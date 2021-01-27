@@ -28,7 +28,7 @@ end
 results = @distributed (vcat) for i in eachindex(Fs)
     F = Fs[i]
     set_parameter!(lo96, 1, F)
-    λs = lyapunovs(lo96, 100000; Ttr = 10000)
+    λs = lyapunovspectrum(lo96, 100000; Ttr = 10000)
     # Output
     tuple(λs)
 end
