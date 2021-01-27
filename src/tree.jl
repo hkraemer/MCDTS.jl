@@ -1,4 +1,5 @@
 using DynamicalSystemsBase
+using DelayEmbeddings
 import Base.show
 
 abstract type AbstractTreeElement end
