@@ -33,23 +33,23 @@ addprocs(SlurmManager(N_worker))
     taus = 0:100 # possible delays
     L_threshold = 0 # threshold for minimum tolerable ΔL decrease per embedding cycle
 
-    # pick one time series
+    # pick 3 time series
     t_idx = 2
 
     # init Lorenz96
     u0 = [0.590; 0.766; 0.566; 0.460; 0.794; 0.854; 0.200; 0.298]
-    lo96 = Systems.lorenz96(N, u0; F = 3.5)
+    lo96 = Systems.lorenz96(N; F = 3.5)
 
     params = tuple(N,dt,total,ε,dmax,lmin,trials,taus,t_idx,L_threshold)
 end
 
 @time begin
-# loop over different F's
+# loop over different ic's
 results = @distributed (vcat) for i in eachindex(Fs)
 
     F = Fs[i]
     set_parameter!(lo96, 1, F)
-    data = trajectory(lo96, total*dt; dt = dt, Ttr = 2500 * dt)
+    data = trajectory(lo96, total*dt; dt = dt, Ttr = 2500*dt)
     data_sample = data[:,t_idx]
 
     # Traditional time delay embedding

@@ -1,11 +1,14 @@
 using MCDTS
 using DelayEmbeddings
 using DynamicalSystemsBase
+using DelimitedFiles
 
+using PyPlot
+pygui(true)
 
-
+# Parameters data:
 N = 8 # number of oscillators
-Fs = 3.5:0.002:5 # parameter spectrum
+Fs = 3.5:0.004:5 # parameter spectrum
 dt = 0.1 # sampling time
 total = 5000  # time series length
 
@@ -15,97 +18,68 @@ dmax = 10   # maximum dimension for traditional tde
 lmin = 2   # minimum line length for RQA
 trials = 80 # trials for MCDTS
 taus = 0:100 # possible delays
-Tw = 0  # time window for obtaining the L-value
 
-# randomly pick one time series
+# pick one time series
 t_idx = 2
-t_idx = [2,4,7]
+#t_idx = [2,4,7]
 
 # init Lorenz96
 u0 = [0.590; 0.766; 0.566; 0.460; 0.794; 0.854; 0.200; 0.298]
 lo96 = Systems.lorenz96(N, u0; F = 3.5)
 
+i = 370
+F = Fs[i]
+F = 4.8
 set_parameter!(lo96, 1, F)
 data = trajectory(lo96, total*dt; dt = dt, Ttr = 2500 * dt)
 data_sample = data[:,t_idx]
 
+
+figure()
+plot(data_sample)
+
 # Traditional time delay embedding
-𝒟d, τ_tdess, _ = optimal_traditional_de(data_sample[:,1], "fnn"; dmax = dmax)
-optimal_d_tdes = size(𝒟d, 2)
+𝒟, τ_tde, _ = optimal_traditional_de(data_sample, "fnn"; dmax = dmax)
+optimal_d_tde = size(𝒟, 2)
 R = RecurrenceMatrix(𝒟, ε; fixedrate = true)
 RQA = rqa(R; theiler = τ_tde, lmin = lmin)
 RQA_tde = hcat(RQA...)
-Tw = τ_tdess
-L_tdes = uzal_cost(regularize(𝒟d); w = τ_tdess, samplesize=1, Tw=Tw)
-tau_tde[idx]
-L_tde[idx]
+τ_tdes = [(i-1)*τ_tde for i = 1:optimal_d_tde]
+L_tde = MCDTS.compute_delta_L(data_sample, τ_tdes, taus[end]; w = τ_tde)
 
 # PECUZAL
-# theiler = Int(floor(mean(τ_tde)))
-theiler = τ_tdess
-𝒟_pecs, τ_pecs, ts_pecs, Ls_pecs , epss = pecuzal_embedding(data_sample; τs = taus , w = theiler, Tw = 32)
-optimal_d_pecs = size(𝒟_pecs,2)
+theiler = τ_tde
+@time 𝒟_pec, τ_pec, ts_pec, Ls_pec , _ = DelayEmbeddings.pecuzal_embedding(data_sample; τs = taus , w = theiler, econ = true, threshold = 0.05)
+optimal_d_pec = size(𝒟_pec,2)
 R = RecurrenceMatrix(𝒟_pec, ε; fixedrate = true)
 RQA = rqa(R; theiler = theiler, lmin = lmin)
 RQA_pec = hcat(RQA...)
-L_pecs = minimum(Ls_pecs)
-L_pec[idx]
-tau_pec[idx]
+L_pec = sum(Ls_pec)
 
-maxis, max_idx = DelayEmbeddings.get_maxima(vec(epss))
+# MCDTS
+@time tree = MCDTS.mc_delay(Dataset(data_sample), theiler, (L)->(MCDTS.softmaxL(L,β=2.)), taus, trials; tws = 2:2:taus[end], threshold = 0.05)
+best_node = MCDTS.best_embedding(tree)
+𝒟_mcdts = genembed(data_sample, best_node.τs, best_node.ts)
+optimal_d_mcdts = size(𝒟_mcdts,2)
+R = RecurrenceMatrix(𝒟_mcdts, ε; fixedrate = true)
+RQA = rqa(R; theiler = theiler, lmin = lmin)
+RQA_mcdts = hcat(RQA...)
+L_mcdts = best_node.L
 
-figure()
-plot(epss)
-scatter(taus[max_idx], maxis, marker="*")
+
+
+pwd()
+λs = readdlm("./application/artificial data/Lorenz96/Lyapunov spectrum/results_Lorenz96_N_40_lyapunovs.csv", ',', Any, '[')
+Fs = readdlm("./application/artificial data/Lorenz96/Lyapunov spectrum/results_Lorenz96_N_40_lyapunovs_Fs.csv")
+λs = λs[:,1:end-1]
+
+pos_Lyap_idx = λs[:,1] .> 10^-3
+
+l_width_vert = 0.1
+figure(figsize=(20,10))
+plot(Fs, λs)
+ylims1 = axis1.get_ylim()
+vlines(Fs[pos_Lyap_idx], ylims1[1], ylims1[2], linestyle="dashed", linewidth=l_width_vert)
+title("Lyaps")
+ylabel("embedding dimension")
 grid()
-
-Lss = zeros(100)
-Lsss = zeros(100)
-ss = Dataset(data_sample)
-for Tw = 1:100
-    Lsss[Tw] = uzal_cost(ss; Tw = Tw, w=theiler,samplesize=1)
-    Lss[Tw] = uzal_cost(DelayEmbeddings.hcat_lagged_values(ss, vec(Matrix(ss)), taus[max_idx[1]])); Tw = Tw, w=theiler,samplesize=1)
-end
-figure()
-plot(1:100, Lss, label="multi")
-plot(1:100, Lsss, label="single")
-legend()
-grid()
-
-t = 1:1000
-data = sin.(2*π*t/60)
-
-figure()
-plot(data)
-
-
-𝒟_pecs, τ_pecs, ts_pecs, Ls_pecs , epss = pecuzal_embedding(data; τs = 0:200 , w = 15, Tw = 15)
-
-𝒟d, τ_tdess, _ = optimal_traditional_de(data, "fnn"; dmax = dmax)
-estimate_delay(data, "ac_zero")
-
-theiler = 1
-Lss = zeros(100)
-Lsss = zeros(100)
-ss = Dataset(data.+0.000001*randn(1000))
-ss = Dataset(randn(1000))
-for Tw = 1:100
-    Lsss[Tw] = uzal_cost(ss; Tw = Tw, w=theiler,samplesize=1)
-    Lss[Tw] = uzal_cost(DelayEmbeddings.hcat_lagged_values(ss, vec(Matrix(ss)), 1); Tw = Tw, w=theiler,samplesize=1)
-end
-figure()
-plot(1:100, Lss, label="multi")
-plot(1:100, Lsss, label="single")
-legend()
-grid()
-
-
-
-using DelimitedFiles
-data = readdlm("milankovitch_data.txt")
-
-milo_inso = data[:,5]
-
-w = estimate_delay(milo_inso, "mi_min")
-
-𝒟d, τ_tdess, _ = optimal_traditional_de(milo_inso, "fnn"; dmax = dmax)

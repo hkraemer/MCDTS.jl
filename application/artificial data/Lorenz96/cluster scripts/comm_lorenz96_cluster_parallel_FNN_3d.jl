@@ -74,7 +74,7 @@ results = @distributed (vcat) for i in eachindex(Fs)
     𝒟_mcdts = genembed(data_sample, best_node.τs, best_node.ts)
     optimal_d_mcdts = size(𝒟_mcdts,2)
     R = RecurrenceMatrix(𝒟_mcdts, ε; fixedrate = true)
-    RQA = rqa(R; theiler = theiler, lmin = lmin)
+    RQA = rqa(R; theiler = maximum(τ_tde), lmin = lmin)
     RQA_mcdts = hcat(RQA...)
     FNN_mcdts = best_node.L
 
