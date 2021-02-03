@@ -20,7 +20,7 @@ addprocs(SlurmManager(N_worker))
     using Random
 
     # Parameters data:
-    N = 40 # number of oscillators
+    N = 8 # number of oscillators
     Fs = 3.5:0.004:5 # parameter spectrum
     dt = 0.1 # sampling time
     total = 5000  # time series length
@@ -34,11 +34,11 @@ addprocs(SlurmManager(N_worker))
     L_threshold = 0 # threshold for minimum tolerable ΔL decrease per embedding cycle
 
     # pick 3 time series
-    t_idx = [2,15,28]
+    t_idx = [2,4,7]
 
     # init Lorenz96
-    Random.seed!(1234)
-    lo96 = Systems.lorenz96(N; F = 3.5)
+    u0 = [0.590; 0.766; 0.566; 0.460; 0.794; 0.854; 0.200; 0.298]
+    lo96 = Systems.lorenz96(N, u0; F = 3.5)
 
     params = tuple(N,dt,total,ε,dmax,lmin,trials,taus,t_idx,L_threshold)
 end

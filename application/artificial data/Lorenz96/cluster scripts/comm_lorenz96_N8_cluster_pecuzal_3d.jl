@@ -20,7 +20,7 @@ addprocs(SlurmManager(N_worker))
     using Random
 
     # Parameters data:
-    N = 40 # number of oscillators
+    N = 8 # number of oscillators
     Fs = 3.5:0.004:5 # parameter spectrum
     dt = 0.1 # sampling time
     total = 5000  # time series length
@@ -34,11 +34,11 @@ addprocs(SlurmManager(N_worker))
     L_threshold = 0 # threshold for minimum tolerable ΔL decrease per embedding cycle
 
     # pick 3 time series
-    t_idx = [2,15,28]
+    t_idx = [2,4,7]
 
     # init Lorenz96
-    Random.seed!(1234)
-    lo96 = Systems.lorenz96(N; F = 3.5)
+    u0 = [0.590; 0.766; 0.566; 0.460; 0.794; 0.854; 0.200; 0.298]
+    lo96 = Systems.lorenz96(N, u0; F = 3.5)
 
     params = tuple(N,dt,total,ε,dmax,lmin,trials,taus,t_idx,L_threshold)
 end
@@ -52,22 +52,20 @@ results = @distributed (vcat) for i in eachindex(Fs)
     data = trajectory(lo96, total*dt; dt = dt, Ttr = 2500*dt)
     data_sample = data[:,t_idx]
 
-    # MCDTS
+    # PECUZAL
     w1 = DelayEmbeddings.estimate_delay(data_sample[:,1], "mi_min")
     w2 = DelayEmbeddings.estimate_delay(data_sample[:,2], "mi_min")
     w3 = DelayEmbeddings.estimate_delay(data_sample[:,3], "mi_min")
     theiler = maximum([w1,w2,w3])
-    tree = MCDTS.mc_delay(Dataset(data_sample), theiler, (L)->(MCDTS.softmaxL(L,β=2.)), taus, trials; tws = 2:2:taus[end], threshold = L_threshold, max_depth = 15)
-    best_node = MCDTS.best_embedding(tree)
-    𝒟_mcdts = genembed(data_sample, best_node.τs, best_node.ts)
-    optimal_d_mcdts = size(𝒟_mcdts,2)
-    R = RecurrenceMatrix(𝒟_mcdts, ε; fixedrate = true)
+    𝒟_pec, τ_pec, ts_pec, Ls_pec , _ = DelayEmbeddings.pecuzal_embedding(data_sample; τs = taus , w = theiler, econ = true, L_threshold = L_threshold)
+    optimal_d_pec = size(𝒟_pec,2)
+    R = RecurrenceMatrix(𝒟_pec, ε; fixedrate = true)
     RQA = rqa(R; theiler = theiler, lmin = lmin)
-    RQA_mcdts = hcat(RQA...)
-    L_mcdts = best_node.L
+    RQA_pec = hcat(RQA...)
+    L_pec = sum(Ls_pec)
 
     # Output
-    tuple(best_node.τs, best_node.ts, optimal_d_mcdts, RQA_mcdts, L_mcdts)
+    tuple(τ_pec, ts_pec, optimal_d_pec, RQA_pec, L_pec)
 
 end
 
@@ -76,7 +74,7 @@ end
 writedlm("results_Lorenz96_N_$(N)_3d_params.csv", params)
 writedlm("results_Lorenz96_N_$(N)_3d_Fs.csv", Fs)
 
-varnames = ["tau_MCDTS", "ts_MCDTS", "optimal_d_mcdts", "RQA_mcdts", "L_mcdts"]
+varnames = ["tau_pec", "ts_pec", "optimal_d_pec", "RQA_pec", "L_pec"]
 
 for i = 1:length(varnames)
     writestr = "results_Lorenz96_N_$(N)_3d_"*varnames[i]*".csv"

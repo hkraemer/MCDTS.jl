@@ -37,7 +37,7 @@ addprocs(SlurmManager(N_worker))
     t_idx = [2,15,28]
 
     # init Lorenz96
-    Random.seed(1234)
+    Random.seed!(1234)
     lo96 = Systems.lorenz96(N; F = 3.5)
 
     params = tuple(N,dt,total,ε,dmax,lmin,trials,taus,t_idx,L_threshold)
