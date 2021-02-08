@@ -64,6 +64,7 @@ RQA_ref = readdlm("./application/artificial data/Lorenz96/Results/Reference/resu
 λs = λs[1:2:end,:]
 pos_Lyap_idx = λs[:,1] .> 10^-3
 
+# find indices where PECUZAL does not perform an embedding
 non_embedding_idx = findall(optimal_d_pec.==1)
 n_e_i = [non_embedding_idx[i][1] for i in eachindex(non_embedding_idx)]
 
@@ -283,104 +284,126 @@ RQA_names = ["RR", "TRANS", "DET", "L_mean", "L_max", "DIV", "ENTR", "TREND",
 #     grid()
 # end
 
-for RQA_val = 1:2:14
+# for RQA_val = 1:2:14
+#
+#     figure(figsize=(20,10))
+#     subplots_adjust(hspace=0.4)
 
-    figure(figsize=(20,10))
-    axis1 = subplot(421)
-    plot(Fs, λs)
-    ylims1 = axis1.get_ylim()
-    vlines(Fs[pos_Lyap_idx], ylims1[1], ylims1[2], linestyle="dashed", linewidth=l_width_vert)
-    title("Lyaps")
-    grid()
+#     axis1 = subplot(421)
+#     plot(Fs, λs)
+#     ylims1 = axis1.get_ylim()
+#     vlines(Fs[pos_Lyap_idx], ylims1[1], ylims1[2], linestyle="dashed", linewidth=l_width_vert)
+#     title("Lyaps")
+#     grid()
+#
+#     axis1 = subplot(422)
+#     plot(Fs, λs)
+#     ylims1 = axis1.get_ylim()
+#     vlines(Fs[pos_Lyap_idx], ylims1[1], ylims1[2], linestyle="dashed", linewidth=l_width_vert)
+#     title("Lyaps")
+#     grid()
+#
+#     axis2 = subplot(423)
+#     plot(Fs, RQA_ref[:,RQA_val], label = "ref")
+#     plot(Fs, RQA_tde[:,RQA_val], label = "exp")
+#     plot(Fs, RQA_tde[:,RQA_val] .- RQA_ref[:,RQA_val], color = "red",label = "diff")
+#     ylims2 = axis2.get_ylim()
+#     legend()
+#     vlines(Fs[pos_Lyap_idx], ylims2[1], ylims2[2], linestyle="dashed", linewidth=l_width_vert)
+#     title("TDE (MSE: $(mean((RQA_tde[:,RQA_val] .- RQA_ref[:,RQA_val]).^2 ./ RQA_ref[:,RQA_val]))")
+#     ylabel(RQA_names[RQA_val])
+#     grid()
+#
+#     axis2 = subplot(424)
+#     plot(Fs, RQA_ref[:,RQA_val+1], label = "ref")
+#     plot(Fs, RQA_tde[:,RQA_val+1], label = "exp")
+#     plot(Fs, RQA_tde[:,RQA_val+1] .- RQA_ref[:,RQA_val+1], color = "red",label = "diff")
+#     ylims3 = axis2.get_ylim()
+#     legend()
+#     vlines(Fs[pos_Lyap_idx], ylims3[1], ylims3[2], linestyle="dashed", linewidth=l_width_vert)
+#     title("TDE (MSE: $(mean((RQA_tde[:,RQA_val+1] .- RQA_ref[:,RQA_val+1]).^2 ./ RQA_ref[:,RQA_val+1]))")
+#     ylabel(RQA_names[RQA_val+1])
+#     grid()
+#
+#     axis3 = subplot(425)
+#     var = RQA_pec[:,RQA_val] .- RQA_ref[:,RQA_val]
+#     plot(Fs, RQA_ref[:,RQA_val], label = "ref")
+#     plot(Fs, RQA_pec[:,RQA_val], label = "exp")
+#     plot(Fs, var, color = "red",label = "diff")
+#     plot(Fs[n_e_i], var[n_e_i],"*")
+#     legend()
+#     axis3.set_ylim(ylims2)
+#     #ylims3 = axis3.get_ylim()
+#     vlines(Fs[pos_Lyap_idx], ylims2[1], ylims2[2], linestyle="dashed", linewidth=l_width_vert)
+#     title("PECUZAL (MSE: $(mean((RQA_pec[:,RQA_val] .- RQA_ref[:,RQA_val]).^2 ./ RQA_ref[:,RQA_val]))")
+#     ylabel(RQA_names[RQA_val])
+#     grid()
+#
+#     axis3 = subplot(426)
+#     var2 = RQA_pec[:,RQA_val+1] .- RQA_ref[:,RQA_val+1]
+#     plot(Fs, RQA_ref[:,RQA_val+1], label = "ref")
+#     plot(Fs, RQA_pec[:,RQA_val+1], label = "exp")
+#     plot(Fs, var2, color = "red",label = "diff")
+#     plot(Fs[n_e_i], var2[n_e_i],"*")
+#     legend()
+#     axis3.set_ylim(ylims3)
+#     #ylims3 = axis3.get_ylim()
+#     vlines(Fs[pos_Lyap_idx], ylims3[1], ylims3[2], linestyle="dashed", linewidth=l_width_vert)
+#     title("PECUZAL (MSE: $(mean((RQA_pec[:,RQA_val+1] .- RQA_ref[:,RQA_val+1]).^2 ./ RQA_ref[:,RQA_val+1]))")
+#     ylabel(RQA_names[RQA_val+1])
+#     grid()
+#
+#     axis4 = subplot(427)
+#     var = RQA_mcdts[:,RQA_val] .- RQA_ref[:,RQA_val]
+#     plot(Fs, RQA_ref[:,RQA_val], label = "ref")
+#     plot(Fs, RQA_mcdts[:,RQA_val], label = "exp")
+#     plot(Fs, var, color = "red",label = "diff")
+#     legend()
+#     axis4.set_ylim(ylims2)
+#     #ylims4 = axis4.get_ylim()
+#     vlines(Fs[pos_Lyap_idx], ylims2[1], ylims2[2], linestyle="dashed", linewidth=l_width_vert)
+#     title("MCDTS (MSE: $(mean((RQA_mcdts[:,RQA_val] .- RQA_ref[:,RQA_val]).^2 ./ RQA_ref[:,RQA_val]))")
+#     ylabel(RQA_names[RQA_val])
+#     grid()
+#
+#     axis4 = subplot(428)
+#     var2 = RQA_mcdts[:,RQA_val+1] .- RQA_ref[:,RQA_val+1]
+#     plot(Fs, RQA_ref[:,RQA_val+1], label = "ref")
+#     plot(Fs, RQA_mcdts[:,RQA_val+1], label = "exp")
+#     plot(Fs, var2, color = "red", label = "diff")
+#     legend()
+#     axis4.set_ylim(ylims3)
+#     #ylims4 = axis4.get_ylim()
+#     vlines(Fs[pos_Lyap_idx], ylims3[1], ylims3[2], linestyle="dashed", linewidth=l_width_vert)
+#     title("MCDTS (MSE: $(mean((RQA_mcdts[:,RQA_val+1] .- RQA_ref[:,RQA_val+1]).^2 ./ RQA_ref[:,RQA_val+1]))")
+#     ylabel(RQA_names[RQA_val+1])
+#     grid()
+# end
 
-    axis1 = subplot(422)
-    plot(Fs, λs)
-    ylims1 = axis1.get_ylim()
-    vlines(Fs[pos_Lyap_idx], ylims1[1], ylims1[2], linestyle="dashed", linewidth=l_width_vert)
-    title("Lyaps")
-    grid()
-
-    axis2 = subplot(423)
-    plot(Fs, RQA_ref[:,RQA_val], label = "ref")
-    plot(Fs, RQA_tde[:,RQA_val], label = "exp")
-    plot(Fs, RQA_tde[:,RQA_val] .- RQA_ref[:,RQA_val], color = "red",label = "diff")
-    ylims2 = axis2.get_ylim()
-    legend()
-    vlines(Fs[pos_Lyap_idx], ylims2[1], ylims2[2], linestyle="dashed", linewidth=l_width_vert)
-    title("TDE (abs. DIFFS)")
-    ylabel(RQA_names[RQA_val])
-    grid()
-
-    axis2 = subplot(424)
-    plot(Fs, RQA_ref[:,RQA_val+1], label = "ref")
-    plot(Fs, RQA_tde[:,RQA_val+1], label = "exp")
-    plot(Fs, RQA_tde[:,RQA_val+1] .- RQA_ref[:,RQA_val+1], color = "red",label = "diff")
-    ylims3 = axis2.get_ylim()
-    legend()
-    vlines(Fs[pos_Lyap_idx], ylims3[1], ylims3[2], linestyle="dashed", linewidth=l_width_vert)
-    title("TDE (abs. DIFFS)")
-    ylabel(RQA_names[RQA_val+1])
-    grid()
-
-    axis3 = subplot(425)
-    var = RQA_pec[:,RQA_val] .- RQA_ref[:,RQA_val]
-    plot(Fs, RQA_ref[:,RQA_val], label = "ref")
-    plot(Fs, RQA_pec[:,RQA_val], label = "exp")
-    plot(Fs, var, color = "red",label = "diff")
-    plot(Fs[n_e_i], var[n_e_i],"*")
-    legend()
-    axis3.set_ylim(ylims2)
-    #ylims3 = axis3.get_ylim()
-    vlines(Fs[pos_Lyap_idx], ylims2[1], ylims2[2], linestyle="dashed", linewidth=l_width_vert)
-    title("PECUZAL (abs. DIFFS)")
-    ylabel(RQA_names[RQA_val])
-    grid()
-
-    axis3 = subplot(426)
-    var2 = RQA_pec[:,RQA_val+1] .- RQA_ref[:,RQA_val+1]
-    plot(Fs, RQA_ref[:,RQA_val+1], label = "ref")
-    plot(Fs, RQA_pec[:,RQA_val+1], label = "exp")
-    plot(Fs, var2, color = "red",label = "diff")
-    plot(Fs[n_e_i], var2[n_e_i],"*")
-    legend()
-    axis3.set_ylim(ylims3)
-    #ylims3 = axis3.get_ylim()
-    vlines(Fs[pos_Lyap_idx], ylims3[1], ylims3[2], linestyle="dashed", linewidth=l_width_vert)
-    title("PECUZAL (abs. DIFFS)")
-    ylabel(RQA_names[RQA_val+1])
-    grid()
-
-    axis4 = subplot(427)
-    var = RQA_mcdts[:,RQA_val] .- RQA_ref[:,RQA_val]
-    plot(Fs, RQA_ref[:,RQA_val], label = "ref")
-    plot(Fs, RQA_mcdts[:,RQA_val], label = "exp")
-    plot(Fs, var, color = "red",label = "diff")
-    legend()
-    axis4.set_ylim(ylims2)
-    #ylims4 = axis4.get_ylim()
-    vlines(Fs[pos_Lyap_idx], ylims2[1], ylims2[2], linestyle="dashed", linewidth=l_width_vert)
-    title("MCDTS (abs. DIFFS)")
-    ylabel(RQA_names[RQA_val])
-    grid()
-
-    axis4 = subplot(428)
-    var2 = RQA_mcdts[:,RQA_val+1] .- RQA_ref[:,RQA_val+1]
-    plot(Fs, RQA_ref[:,RQA_val+1], label = "ref")
-    plot(Fs, RQA_mcdts[:,RQA_val+1], label = "exp")
-    plot(Fs, var2, color = "red", label = "diff")
-    legend()
-    axis4.set_ylim(ylims3)
-    #ylims4 = axis4.get_ylim()
-    vlines(Fs[pos_Lyap_idx], ylims3[1], ylims3[2], linestyle="dashed", linewidth=l_width_vert)
-    title("MCDTS (abs. DIFFS)")
-    ylabel(RQA_names[RQA_val+1])
-    grid()
-end
-
-# compute mean squared errors
+# compute (relative) mean squared errors
+cnt = 0
+cnt2 = 0
 for i = 1:size(RQA_ref,2)
-    println("MSE TDE $(RQA_names[i]):  $(mean((RQA_tde[:,i] .- RQA_ref[:,i]).^2))")
-    println("MSE PEC $(RQA_names[i]):  $(mean((RQA_pec[:,i] .- RQA_ref[:,i]).^2))")
-    println("MSE MCDTS $(RQA_names[i]):  $(mean((RQA_mcdts[:,i] .- RQA_ref[:,i]).^2))")
+    global cnt
+    global cnt2
+
+    RQA_ref_ = deleteat!(RQA_ref[:,i], n_e_i)
+    RQA_tde_ = deleteat!(RQA_tde[:,i], n_e_i)
+    RQA_pec_ = deleteat!(RQA_pec[:,i], n_e_i)
+    RQA_mcdts_ = deleteat!(RQA_mcdts[:,i], n_e_i)
+
+    println("MSE TDE $(RQA_names[i]):  $(mean((RQA_tde_ .- RQA_ref_).^2 ./ RQA_ref_))")
+    println("MSE PEC $(RQA_names[i]):  $(mean((RQA_pec_ .- RQA_ref_).^2 ./ RQA_ref_))")
+    println("MSE MCDTS $(RQA_names[i]):  $(mean((RQA_mcdts_ .- RQA_ref_).^2 ./ RQA_ref_))")
+
+    if i>1 && mean((RQA_mcdts_ .- RQA_ref_).^2 ./ RQA_ref_) < mean((RQA_tde_ .- RQA_ref_).^2 ./ RQA_ref_)
+        cnt2 += 1
+    end
+
+    if i>1 && mean((RQA_pec_ .- RQA_ref_).^2 ./ RQA_ref_) < mean((RQA_tde_ .- RQA_ref_).^2 ./ RQA_ref_)
+        cnt += 1
+    end
     println("*******************")
 end
+println("PEC: $cnt / $(size(RQA_ref,2)-1)")
+println("MCDTS: $cnt2 / $(size(RQA_ref,2)-1)")
