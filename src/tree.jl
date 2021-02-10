@@ -153,13 +153,13 @@ function next_embedding(n::Root, Ys::Dataset{D, T}, w::Int, τs; KNN::Int = 3,
 end
 
 """
-    choose_next_node(n::Union{Node,Root}, func, Lmin_global)
+    choose_next_node(n::Union{Node,Root}, func, Lmin_global,i_trial::Int=1)
 
 Returns one of the children of based on the function `func(Ls)->i_node`,
 Lmin_global is the best L value so far in the optimization process, if any of
-the input Ls to choose from is smaller than it, it is always chosen.
+the input Ls to choose from is smaller than it, it is always chosen. `choose_mode` is only relevant for the first embedding step right now: it determines if the first step is chosen uniform (`choose_mode==0`) or with the `func` (`choose_mode==1`).
 """
-function choose_next_node(n::Node,func, Lmin_global=-Inf)
+function choose_next_node(n::Node,func, Lmin_global=-Inf,choose_mode=1)
     N = N_children(n)
     if N == 0
         return nothing
@@ -171,7 +171,7 @@ function choose_next_node(n::Node,func, Lmin_global=-Inf)
         Lmins = findall(Ls .< Lmin_global)
 
         if isempty(Lmins)
-            return n.children[func(get_children_Ls(n))]
+            return n.children[func(Ls)]
         else
             return n.children[argmin(Ls)]
         end
@@ -179,18 +179,23 @@ function choose_next_node(n::Node,func, Lmin_global=-Inf)
 end
 
 """
-    choose_next_node(n::Union{Node,Root}, func, Lmin_global)
+    choose_next_node(n::Union{Node,Root}, func, Lmin_global, choose_mode)
 
 Returns one of the children of based on the function `func(Ls)->i_node`
 """
-function choose_next_node(n::Root,func,Lmin_global=-Inf)
+function choose_next_node(n::Root,func,Lmin_global=-Inf, i_trial::Int=1, choose_mode=0)
     N = N_children(n)
     if N == 0
         return nothing
     elseif N == 1
         return n.children[1]
     else
-        return n.children[rand(1:N)]
+        if choose_mode==0
+            return n.children[rand(1:N)]
+        elseif choose_mode==1
+            Ls = get_children_Ls(n)
+            return n.children[func(Ls)]
+        end
     end
 end
 
@@ -245,12 +250,13 @@ This is one single rollout and backprop of the tree.
 * `tws::Range = 2:delays[end]`: Customization of the sampling of the different T's,
   when computing Uzal's L-statistics. Here any kind of integer ranges (starting
   at 2) are allowed, up to `delays[end]`.
+* `choose_mode::Int=0`: Possibility for different modes of choosing the next node based on which trial this is.
 
 """
 function expand!(n::Root, data::Dataset{D, T}, w::Int, choose_func,
             delays::AbstractRange{DT} = 0:100; max_depth::Int=20, KNN::Int=3,
             verbose=false, FNN::Bool = false, tws::AbstractRange{DT} = 2:delays[end],
-            threshold::Real = 0) where {D, DT, T<:Real}
+            threshold::Real = 0, choose_mode::Int=0) where {D, DT, T<:Real}
 
     @assert threshold ≥ 0
     @assert tws[1] == 2
@@ -286,7 +292,7 @@ function expand!(n::Root, data::Dataset{D, T}, w::Int, choose_func,
         end
 
         # choose next node
-        current_node = choose_next_node(current_node, choose_func, n.Lmin)
+        current_node = choose_next_node(current_node, choose_func, n.Lmin, choose_mode)
         if verbose
             println(current_node)
         end
@@ -331,7 +337,7 @@ function mc_delay(data, w::Int, choose_func, delays::AbstractRange{D}, N::Int=40
     for i=1:N
 
         expand!(tree, data, w, choose_func, delays; KNN = KNN, FNN = FNN,
-                    max_depth = max_depth, tws = tws, threshold = threshold)
+                    max_depth = max_depth, tws = tws, threshold = threshold, choose_mode=i<(N/2) ? 0 : 1)
 
         if verbose
             if (i%1)==0
