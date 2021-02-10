@@ -16,7 +16,7 @@ N = 8
 trial = 1
 
 # determine the tde method; #1 Cao, #2 Kennel, #3 Hegger
-tde = 3
+tde = 1
 
 # bind variables
 params = readdlm("./application/artificial data/Lorenz96/Results/3 dimensional input/trial $(trial)/results_Lorenz96_N_$(N)_FNN_3d_params.csv")

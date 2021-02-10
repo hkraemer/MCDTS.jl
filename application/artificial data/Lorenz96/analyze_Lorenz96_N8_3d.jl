@@ -13,10 +13,10 @@ using Statistics
 # trial 1: N=8; Fs = 3.5:0.004:5, MCDTS (80 trials), ts-length = 5000, dt = 0.1, fixed ic's, L_thres = 0.05
 # trial 2: N=8; Fs = 3.5:0.004:5, MCDTS (80 trials), ts-length = 5000, dt = 0.1, fixed ic's, L_thres = 0
 
-trial = 1
+trial = 2
 ts_trial = 2
 # determine the tde method; #1 Cao, #2 Kennel, #3 Hegger
-tde = 2
+tde = 1
 
 # bind variables
 params = readdlm("./application/artificial data/Lorenz96/Results/3 dimensional input/trial $(trial)/results_Lorenz96_N_8_3d_params.csv")
