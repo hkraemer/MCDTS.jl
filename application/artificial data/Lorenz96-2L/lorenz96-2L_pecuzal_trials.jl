@@ -1,21 +1,14 @@
-# two-level L96 model
-# each of the N slow variables is coupled to M fast variables,
-# so in total the model is N + M*N dimensional
-# parameter values directly from Lorenz96 paper
-
 using DifferentialEquations
-using Plots
 using LinearAlgebra
 using StatsBase
+using DelayEmbeddings
+using DelimitedFiles
+using RecurrenceAnalysis
+using Random
+using MCDTS
 
 const N = 15
 const M = 5
-
-PLOT = true
-COMPUTE = true
-LYAPUNOV = true
-
-COMPUTE = PLOT ? true : COMPUTE
 
 function twolevel_l96!(du,u,p,t)
     F,h,c,b = p
@@ -54,30 +47,44 @@ end
 
 begin
     F = 10. # forcing, 10 -> chaotic
-    h = 1. # coupling
+    h = 2. # coupling
     c = 10. # time scale separation
     b = 10. # amplitude scale seperation
 
     pars = [F,h,c,b]
+    Random.seed!(1234)
     u0 = rand(N,M+1) .- 0.5
 end
 
-if COMPUTE
-    t_end = 500.
-    prob = ODEProblem(twolevel_l96!, u0, (0.,t_end), pars)
-    sol = solve(prob)
-end
+# integration and data-binding
+t_end = 500.
+prob = ODEProblem(twolevel_l96!, u0, (0.,t_end), pars)
+sol = solve(prob)
+
+data = Dataset(sol.u)
+trajectory = Dataset(data[5001:20000])
+
+# take some slow variables for reconstruction
+ts_sample = [1,10,3,7,9]
+
+# params for reconstructions
+taus = 0:200
+
+data_sample = trajectory[:,ts_sample]
+w1 = DelayEmbeddings.estimate_delay(data_sample[:,1], "mi_min")
+w2 = DelayEmbeddings.estimate_delay(data_sample[:,2], "mi_min")
+w3 = DelayEmbeddings.estimate_delay(data_sample[:,3], "mi_min")
+w4 = DelayEmbeddings.estimate_delay(data_sample[:,4], "mi_min")
+w5 = DelayEmbeddings.estimate_delay(data_sample[:,5], "mi_min")
+theiler = maximum([w1,w2,w3,w4,w5])
+@time Y_pec, τ_pec, ts_pec, Ls_pec , _ = DelayEmbeddings.pecuzal_embedding(data_sample; τs = taus , w = theiler, econ = true)
+optimal_d_pec = size(Y_pec,2)
 
 
-if PLOT
-    x_L1 = 1:M:M*N
-    x_L2 = 1:M*N
-    Plots.pyplot()
-    pylims = [-10,10]
-    anim = @animate for it ∈ 100:0.1:200
+ϵ = 0.08
+RP_pec = RecurrenceMatrix(Y_pec, ϵ; fixedrate = true)
+R_frac_pec = MCDTS.jrp_rr_frac(RecurrenceMatrix(trajectory[1:length(Y_pec),:], ϵ; fixedrate = true), RP_pec)
 
-        plot(x_L1, sol(it)[:,1],ylims=pylims)
-        plot!(x_L2, (b/2).*reshape(transpose(sol(it)[:,2:end]),:),ylims=pylims)
-    end
-    gif(anim, "anim_l96-2L.gif", fps=24)
-end
+L2 = Ls_pec
+optimal1 = optimal_d_pec
+taus2 = τ_pec

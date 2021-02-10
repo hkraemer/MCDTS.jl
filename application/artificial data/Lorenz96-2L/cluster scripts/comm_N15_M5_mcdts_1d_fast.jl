@@ -1,21 +1,13 @@
-# two-level L96 model
-# each of the N slow variables is coupled to M fast variables,
-# so in total the model is N + M*N dimensional
-# parameter values directly from Lorenz96 paper
-
 using DifferentialEquations
-using Plots
 using LinearAlgebra
 using StatsBase
+using DelayEmbeddings
+using DelimitedFiles
+using Random
+using MCDTS
 
 const N = 15
 const M = 5
-
-PLOT = true
-COMPUTE = true
-LYAPUNOV = true
-
-COMPUTE = PLOT ? true : COMPUTE
 
 function twolevel_l96!(du,u,p,t)
     F,h,c,b = p
@@ -54,30 +46,42 @@ end
 
 begin
     F = 10. # forcing, 10 -> chaotic
-    h = 1. # coupling
+    h = 2. # coupling
     c = 10. # time scale separation
     b = 10. # amplitude scale seperation
 
     pars = [F,h,c,b]
+    Random.seed!(1234)
     u0 = rand(N,M+1) .- 0.5
 end
 
-if COMPUTE
-    t_end = 500.
-    prob = ODEProblem(twolevel_l96!, u0, (0.,t_end), pars)
-    sol = solve(prob)
-end
+# integration and data-binding
+t_end = 500.
+prob = ODEProblem(twolevel_l96!, u0, (0.,t_end), pars)
+sol = solve(prob)
 
+data = Dataset(sol.u)
+trajectory = Dataset(data[5001:20000])
 
-if PLOT
-    x_L1 = 1:M:M*N
-    x_L2 = 1:M*N
-    Plots.pyplot()
-    pylims = [-10,10]
-    anim = @animate for it ∈ 100:0.1:200
+# take a fast variable for reconstruction
+ts_sample = 19
 
-        plot(x_L1, sol(it)[:,1],ylims=pylims)
-        plot!(x_L2, (b/2).*reshape(transpose(sol(it)[:,2:end]),:),ylims=pylims)
-    end
-    gif(anim, "anim_l96-2L.gif", fps=24)
-end
+# params for reconstruction
+taus = 0:200
+trials = 80
+
+data_sample = trajectory[:,ts_sample]
+theiler = DelayEmbeddings.estimate_delay(data_sample, "mi_min")
+tree = MCDTS.mc_delay(Dataset(data_sample), theiler, (L)->(MCDTS.softmaxL(L,β=2.)), taus, trials; tws = 2:2:taus[end], threshold = 0, max_depth = 90)
+best_node = MCDTS.best_embedding(tree)
+Y_mcdts = genembed(data_sample, best_node.τs, best_node.ts)
+optimal_d_mcdts = size(Y_mcdts,2)
+
+writestr = "./fast variable/results_Lorenz96_L2_N$(N)_M$(M)_1d_tau_mcdts.csv"
+writedlm(writestr, best_node.τs)
+writestr = "./fast variable/results_Lorenz96_L2_N$(N)_M$(M)_1d_ts_mcdts.csv"
+writedlm(writestr, best_node.ts)
+writestr = "./fast variable/results_Lorenz96_L2_N$(N)_M$(M)_1d_optimal_d_mcdts.csv"
+writedlm(writestr, optimal_d_mcdts)
+writestr = "./fast variable/results_Lorenz96_L2_N$(N)_M$(M)_1d_L_mcdts.csv"
+writedlm(writestr, best_node.L)

@@ -15,7 +15,7 @@ using Statistics
 
 trial = 2
 # determine the tde method; #1 Cao, #2 Kennel, #3 Hegger
-tde = 3
+tde = 1
 
 # bind variables
 params = readdlm("./application/artificial data/Lorenz96/Results/1 dimensional input/trial $(trial)/results_Lorenz96_N_8_1d_params.csv")
