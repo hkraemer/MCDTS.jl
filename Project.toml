@@ -1,7 +1,7 @@
 name = "MCDTS"
 uuid = "8b172166-a5f3-45b7-b6bf-d03bacc35f61"
 authors = ["Maximilian Gelbrecht, K. Hauke Kraemer"]
-version = "0.3.0"
+version = "0.4.0"
 
 [deps]
 DelayEmbeddings = "5732040d-69e3-5649-938a-b6b4f237613f"
