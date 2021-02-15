@@ -21,7 +21,7 @@ addprocs(SlurmManager(N_worker))
 
     # Parameters data:
     N = 8 # number of oscillators
-    Fs = 3.5:0.004:5 # parameter spectrum
+    Fs = 3.7:0.002:4 # parameter spectrum
     dt = 0.1 # sampling time
     total = 5000  # time series length
 
@@ -29,18 +29,18 @@ addprocs(SlurmManager(N_worker))
     ε = 0.05  # recurrence threshold
     dmax = 10   # maximum dimension for traditional tde
     lmin = 2   # minimum line length for RQA
-    trials = 100 # trials for MCDTS
+    trials = 150 # trials for MCDTS
     taus = 0:100 # possible delays
-    fnn_threshold = 0 # threshold for minimum tolerable FNNs
+    L_threshold = 0 # threshold for minimum tolerable ΔL decrease per embedding cycle
 
     # pick one time series
-    t_idx = 2
+    t_idx = [2,4,7]
 
     # init Lorenz96
     u0 = [0.590; 0.766; 0.566; 0.460; 0.794; 0.854; 0.200; 0.298]
     lo96 = Systems.lorenz96(N, u0; F = 3.5)
 
-    params = tuple(N,dt,total,ε,dmax,lmin,trials,taus,t_idx,fnn_threshold)
+    params = tuple(N,dt,total,ε,dmax,lmin,trials,taus,t_idx,L_threshold)
 end
 
 @time begin
@@ -49,44 +49,44 @@ results = @distributed (vcat) for i in eachindex(Fs)
 
     F = Fs[i]
     set_parameter!(lo96, 1, F)
-    data = trajectory(lo96, total*dt; dt = dt, Ttr = 2500 * dt)
+    data = trajectory(lo96, total*dt; dt = dt, Ttr = 2500*dt)
     data_sample = data[:,t_idx]
 
-    # Traditional time delay embedding
-    𝒟, τ_tde, E = optimal_traditional_de(data_sample, "ifnn"; dmax = dmax, fnn_thres = fnn_threshold)
-    optimal_d_tde = size(𝒟, 2)
-    R = RecurrenceMatrix(𝒟, ε; fixedrate = true)
-    RQA = rqa(R; theiler = τ_tde, lmin = lmin)
-    RQA_tde = hcat(RQA...)
-    FNN_tde = E[optimal_d_tde]
+    # theiler window estimation
+    w1 = DelayEmbeddings.estimate_delay(data_sample[:,1], "mi_min")
+    w2 = DelayEmbeddings.estimate_delay(data_sample[:,2], "mi_min")
+    w3 = DelayEmbeddings.estimate_delay(data_sample[:,3], "mi_min")
+    theiler = maximum([w1,w2,w3])
 
     # MCDTS
-    tree = MCDTS.mc_delay(Dataset(data_sample), τ_tde, (L)->(MCDTS.softmaxL(L,β=2.)),
-            taus, trials; tws = 2:2:taus[end], threshold = fnn_threshold, max_depth = 20, FNN = true)
+    tree = MCDTS.mc_delay(data_sample, theiler, (L)->(MCDTS.softmaxL(L,β=2.)),
+            taus, trials; tws = 2:2:taus[end], threshold = L_threshold, max_depth = 20)
     best_node = MCDTS.best_embedding(tree)
     𝒟_mcdts = genembed(data_sample, best_node.τs, best_node.ts)
     optimal_d_mcdts = size(𝒟_mcdts,2)
     R = RecurrenceMatrix(𝒟_mcdts, ε; fixedrate = true)
-    RQA = rqa(R; theiler = τ_tde, lmin = lmin)
+    RQA = rqa(R; theiler = theiler, lmin = lmin)
     RQA_mcdts = hcat(RQA...)
-    FNN_mcdts = best_node.L
+    L_mcdts = best_node.L
+
+    R_ref = RecurrenceMatrix(data[1:length(𝒟_mcdts),:], ε; fixedrate = true)
+
+    RP_frac_mcdts = MCDTS.jrp_rr_frac(R_ref,R)
 
     # Output
-    tuple(τ_tde, optimal_d_tde, RQA_tde, FNN_tde,
-        best_node.τs, best_node.ts, optimal_d_mcdts, RQA_mcdts, FNN_mcdts)
+    tuple(best_node.τs, best_node.ts, optimal_d_mcdts, RQA_mcdts, L_mcdts, RP_frac_mcdts)
 
 end
 
 end
 
-writedlm("results_Lorenz96_N_$(N)_FNN_1d_params.csv", params)
-writedlm("results_Lorenz96_N_$(N)_FNN_1d_Fs.csv", Fs)
+writedlm("results_Lorenz96_N_$(N)_mcdts_3d_params.csv", params)
+writedlm("results_Lorenz96_N_$(N)_mcdts_3d_Fs.csv", Fs)
 
-varnames = ["tau_tde", "optimal_d_tde", "RQA_tde", "FNN_tde",
-    "tau_MCDTS", "ts_MCDTS", "optimal_d_mcdts", "RQA_mcdts", "FNN_mcdts"]
+varnames = ["tau_MCDTS", "ts_MCDTS", "optimal_d_mcdts", "RQA_mcdts", "L_mcdts", "RP_frac_mcdts"]
 
 for i = 1:length(varnames)
-    writestr = "results_Lorenz96_N_$(N)_FNN_1d_"*varnames[i]*".csv"
+    writestr = "results_Lorenz96_N_$(N)_mcdts_3d_"*varnames[i]*".csv"
     data = []
     for j = 1:length(results)
         push!(data,results[j][i])

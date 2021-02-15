@@ -21,7 +21,7 @@ addprocs(SlurmManager(N_worker))
 
     # Parameters data:
     N = 8 # number of oscillators
-    Fs = 3.5:0.004:5 # parameter spectrum
+    Fs = 3.7:0.002:4 # parameter spectrum
     dt = 0.1 # sampling time
     total = 5000  # time series length
 
@@ -31,7 +31,7 @@ addprocs(SlurmManager(N_worker))
     lmin = 2   # minimum line length for RQA
     trials = 100 # trials for MCDTS
     taus = 0:100 # possible delays
-    fnn_threshold = 0 # threshold for minimum tolerable FNNs
+    fnn_threshold = 0 # threshold for minimum tolerable ΔL decrease per embedding cycle
 
     # pick one time series
     t_idx = 2
@@ -52,28 +52,26 @@ results = @distributed (vcat) for i in eachindex(Fs)
     data = trajectory(lo96, total*dt; dt = dt, Ttr = 2500 * dt)
     data_sample = data[:,t_idx]
 
-    # Traditional time delay embedding
-    𝒟, τ_tde, E = optimal_traditional_de(data_sample, "ifnn"; dmax = dmax, fnn_thres = fnn_threshold)
-    optimal_d_tde = size(𝒟, 2)
-    R = RecurrenceMatrix(𝒟, ε; fixedrate = true)
-    RQA = rqa(R; theiler = τ_tde, lmin = lmin)
-    RQA_tde = hcat(RQA...)
-    FNN_tde = E[optimal_d_tde]
+    # theiler window estimation
+    theiler = DelayEmbeddings.estimate_delay(data_sample[:,1], "mi_min")
 
     # MCDTS
-    tree = MCDTS.mc_delay(Dataset(data_sample), τ_tde, (L)->(MCDTS.softmaxL(L,β=2.)),
+    tree = MCDTS.mc_delay(Dataset(data_sample), theiler, (L)->(MCDTS.softmaxL(L,β=2.)),
             taus, trials; tws = 2:2:taus[end], threshold = fnn_threshold, max_depth = 20, FNN = true)
     best_node = MCDTS.best_embedding(tree)
     𝒟_mcdts = genembed(data_sample, best_node.τs, best_node.ts)
     optimal_d_mcdts = size(𝒟_mcdts,2)
     R = RecurrenceMatrix(𝒟_mcdts, ε; fixedrate = true)
-    RQA = rqa(R; theiler = τ_tde, lmin = lmin)
+    RQA = rqa(R; theiler = theiler, lmin = lmin)
     RQA_mcdts = hcat(RQA...)
     FNN_mcdts = best_node.L
 
+    R_ref = RecurrenceMatrix(data[1:length(𝒟_mcdts),:], ε; fixedrate = true)
+
+    RP_frac_mcdts = MCDTS.jrp_rr_frac(R_ref,R)
+
     # Output
-    tuple(τ_tde, optimal_d_tde, RQA_tde, FNN_tde,
-        best_node.τs, best_node.ts, optimal_d_mcdts, RQA_mcdts, FNN_mcdts)
+    tuple(best_node.τs, best_node.ts, optimal_d_mcdts, RQA_mcdts, FNN_mcdts, RP_frac_mcdts)
 
 end
 
@@ -82,8 +80,7 @@ end
 writedlm("results_Lorenz96_N_$(N)_FNN_1d_params.csv", params)
 writedlm("results_Lorenz96_N_$(N)_FNN_1d_Fs.csv", Fs)
 
-varnames = ["tau_tde", "optimal_d_tde", "RQA_tde", "FNN_tde",
-    "tau_MCDTS", "ts_MCDTS", "optimal_d_mcdts", "RQA_mcdts", "FNN_mcdts"]
+varnames = ["tau_MCDTS", "ts_MCDTS", "optimal_d_mcdts", "RQA_mcdts", "FNN_mcdts", "RP_frac_mcdts"]
 
 for i = 1:length(varnames)
     writestr = "results_Lorenz96_N_$(N)_FNN_1d_"*varnames[i]*".csv"
