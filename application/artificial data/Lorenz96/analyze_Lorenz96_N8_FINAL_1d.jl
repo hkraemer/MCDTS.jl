@@ -19,7 +19,8 @@ FNN = true
 
 # display results
 show1 = false # embedding dimension and FNN/L-statistic
-show2 = true  # RQA statistics
+show2 = false  # RQA statistics
+show3 = true  # RP-accordance
 
 # bind variables
 methodss = ["Cao", "Kennel", "Hegger"]
@@ -375,6 +376,49 @@ if show2
     end
 end
 
+if show3
+    if FNN
+        figure(figsize=(20,10))
+        axis1 = subplot(211)
+        plot(Fs, λs)
+        ylims1 = axis1.get_ylim()
+        vlines(Fs[pos_Lyap_idx], ylims1[1], ylims1[2], linestyle="dashed", linewidth=l_width_vert)
+        title("Lyaps")
+        grid()
+
+        axis2 = subplot(212)
+        plot(Fs, RP_frac_tde, label="TDE $method, $(round(mean(RP_frac_tde);digits=4)*100)")
+        plot(Fs, RP_frac_mcdts, label="MCDTS $statistic, $(round(mean(RP_frac_mcdts);digits=4)*100)")
+        legend()
+        ylims2 = axis2.get_ylim()
+        vlines(Fs[pos_Lyap_idx], ylims2[1], ylims2[2], linestyle="dashed", linewidth=l_width_vert)
+        title("Accordance to Reference RP")
+        ylabel("RP-accordance [%]")
+        grid()
+
+    else
+
+        figure(figsize=(20,10))
+        axis1 = subplot(211)
+        plot(Fs, λs)
+        ylims1 = axis1.get_ylim()
+        vlines(Fs[pos_Lyap_idx], ylims1[1], ylims1[2], linestyle="dashed", linewidth=l_width_vert)
+        title("Lyaps")
+        grid()
+
+        axis2 = subplot(212)
+        plot(Fs, RP_frac_tde, label="TDE $method, $(round(mean(RP_frac_tde);digits=4*100))")
+        plot(Fs, RP_frac_pec, label="PECUZAL, $(round(mean(RP_frac_pec);digits=4)*100)")
+        plot(Fs, RP_frac_mcdts, label="MCDTS $statistic, $(round(mean(RP_frac_mcdts);digits=4)*100)")
+        legend()
+        ylims2 = axis2.get_ylim()
+        vlines(Fs[pos_Lyap_idx], ylims2[1], ylims2[2], linestyle="dashed", linewidth=l_width_vert)
+        title("Accordance to Reference RP")
+        ylabel("RP-accordance [%]")
+        grid()
+    end
+end
+
 # compute mean squared errors
 cnt = 0
 cnt2 = 0
@@ -404,5 +448,18 @@ for i = 2:size(RQA_ref,2)
 
     end
 end
-println("$cnt2 / $(size(RQA_ref,2)-1)")
-println("$cnt / $(size(RQA_ref,2)-1)")
+if FNN
+    if mean(RP_frac_mcdts) > mean(RP_frac_tde)
+        cnt += 1
+    end
+else
+    if mean(RP_frac_mcdts) > mean(RP_frac_tde)
+        cnt += 1
+    end
+    if mean(RP_frac_pec) > mean(RP_frac_tde)
+        cnt2 += 1
+    end
+end
+
+println("$cnt2 / $(size(RQA_ref,2))")
+println("$cnt / $(size(RQA_ref,2))")
