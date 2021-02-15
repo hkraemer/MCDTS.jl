@@ -29,7 +29,7 @@ addprocs(SlurmManager(N_worker))
     ε = 0.05  # recurrence threshold
     dmax = 10   # maximum dimension for traditional tde
     lmin = 2   # minimum line length for RQA
-    trials = 80 # trials for MCDTS
+    trials = 150 # trials for MCDTS
     taus = 0:100 # possible delays
     fnn_threshold = 0 # threshold for minimum tolerable FNNs
 
@@ -69,7 +69,7 @@ results = @distributed (vcat) for i in eachindex(Fs)
 
     # MCDTS
     tree = MCDTS.mc_delay(Dataset(data_sample), maximum(τ_tde), (L)->(MCDTS.softmaxL(L,β=2.)),
-            taus, trials; tws = 2:2:taus[end], threshold = fnn_threshold, max_depth = 15, FNN = true)
+            taus, trials; tws = 2:2:taus[end], threshold = fnn_threshold, max_depth = 20, FNN = true)
     best_node = MCDTS.best_embedding(tree)
     𝒟_mcdts = genembed(data_sample, best_node.τs, best_node.ts)
     optimal_d_mcdts = size(𝒟_mcdts,2)
