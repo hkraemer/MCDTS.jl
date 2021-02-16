@@ -12,7 +12,7 @@ N = 8
 #cd("./application/artificial data/Lorenz96/Results/Final N8")
 
 # determine the tde method; #1 Cao, #2 Kennel, #3 Hegger
-tde = 1
+tde = 3
 
 # FNN or L-statistic based?
 FNN = true
@@ -20,7 +20,7 @@ FNN = true
 # display results
 show1 = false # embedding dimension and FNN/L-statistic
 show2 = false  # RQA statistics
-show3 = true  # RP-accordance
+show3 = false  # RP-accordance
 
 # bind variables
 methodss = ["Cao", "Kennel", "Hegger"]
@@ -207,15 +207,32 @@ if show1
         ylabel("embedding dimension")
         grid()
 
+        subplots_adjust(hspace=.4)
     end
 
 end
 
 RQA_names = ["RR", "TRANS", "DET", "L_mean", "L_max", "DIV", "ENTR", "TREND",
-    "LAM", "TT", "V_max", "V_ENTR", "MRT", "RTE", "NMPRT"]
+    "LAM", "TT", "V_max", "V_ENTR", "MRT", "RTE", "NMPRT",""]
+
+RQA_ref = hcat(RQA_ref,zeros(size(RQA_ref,1)))
+RQA_tde = hcat(RQA_tde,zeros(size(RQA_tde,1)))
+RQA_mcdts = hcat(RQA_mcdts,zeros(size(RQA_mcdts,1)))
+if ~FNN
+    RQA_pec = hcat(RQA_pec,zeros(size(RQA_pec,1)))
+end
+# delete vertical line based measures and RR
+idx_keep = [2,3,4,5,6,7,8,13,14,16]    # keep RQA-measures with these indices
+RQA_names = RQA_names[idx_keep]
+RQA_ref = RQA_ref[:,idx_keep]
+RQA_tde = RQA_tde[:,idx_keep]
+RQA_mcdts = RQA_mcdts[:,idx_keep]
+if ~FNN
+    RQA_pec = RQA_pec[:,idx_keep]
+end
 
 if show2
-    for RQA_val = 1:2:14
+    for RQA_val = 1:2:9
 
         if FNN
 
@@ -241,18 +258,19 @@ if show2
             ylims2 = axis2.get_ylim()
             legend()
             vlines(Fs[pos_Lyap_idx], ylims2[1], ylims2[2], linestyle="dashed", linewidth=l_width_vert)
-            title("TDE $method (MSE: $(mean((RQA_tde[:,RQA_val] .- RQA_ref[:,RQA_val]).^2 ./RQA_ref[:,RQA_val]))")
+            title("TDE $method (MSE: $(mean((RQA_tde[:,RQA_val] .- RQA_ref[:,RQA_val]).^2 ./RQA_ref[:,RQA_val])))")
             ylabel(RQA_names[RQA_val])
             grid()
 
             axis2 = subplot(324)
+
             plot(Fs, RQA_ref[:,RQA_val+1], label = "ref")
             plot(Fs, RQA_tde[:,RQA_val+1], label = "exp")
             plot(Fs, RQA_tde[:,RQA_val+1] .- RQA_ref[:,RQA_val+1], color = "red",label = "diff")
             ylims3 = axis2.get_ylim()
             legend()
             vlines(Fs[pos_Lyap_idx], ylims3[1], ylims3[2], linestyle="dashed", linewidth=l_width_vert)
-            title("TDE $method (MSE: $(mean((RQA_tde[:,RQA_val+1] .- RQA_ref[:,RQA_val+1]).^2 ./ RQA_ref[:,RQA_val+1]))")
+            title("TDE $method (MSE: $(mean((RQA_tde[:,RQA_val+1] .- RQA_ref[:,RQA_val+1]).^2 ./ RQA_ref[:,RQA_val+1])))")
             ylabel(RQA_names[RQA_val+1])
             grid()
 
@@ -265,7 +283,7 @@ if show2
             axis4.set_ylim(ylims2)
             #ylims4 = axis4.get_ylim()
             vlines(Fs[pos_Lyap_idx], ylims2[1], ylims2[2], linestyle="dashed", linewidth=l_width_vert)
-            title("MCDTS $statistic (MSE: $(mean((RQA_mcdts[:,RQA_val] .- RQA_ref[:,RQA_val]).^2 ./ RQA_ref[:,RQA_val]))")
+            title("MCDTS $statistic (MSE: $(mean((RQA_mcdts[:,RQA_val] .- RQA_ref[:,RQA_val]).^2 ./ RQA_ref[:,RQA_val])))")
             ylabel(RQA_names[RQA_val])
             grid()
 
@@ -278,7 +296,7 @@ if show2
             axis4.set_ylim(ylims3)
             #ylims4 = axis4.get_ylim()
             vlines(Fs[pos_Lyap_idx], ylims3[1], ylims3[2], linestyle="dashed", linewidth=l_width_vert)
-            title("MCDTS $statistic (MSE: $(mean((RQA_mcdts[:,RQA_val+1] .- RQA_ref[:,RQA_val+1]).^2 ./ RQA_ref[:,RQA_val+1]))")
+            title("MCDTS $statistic (MSE: $(mean((RQA_mcdts[:,RQA_val+1] .- RQA_ref[:,RQA_val+1]).^2 ./ RQA_ref[:,RQA_val+1])))")
             ylabel(RQA_names[RQA_val+1])
             grid()
 
@@ -306,7 +324,7 @@ if show2
             ylims2 = axis2.get_ylim()
             legend()
             vlines(Fs[pos_Lyap_idx], ylims2[1], ylims2[2], linestyle="dashed", linewidth=l_width_vert)
-            title("TDE $method (MSE: $(mean((RQA_tde[:,RQA_val] .- RQA_ref[:,RQA_val]).^2 ./RQA_ref[:,RQA_val]))")
+            title("TDE $method (MSE: $(mean((RQA_tde[:,RQA_val] .- RQA_ref[:,RQA_val]).^2 ./RQA_ref[:,RQA_val])))")
             ylabel(RQA_names[RQA_val])
             grid()
 
@@ -317,7 +335,7 @@ if show2
             ylims3 = axis2.get_ylim()
             legend()
             vlines(Fs[pos_Lyap_idx], ylims3[1], ylims3[2], linestyle="dashed", linewidth=l_width_vert)
-            title("TDE $method (MSE: $(mean((RQA_tde[:,RQA_val+1] .- RQA_ref[:,RQA_val+1]).^2 ./ RQA_ref[:,RQA_val+1]))")
+            title("TDE $method (MSE: $(mean((RQA_tde[:,RQA_val+1] .- RQA_ref[:,RQA_val+1]).^2 ./ RQA_ref[:,RQA_val+1])))")
             ylabel(RQA_names[RQA_val+1])
             grid()
 
@@ -330,7 +348,7 @@ if show2
             axis4.set_ylim(ylims2)
             #ylims4 = axis4.get_ylim()
             vlines(Fs[pos_Lyap_idx], ylims2[1], ylims2[2], linestyle="dashed", linewidth=l_width_vert)
-            title("PECUZAL (MSE: $(mean((RQA_pec[:,RQA_val] .- RQA_ref[:,RQA_val]).^2 ./ RQA_ref[:,RQA_val]))")
+            title("PECUZAL (MSE: $(mean((RQA_pec[:,RQA_val] .- RQA_ref[:,RQA_val]).^2 ./ RQA_ref[:,RQA_val])))")
             ylabel(RQA_names[RQA_val])
             grid()
 
@@ -343,7 +361,7 @@ if show2
             axis4.set_ylim(ylims3)
             #ylims4 = axis4.get_ylim()
             vlines(Fs[pos_Lyap_idx], ylims3[1], ylims3[2], linestyle="dashed", linewidth=l_width_vert)
-            title("PECUZAL (MSE: $(mean((RQA_pec[:,RQA_val+1] .- RQA_ref[:,RQA_val+1]).^2 ./ RQA_ref[:,RQA_val+1]))")
+            title("PECUZAL (MSE: $(mean((RQA_pec[:,RQA_val+1] .- RQA_ref[:,RQA_val+1]).^2 ./ RQA_ref[:,RQA_val+1])))")
             ylabel(RQA_names[RQA_val+1])
             grid()
 
@@ -356,7 +374,7 @@ if show2
             axis4.set_ylim(ylims2)
             #ylims4 = axis4.get_ylim()
             vlines(Fs[pos_Lyap_idx], ylims2[1], ylims2[2], linestyle="dashed", linewidth=l_width_vert)
-            title("MCDTS $statistic (MSE: $(mean((RQA_mcdts[:,RQA_val] .- RQA_ref[:,RQA_val]).^2 ./ RQA_ref[:,RQA_val]))")
+            title("MCDTS $statistic (MSE: $(mean((RQA_mcdts[:,RQA_val] .- RQA_ref[:,RQA_val]).^2 ./ RQA_ref[:,RQA_val])))")
             ylabel(RQA_names[RQA_val])
             grid()
 
@@ -369,9 +387,10 @@ if show2
             axis4.set_ylim(ylims3)
             #ylims4 = axis4.get_ylim()
             vlines(Fs[pos_Lyap_idx], ylims3[1], ylims3[2], linestyle="dashed", linewidth=l_width_vert)
-            title("MCDTS $statistic (MSE: $(mean((RQA_mcdts[:,RQA_val+1] .- RQA_ref[:,RQA_val+1]).^2 ./ RQA_ref[:,RQA_val+1]))")
+            title("MCDTS $statistic (MSE: $(mean((RQA_mcdts[:,RQA_val+1] .- RQA_ref[:,RQA_val+1]).^2 ./ RQA_ref[:,RQA_val+1])))")
             ylabel(RQA_names[RQA_val+1])
             grid()
+            subplots_adjust(hspace=.4)
         end
     end
 end
@@ -388,7 +407,7 @@ if show3
 
         axis2 = subplot(212)
         plot(Fs, RP_frac_tde, label="TDE $method, $(round(mean(RP_frac_tde);digits=4)*100)")
-        plot(Fs, RP_frac_mcdts, label="MCDTS $statistic $(round(mean(RP_frac_mcdts);digits=4)*100)")
+        plot(Fs, RP_frac_mcdts, label="MCDTS $statistic, $(round(mean(RP_frac_mcdts);digits=4)*100)")
         legend()
         ylims2 = axis2.get_ylim()
         vlines(Fs[pos_Lyap_idx], ylims2[1], ylims2[2], linestyle="dashed", linewidth=l_width_vert)
@@ -422,14 +441,14 @@ end
 # compute mean squared errors
 cnt = 0
 cnt2 = 0
-for i = 2:size(RQA_ref,2)
+for i = 1:size(RQA_ref,2)-1
     global cnt
     global cnt2
     if FNN
         println("MSE TDE $method $(RQA_names[i]):  $(mean((RQA_tde[:,i] .- RQA_ref[:,i]).^2 ./ RQA_ref[:,i]))")
         println("MSE MCDTS $statistic $(RQA_names[i]):  $(mean((RQA_mcdts[:,i] .- RQA_ref[:,i]).^2 ./ RQA_ref[:,i]))")
 
-        if i>1 && mean((RQA_mcdts[:,i] .- RQA_ref[:,i]).^2 ./ RQA_ref[:,i]) < mean((RQA_tde[:,i] .- RQA_ref[:,i]).^2 ./ RQA_ref[:,i])
+        if mean((RQA_mcdts[:,i] .- RQA_ref[:,i]).^2 ./ RQA_ref[:,i]) < mean((RQA_tde[:,i] .- RQA_ref[:,i]).^2 ./ RQA_ref[:,i])
             cnt += 1
         end
         println("*******************")
@@ -438,10 +457,10 @@ for i = 2:size(RQA_ref,2)
         println("MSE PECUZAL $(RQA_names[i]):  $(mean((RQA_pec[:,i] .- RQA_ref[:,i]).^2 ./ RQA_ref[:,i]))")
         println("MSE MCDTS $statistic $(RQA_names[i]):  $(mean((RQA_mcdts[:,i] .- RQA_ref[:,i]).^2 ./ RQA_ref[:,i]))")
 
-        if i>1 && mean((RQA_mcdts[:,i] .- RQA_ref[:,i]).^2 ./ RQA_ref[:,i]) < mean((RQA_tde[:,i] .- RQA_ref[:,i]).^2 ./ RQA_ref[:,i])
+        if mean((RQA_mcdts[:,i] .- RQA_ref[:,i]).^2 ./ RQA_ref[:,i]) < mean((RQA_tde[:,i] .- RQA_ref[:,i]).^2 ./ RQA_ref[:,i])
             cnt += 1
         end
-        if i>1 && mean((RQA_pec[:,i] .- RQA_ref[:,i]).^2 ./ RQA_ref[:,i]) < mean((RQA_tde[:,i] .- RQA_ref[:,i]).^2 ./ RQA_ref[:,i])
+        if mean((RQA_pec[:,i] .- RQA_ref[:,i]).^2 ./ RQA_ref[:,i]) < mean((RQA_tde[:,i] .- RQA_ref[:,i]).^2 ./ RQA_ref[:,i])
             cnt2 += 1
         end
         println("*******************")
@@ -461,5 +480,39 @@ else
     end
 end
 
-println("$cnt2 / $(size(RQA_ref,2))")
-println("$cnt / $(size(RQA_ref,2))")
+# compute pearson correlation
+cnt3 = 0
+cnt4 = 0
+for i = 1:size(RQA_ref,2)-1
+    global cnt3
+    global cnt4
+    if FNN
+        println("ρ(Pearson) TDE $method $(RQA_names[i]):  $(cor(RQA_tde[:,i],RQA_ref[:,i]))")
+        println("ρ(Pearson) MCDTS $statistic $(RQA_names[i]):  $(cor(RQA_mcdts[:,i],RQA_ref[:,i]))")
+
+        if cor(RQA_mcdts[:,i],RQA_ref[:,i]) > cor(RQA_tde[:,i],RQA_ref[:,i])
+            cnt3 += 1
+        end
+        println("*******************")
+    else
+        println("ρ(Pearson) TDE $method $(RQA_names[i]):  $(cor(RQA_tde[:,i],RQA_ref[:,i]))")
+        println("ρ(Pearson) PECUZAL $statistic $(RQA_names[i]):  $(cor(RQA_pec[:,i],RQA_ref[:,i]))")
+        println("ρ(Pearson) MCDTS $statistic $(RQA_names[i]):  $(cor(RQA_mcdts[:,i],RQA_ref[:,i]))")
+
+        if cor(RQA_mcdts[:,i],RQA_ref[:,i]) > cor(RQA_tde[:,i],RQA_ref[:,i])
+            cnt3 += 1
+        end
+        if cor(RQA_pec[:,i],RQA_ref[:,i]) > cor(RQA_tde[:,i],RQA_ref[:,i])
+            cnt4 += 1
+        end
+        println("*******************")
+
+    end
+end
+
+
+println("PECUZAL (based on MSE) $cnt2 / $(size(RQA_ref,2))")
+println("MCDTS (based on MSE) $cnt / $(size(RQA_ref,2))")
+println("*******************")
+println("PECUZAL (based on ρ(Pearson)) $cnt4 / $(size(RQA_ref,2)-1)")
+println("MCDTS (based on ρ(Pearson)) $cnt3 / $(size(RQA_ref,2)-1)")

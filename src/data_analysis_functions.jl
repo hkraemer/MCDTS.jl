@@ -395,4 +395,15 @@ function nonlin_noise_reduction(x::Vector{T}, m::Int, epsilon::Int
     return output
 end
 
+"""
+    Moving average of a timeseries `vs` over a window `n`
+"""
 moving_average(vs,n) = [sum(@view vs[i:(i+n-1)])/n for i in 1:(length(vs)-(n-1))]
+
+
+# function local_linear_prediction(Y::Dataset{D,T}, neighbourhoodsize::Int=5,
+#     prediction_steps:Int=1) where {D,T}
+#
+#
+#
+# end
