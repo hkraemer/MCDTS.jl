@@ -4,6 +4,7 @@ using DelayEmbeddings
 using Distances
 using Statistics
 using LinearAlgebra
+using Neighborhood
 
 
 """
@@ -341,3 +342,57 @@ function compute_delta_L(Y::Dataset{D, T}, τs::Vector{Int}, js::Vector{Int},
     end
     return ΔL
 end
+
+"""
+    Simple nonlinear noise reduction algorithm by Schreiber 1993
+
+Params:
+*`m`           denotes the local embedding dimension
+*`epsilon`     denotes the local neighborhood size as number of neighbours
+
+Returns:
+the filtered signal
+
+Note that by applying this filter, there will be lost `m-1` datapoints.
+We therefore phase-shift each datapoint in the resulting signal by `(m-1)/2`.
+
+K.H.Kraemer Feb, 2021
+"""
+function nonlin_noise_reduction(x::Vector{T}, m::Int, epsilon::Int
+    ) where {T}
+
+    if m < 2
+        error("Parameter m must be a positive integer value larger that 1.")
+    end
+    if epsilon <= 0
+        error("Parameter epsilon must be a positive integer value larger than 0")
+    end
+
+    # Embed the data
+    Y = DelayEmbeddings.embed(x, m, 1)
+    # Estimate Theiler window
+    theiler = DelayEmbeddings.estimate_delay(x, "mi_min")
+
+    filtered_signal = zeros(length(Y))
+
+    # Distances and nearest neighbors
+    vtree = KDTree(Y, Chebyshev())
+    NNdist_idx, _ = DelayEmbeddings.all_neighbors(vtree, Y, 1:length(Y),
+                                                            epsilon, theiler)
+
+    # iterate over each point in phase space
+    for i = 1:length(Y)
+        dd = 0
+        for idx in NNdist_idx[i]
+            dd += Y[idx,Int(ceil(m/2))]
+        end
+        filtered_signal[i] = dd / epsilon
+    end
+    # phase shift / correction of the output signal
+    output = NaN*ones(length(x))
+    output[1+Int(floor((m-1)/2)):end-Int(ceil((m-1)/2))] = filtered_signal
+
+    return output
+end
+
+moving_average(vs,n) = [sum(@view vs[i:(i+n-1)])/n for i in 1:(length(vs)-(n-1))]

@@ -15,12 +15,12 @@ N = 8
 tde = 3
 
 # FNN or L-statistic based?
-FNN = true
+FNN = false
 
 # display results
 show1 = false # embedding dimension and FNN/L-statistic
-show2 = false  # RQA statistics
-show3 = true  # RP-accordance
+show2 = true # RQA statistics
+show3 = false  # RP-accordance
 
 # bind variables
 methodss = ["Cao", "Kennel", "Hegger"]
@@ -141,7 +141,7 @@ if show1
         grid()
 
     else
-
+        subplots_adjust(hspace=.4)
         figure(figsize=(20,10))
         axis1 = subplot(421)
         plot(Fs, λs)
@@ -283,7 +283,8 @@ if show2
             grid()
 
         else
-
+            
+            subplots_adjust(hspace=.4)
             figure(figsize=(20,10))
             axis1 = subplot(421)
             plot(Fs, λs)
