@@ -3,6 +3,7 @@ using MCDTS
 using Statistics
 using DelimitedFiles
 using DelayEmbeddings
+using StatsBase
 using PyPlot
 pygui(true)
 
@@ -29,10 +30,10 @@ for i = 1:size(data,2)
 end
 
 ## simple nonlinear filter and simple moving average
-filtered = zeros(size(data))
-filtered_ma = zeros(size(data))
 m = 20
 neighborhoodsize = 15
+filtered = zeros(size(data))
+filtered_ma = zeros(size(data,1)-m+1,size(data,2))
 for i = 1:size(filtered,2)
     filtered[:,i] = MCDTS.nonlin_noise_reduction(data[:,i], m, neighborhoodsize)
     filtered_ma[:,i] = MCDTS.moving_average(data[:,i],m)
@@ -49,20 +50,24 @@ corr_coeff_ma = cor(Matrix(filtered_ma))
 ## time delay and correlation times
 ws = zeros(9)
 ws_f = zeros(9)
+ws_f_ma = zeros(9)
+method = "mi_min"
 for i = 1:9
-    ws[i] = DelayEmbeddings.estimate_delay(data[:,i],"mi_min")
-    ws_f[i] = DelayEmbeddings.estimate_delay(filtered[:,i],"mi_min")
+    ws[i] = DelayEmbeddings.estimate_delay(data[:,i], method)
+    ws_f[i] = DelayEmbeddings.estimate_delay(filtered[:,i], method)
+    ws_f_ma[i] = DelayEmbeddings.estimate_delay(filtered_ma[:,i], method)
 end
 theiler = Int(maximum(ws))
 theiler_f = Int(maximum(ws_f))
+theiler_f_ma = Int(maximum(ws_f_ma))
 
-taus = 0:20
+taus = 0:100
 figure(figsize=(20,10))
 subplots_adjust(hspace=0.6)
 for i = 1:size(data,2)
     subplot(5,2,i)
     plot(taus,DelayEmbeddings.selfmutualinfo(data[:,i], taus),".-")
-    ylabel(variables[i])
+    ylabel("MI")
     title("MI of $(variables[i])")
     grid()
     if i == 9
@@ -74,8 +79,21 @@ figure(figsize=(20,10))
 subplots_adjust(hspace=0.6)
 for i = 1:size(data,2)
     subplot(5,2,i)
+    plot(taus,StatsBase.autocor(data[:,i], taus),".-")
+    ylabel("AC")
+    title("AC of $(variables[i])")
+    grid()
+    if i == 9
+        xlabel("lag τ")
+    end
+end
+
+figure(figsize=(20,10))
+subplots_adjust(hspace=0.6)
+for i = 1:size(data,2)
+    subplot(5,2,i)
     plot(taus,DelayEmbeddings.selfmutualinfo(filtered[:,i], taus),".-")
-    ylabel(variables[i])
+    ylabel("MI")
     title("MI of FILTERED $(variables[i])")
     grid()
     if i == 9
@@ -83,12 +101,76 @@ for i = 1:size(data,2)
     end
 end
 
+figure(figsize=(20,10))
+subplots_adjust(hspace=0.6)
+for i = 1:size(data,2)
+    subplot(5,2,i)
+    plot(taus,StatsBase.autocor(filtered[:,i], taus),".-")
+    ylabel("AC")
+    title("AC of FILTERED $(variables[i])")
+    grid()
+    if i == 9
+        xlabel("lag τ")
+    end
+end
+
+figure(figsize=(20,10))
+subplots_adjust(hspace=0.6)
+for i = 1:size(data,2)
+    subplot(5,2,i)
+    plot(taus,DelayEmbeddings.selfmutualinfo(filtered_ma[:,i], taus),".-")
+    ylabel("MI")
+    title("MI of FILTERED MA $(variables[i])")
+    grid()
+    if i == 9
+        xlabel("lag τ")
+    end
+end
+
+figure(figsize=(20,10))
+subplots_adjust(hspace=0.6)
+for i = 1:size(data,2)
+    subplot(5,2,i)
+    plot(taus,StatsBase.autocor(filtered_ma[:,i], taus),".-")
+    ylabel("AC")
+    title("AC of FILTERED MA $(variables[i])")
+    grid()
+    if i == 9
+        xlabel("lag τ")
+    end
+end
 
 
-eps,_ = pecora(filtered, (0,), (1,); delays=0:200, w = theiler)
+## phase shift unfiltered data
+data = data[10:end-10,:]
+t = vec(t[10:end-10,:])
 
-figure()
-plot(eps)
+## plot data and filtered data
+
+time_int = 5000:6000 # time interval to plot
+ts = 1 # time series to plot
+
+figure(figsize=(20,10))
+plot(t[time_int], data[time_int,ts], ".-", label=variables[ts])
+plot(t[time_int], filtered[time_int,ts], ".-", label="filtered $(variables[ts])")
+plot(t[time_int], filtered_ma[time_int,ts], ".-", label="filtered MA $(variables[ts])")
+legend()
 grid()
 
-Y_pec, τ_pec, ts_pec, Ls, _ = pecuzal_embedding(data[:,1]; τs=taus, w = theiler, econ=true)
+
+## compute and plot the conituity statistics
+
+eps,_ = pecora(filtered, (0,), (1,); delays=taus, w = theiler)
+
+figure(figsize=(20,10))
+subplots_adjust(hspace=0.6)
+for i = 1:size(data,2)
+    subplot(5,2,i)
+    plot(taus,eps[:,i],".-")
+    ylabel("ε⋆")
+    title("ε⋆ of FILTERED $(variables[i])")
+    grid()
+    if i == 9
+        xlabel("lag τ")
+    end
+end
