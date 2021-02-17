@@ -2,9 +2,93 @@ using MCDTS
 using DelayEmbeddings
 using DynamicalSystemsBase
 using DelimitedFiles
+using ChaosTools
 
 using PyPlot
 pygui(true)
+
+
+lo = Systems.lorenz()
+tr = trajectory(lo, 100; dt = 0.01, Ttr = 10)
+
+λ = ChaosTools.lyapunov(lo, 100000, dt=0.01; Ttr=1000)
+
+lyap_time = Int(floor((1/λ) / 0.01))
+
+
+# make predictions
+prediction = MCDTS.local_linear_prediction(tr, 5; theiler = 11)
+
+MSEs = zeros(30)
+for K = 1:30
+    prediction = MCDTS.local_linear_prediction(tr[1:end-1,:], K; theiler = 11)
+    MSEs[K] = MCDTS.compute_mse(prediction, Vector(tr[end,:]))
+end
+
+figure()
+plot(1:30,MSEs)
+grid()
+
+T_steps = 12*lyap_time
+K = 15
+predict_lorenz = zeros(T_steps)
+prediction = deepcopy(tr[1:end-T_steps,:])
+for T = 1:T_steps
+    global prediction
+    predicted = MCDTS.local_linear_prediction(prediction, K; theiler = 11)
+    push!(prediction,predicted)
+end
+
+time_axis = 1:length(tr)
+sp = length(tr)-T_steps
+t2 = (-sp+1:T_steps) ./ lyap_time
+
+figure(figsize=(20,10))
+subplot(3,1,1)
+plot(t2, tr[:,1], ".-", label="training")
+plot(t2[end-T_steps+1:end], prediction[length(tr)-T_steps+1:length(tr),1], ".-", label="prediction")
+title("x-component")
+xlim(-40, 12)
+xlabel("Lyapunov time units")
+legend()
+grid()
+subplot(3,1,2)
+plot(t2, tr[:,1], ".-", label="training")
+plot(t2[end-T_steps+1:end], prediction[length(tr)-T_steps+1:length(tr),2], ".-", label="prediction")
+title("y-component")
+xlim(-40, 12)
+xlabel("Lyapunov time units")
+legend()
+grid()
+subplot(3,1,3)
+plot(t2, tr[:,1], ".-", label="training")
+plot(t2[end-T_steps+1:end], prediction[length(tr)-T_steps+1:length(tr),3], ".-", label="prediction")
+title("z-component")
+xlim(-40, 12)
+xlabel("Lyapunov time units")
+legend()
+grid()
+
+
+
+
+figure(figsize=(14., 8.))
+subplot(1,2,1, projection="3d")
+plot3D(prediction[:,1], prediction[:,2], prediction[:,3],"gray")
+title("Predicted Lorenz System")
+xlabel("x(t+1))")
+ylabel("y(t+1)")
+zlabel("z(t+1)")
+grid()
+
+subplot(1,2,2, projection="3d")
+plot3D(tr[:,1], tr[:,2], tr[:,3],"gray")
+title("Original Lorenz System")
+xlabel("x(t)")
+ylabel("y(t)")
+zlabel("z(t)")
+grid()
+
 
 # Parameters data:
 N = 8 # number of oscillators
