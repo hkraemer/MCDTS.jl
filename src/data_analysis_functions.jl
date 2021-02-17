@@ -405,34 +405,6 @@ function local_linear_prediction(Y::Dataset{D,T}, K::Int = 5;
     metric = Euclidean(), theiler::Int = 1) where {D,T}
 
     Tw = 1
-    NN = length(Y)-Tw
-    ns = 1:NN
-    vs = Y[ns]
-    vtree = KDTree(Y[1:NN], metric)
-    allNNidxs, _ = DelayEmbeddings.all_neighbors(vtree, vs, ns, K, theiler)
-
-    ϵ_ball = zeros(T, K+1, D) # preallocation
-    prediction = zeros(T, size(Y))
-    # loop over each fiducial point
-    for (i,v) in enumerate(vs)
-        NNidxs = allNNidxs[i] # indices of k nearest neighbors to v
-
-        # determine neighborhood `Tw` time steps ahead
-        ϵ_ball[1, :] .= Y[i + Tw]
-        @inbounds for (i, j) in enumerate(NNidxs)
-            ϵ_ball[i+1, :] .= Y[j + Tw]
-        end
-        # take the average as a prediction
-        prediction[i,:] = mean(ϵ_ball; dims=1)
-    end
-    return Dataset(prediction)
-end
-
-
-function local_linear_prediction(Y::Dataset{D,T}, K::Int = 5;
-    metric = Euclidean(), theiler::Int = 1) where {D,T}
-
-    Tw = 1
     NN = length(Y)
     ns = 1:NN
     vs = Y[ns]
