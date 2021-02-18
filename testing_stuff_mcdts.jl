@@ -3,6 +3,7 @@ using DelayEmbeddings
 using DynamicalSystemsBase
 using DelimitedFiles
 using ChaosTools
+using StructuredOptimization
 
 using PyPlot
 pygui(true)
@@ -11,6 +12,41 @@ pygui(true)
 lo = Systems.lorenz()
 tr = trajectory(lo, 100; dt = 0.01, Ttr = 10)
 
+Y = deepcopy(tr)
+T = eltype(Y)
+D = size(Y,2)
+theiler = 11
+K = 5
+metric = Euclidean()
+
+Tw = 1
+NN = length(Y)
+ns = 1:NN
+vs = Y[ns]
+vtree = KDTree(Y, metric)
+allNNidxs, _ = DelayEmbeddings.all_neighbors(vtree, vs, ns, K, theiler)
+
+ϵ_ball = zeros(T, K, D) # preallocation
+A = ones(K,D) # datamatrix for later linear equation to solve for AR-process
+# loop over each fiducial point
+NNidxs = allNNidxs[end] # indices of k nearest neighbors to v
+# determine neighborhood `Tw` time steps ahead
+@inbounds for (i, j) in enumerate(NNidxs)
+    ϵ_ball[i, :] .= Y[j + Tw]
+    A[i,:] = Y[j]
+end
+# make local model of the last point of the trajectory
+ar_coeffs = Variable(K) # initialize optimization variable
+@minimize ls( A*ar_coeffs - ϵ_ball)
+
+using DataFrames, GLM
+
+
+data = DataFrame(X1=A[:,1], X2=A[:,2], X3=A[:,3])
+
+ols = lm(@formula(Y ~ X1 + X2 + X3), data)
+
+
 λ = ChaosTools.lyapunov(lo, 100000, dt=0.01; Ttr=1000)
 
 lyap_time = Int(floor((1/λ) / 0.01))
@@ -18,6 +54,7 @@ lyap_time = Int(floor((1/λ) / 0.01))
 
 # make predictions
 prediction = MCDTS.local_linear_prediction(tr, 5; theiler = 11)
+pre2 = MCDTS.local_linear_prediction_ar(tr, 5; theiler = 11)
 
 MSEs = zeros(30)
 for K = 1:30
@@ -48,27 +85,27 @@ subplot(3,1,1)
 plot(t2, tr[:,1], ".-", label="training")
 plot(t2[end-T_steps+1:end], prediction[length(tr)-T_steps+1:length(tr),1], ".-", label="prediction")
 title("x-component")
-xlim(-40, 12)
+xlim(-10, 12)
 xlabel("Lyapunov time units")
 legend()
 grid()
 subplot(3,1,2)
-plot(t2, tr[:,1], ".-", label="training")
+plot(t2, tr[:,2], ".-", label="training")
 plot(t2[end-T_steps+1:end], prediction[length(tr)-T_steps+1:length(tr),2], ".-", label="prediction")
 title("y-component")
-xlim(-40, 12)
+xlim(-10, 12)
 xlabel("Lyapunov time units")
 legend()
 grid()
 subplot(3,1,3)
-plot(t2, tr[:,1], ".-", label="training")
+plot(t2, tr[:,3], ".-", label="training")
 plot(t2[end-T_steps+1:end], prediction[length(tr)-T_steps+1:length(tr),3], ".-", label="prediction")
 title("z-component")
-xlim(-40, 12)
+xlim(-10, 12)
 xlabel("Lyapunov time units")
 legend()
 grid()
-
+subplots_adjust(hspace=.6)
 
 
 
