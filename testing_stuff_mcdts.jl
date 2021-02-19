@@ -3,7 +3,6 @@ using DelayEmbeddings
 using DynamicalSystemsBase
 using DelimitedFiles
 using ChaosTools
-using StructuredOptimization
 
 using PyPlot
 pygui(true)
@@ -12,19 +11,22 @@ pygui(true)
 lo = Systems.lorenz()
 tr = trajectory(lo, 100; dt = 0.01, Ttr = 10)
 
-Y = deepcopy(tr)
-T = eltype(Y)
-D = size(Y,2)
-theiler = 11
-K = 5
-metric = Euclidean()
+λ = ChaosTools.lyapunov(lo, 100000, dt=0.01; Ttr=1000)
 
+lyap_time = Int(floor((1/λ) / 0.01))
+
+metric = Euclidean()
+K = 5
+theiler = 17
+Y = deepcopy(tr[1:end-1,:])
 Tw = 1
 NN = length(Y)
 ns = 1:NN
 vs = Y[ns]
 vtree = KDTree(Y, metric)
 allNNidxs, _ = DelayEmbeddings.all_neighbors(vtree, vs, ns, K, theiler)
+T = eltype(Y)
+D = size(Y,2)
 
 ϵ_ball = zeros(T, K, D) # preallocation
 A = ones(K,D) # datamatrix for later linear equation to solve for AR-process
@@ -35,26 +37,74 @@ NNidxs = allNNidxs[end] # indices of k nearest neighbors to v
     ϵ_ball[i, :] .= Y[j + Tw]
     A[i,:] = Y[j]
 end
-# make local model of the last point of the trajectory
-ar_coeffs = Variable(K) # initialize optimization variable
-@minimize ls( A*ar_coeffs - ϵ_ball)
-
-using DataFrames, GLM
 
 
-data = DataFrame(X1=A[:,1], X2=A[:,2], X3=A[:,3])
+data = DataFrame()
+X = A[:,1]
 
+append!(data,DataFrame(X1=X))
+
+
+data = DataFrame(X1=A[:,1], X2=A[:,2], X3=A[:,3], Y=ϵ_ball[:,1])
 ols = lm(@formula(Y ~ X1 + X2 + X3), data)
 
+b  = zeros(D)
+ar_coeffs = zeros(D,D)
+# make local linear model of the last point of the trajectory
+for i = 1:D
+    data = DataFrame(X1=A[:,1], X2=A[:,2], X3=A[:,3], Y=ϵ_ball[:,i])
+    ols = lm(@formula(Y ~ X1 + X2 + X3), data)
+    b[i] = coef(ols)[1]
+    ar_coeffs[i,1] = coef(ols)[2]
+    ar_coeffs[i,2] = coef(ols)[3]
+    ar_coeffs[i,3] = coef(ols)[4]
+end
 
-λ = ChaosTools.lyapunov(lo, 100000, dt=0.01; Ttr=1000)
+prediction = zeros(D)
+prediction[1] = Y[NN,:]'*ar_coeffs[1,:] + b[1]
+prediction[2] = Y[NN,:]'*ar_coeffs[2,:] + b[2]
+prediction[3] = Y[NN,:]'*ar_coeffs[3,:] + b[3]
 
-lyap_time = Int(floor((1/λ) / 0.01))
+
+
+
+prediction = zeros(D)
+b  = zeros(D)
+ar_coeffs = zeros(D, D)
+namess = ["X"*string(i) for i = 1:D]
+
+i= 1
+data = DataFrame()
+Expr_str = ""
+for (cnt,var) in enumerate(namess)
+    global Expr_str
+    println(var)
+    ex = Meta.parse(var)
+    data.ex = A[:,cnt]
+    if cnt == length(namess)
+        Expr_str *= (var)
+    else
+        Expr_str *= (var*"+")
+    end
+end
+data.Y = ϵ_ball[:,i]
+
+ee = Meta.parse(Expr_str)
+ex2 = Expr(:call, :~, Meta.parse("Y"), ee)
+
+ex2.head
+
+ols = lm(@formula(Y ~ X1 + X2 + X3), data)
+b[i] = coef(ols)[1]
+ar_coeffs[i,j] = [coef(ols)[j+1] for j = 1:D]
+
+prediction[i] = Y[NN,:]'*ar_coeffs[i,:] + b[i]
 
 
 # make predictions
-prediction = MCDTS.local_linear_prediction(tr, 5; theiler = 11)
-pre2 = MCDTS.local_linear_prediction_ar(tr, 5; theiler = 11)
+prediction = MCDTS.local_linear_prediction(tr[1:end,:], 5; theiler = 11)
+pre2 = MCDTS.local_linear_prediction_ar(tr[1:end,:], 5; theiler = 11)
+
 
 MSEs = zeros(30)
 for K = 1:30

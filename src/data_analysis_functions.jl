@@ -431,6 +431,41 @@ function compute_mse(prediction::Vector{T}, reference::Vector{T}) where {T}
 end
 
 
+# function local_linear_prediction_ar(Y::Dataset{D,T}, K::Int = 5;
+#     metric = Euclidean(), theiler::Int = 1) where {D,T}
+#
+#     Tw = 1
+#     NN = length(Y)
+#     ns = 1:NN
+#     vs = Y[ns]
+#     vtree = KDTree(Y, metric)
+#     allNNidxs, _ = DelayEmbeddings.all_neighbors(vtree, vs, ns, K, theiler)
+#
+#     ϵ_ball = zeros(T, K, D) # preallocation
+#     A = ones(K,D) # datamatrix for later linear equation to solve for AR-process
+#     # loop over each fiducial point
+#     NNidxs = allNNidxs[end] # indices of k nearest neighbors to v
+#     # determine neighborhood `Tw` time steps ahead
+#     @inbounds for (i, j) in enumerate(NNidxs)
+#         ϵ_ball[i, :] .= Y[j + Tw]
+#         A[i,:] = Y[j]
+#     end
+#     # make local linear model of the last point of the trajectory
+#     b = zeros(D)
+#     ar_coeffs = zeros(D)
+#     for i = 1:D
+#         data = DataFrame(X=A[:,i], Y=ϵ_ball[:,i])
+#         ols = lm(@formula(Y ~ X), data)
+#         b[i] = coef(ols)[1]
+#         ar_coeffs[i] = coef(ols)[2]
+#     end
+#
+#     prediction = Y[NN,:].*ar_coeffs .+ b
+#     return vec(prediction)
+# end
+#
+
+
 function local_linear_prediction_ar(Y::Dataset{D,T}, K::Int = 5;
     metric = Euclidean(), theiler::Int = 1) where {D,T}
 
@@ -450,16 +485,29 @@ function local_linear_prediction_ar(Y::Dataset{D,T}, K::Int = 5;
         ϵ_ball[i, :] .= Y[j + Tw]
         A[i,:] = Y[j]
     end
+
     # make local linear model of the last point of the trajectory
-    b = zeros(D)
-    ar_coeffs = zeros(D)
+    prediction = zeros(D)
+    b  = zeros(D)
+    ar_coeffs = zeros(D, D)
+    namess = ["X"*string(i) for i = 1:D]
+    ee = Meta.parse.(namess)
+    formula_expression = Term(:Y) ~ sum(term.(ee))
+
     for i = 1:D
-        data = DataFrame(X=A[:,i], Y=ϵ_ball[:,i])
-        ols = lm(@formula(Y ~ X), data)
+        data = DataFrame()
+        for (cnt,var) in enumerate(namess)
+            data[!, var] = A[:,cnt]
+        end
+        data.Y = ϵ_ball[:,i]
+
+        ols = lm(formula_expression, data)
         b[i] = coef(ols)[1]
-        ar_coeffs[i] = coef(ols)[2]
+        for j = 1:D
+            ar_coeffs[i,j] = coef(ols)[j+1]
+        end
+        prediction[i] = Y[NN,:]'*ar_coeffs[i,:] + b[i]
     end
 
-    prediction = Y[NN,:].*ar_coeffs .+ b
     return vec(prediction)
 end

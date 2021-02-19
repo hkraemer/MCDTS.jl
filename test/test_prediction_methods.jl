@@ -7,7 +7,6 @@ using ChaosTools
 using PyPlot
 pygui(true)
 
-
 lo = Systems.lorenz()
 tr = trajectory(lo, 100; dt = 0.01, Ttr = 10)
 
@@ -20,12 +19,13 @@ w2 = DelayEmbeddings.estimate_delay(tr[:,2],"mi_min")
 w3 = DelayEmbeddings.estimate_delay(tr[:,3],"mi_min")
 theiler = maximum([w1,w2,w3])
 
+D = size(tr,2)
 # make predictions with different neighborhoodsizes and optimize w.r.t. this parameter
 max_neighbours = 30
-MSEs1 = zeros(max_neighbours-1)
-MSEs2 = zeros(max_neighbours-1)
+MSEs1 = zeros(max_neighbours-(D))
+MSEs2 = zeros(max_neighbours-(D))
 cnt = 1
-for K = 2:max_neighbours
+for K = (D+1):max_neighbours
     global cnt
     prediction1 = MCDTS.local_linear_prediction(tr[1:end-1,:], K; theiler = theiler)
     MSEs1[cnt] = MCDTS.compute_mse(prediction1, Vector(tr[end,:]))
@@ -34,29 +34,30 @@ for K = 2:max_neighbours
     cnt += 1
 end
 
+xs = (D+1):max_neighbours
 figure()
-plot(2:max_neighbours,MSEs1, label="loc-lin")
-plot(2:max_neighbours,MSEs2, label="loc-lin-ar")
+plot(xs,MSEs1, label="loc-lin")
+plot(xs, label="loc-lin-ar")
 legend()
 grid()
 xlabel("Neighbourhoodsize [no. of neighbours]")
 ylabel("root mean squared error")
 
-K1 = findmin(MSEs1)[2]
-K2 = findmin(MSEs2)[2]
+K1 = xs[findmin(MSEs1)[2]]
+K2 = xs[findmin(MSEs2)[2]]
 
 # make predictions
 T_steps = 12*lyap_time
 prediction1 = deepcopy(tr[1:end-T_steps,:])
 prediction2 = deepcopy(tr[1:end-T_steps,:])
 for T = 1:T_steps
-    # global K1
-    # global K2
+    println(T)
     predicted1 = MCDTS.local_linear_prediction(prediction1, K1; theiler = theiler)
     push!(prediction1,predicted1)
     predicted2 = MCDTS.local_linear_prediction_ar(prediction2, K2; theiler = theiler)
     push!(prediction2,predicted2)
 end
+
 
 time_axis = 1:length(tr)
 sp = length(tr)-T_steps
@@ -64,9 +65,9 @@ t2 = (-sp+1:T_steps) ./ lyap_time
 
 figure(figsize=(20,10))
 subplot(3,1,1)
-plot(t2, tr[:,1], ".-", label="training")
+plot(t2, tr[:,1], ".-", label="true data")
 plot(t2[end-T_steps+1:end], prediction1[length(tr)-T_steps+1:length(tr),1], ".-", label="prediction [loc-lin]")
-#plot(t2[end-T_steps+1:end], prediction2[length(tr)-T_steps+1:length(tr),1], ".-", label="prediction [loc-lin-ar]")
+plot(t2[end-T_steps+1:end], prediction2[length(tr)-T_steps+1:length(tr),1], ".-", label="prediction [loc-lin-ar]")
 title("x-component")
 xlim(-10, 12)
 ylim(-20,20)
@@ -74,9 +75,9 @@ xlabel("Lyapunov time units")
 legend()
 grid()
 subplot(3,1,2)
-plot(t2, tr[:,2], ".-", label="training")
+plot(t2, tr[:,2], ".-", label="true data")
 plot(t2[end-T_steps+1:end], prediction1[length(tr)-T_steps+1:length(tr),2], ".-", label="prediction [loc-lin]")
-#plot(t2[end-T_steps+1:end], prediction2[length(tr)-T_steps+1:length(tr),2], ".-", label="prediction [loc-lin-ar]")
+plot(t2[end-T_steps+1:end], prediction2[length(tr)-T_steps+1:length(tr),2], ".-", label="prediction [loc-lin-ar]")
 title("y-component")
 xlim(-10, 12)
 ylim(-25,25)
@@ -84,9 +85,9 @@ xlabel("Lyapunov time units")
 legend()
 grid()
 subplot(3,1,3)
-plot(t2, tr[:,3], ".-", label="training")
+plot(t2, tr[:,3], ".-", label="true data")
 plot(t2[end-T_steps+1:end], prediction1[length(tr)-T_steps+1:length(tr),3], ".-", label="prediction [loc-lin]")
-#plot(t2[end-T_steps+1:end], prediction2[length(tr)-T_steps+1:length(tr),3], ".-", label="prediction [loc-lin-ar]")
+plot(t2[end-T_steps+1:end], prediction2[length(tr)-T_steps+1:length(tr),3], ".-", label="prediction [loc-lin-ar]")
 title("z-component")
 xlim(-10, 12)
 ylim(0,45)
