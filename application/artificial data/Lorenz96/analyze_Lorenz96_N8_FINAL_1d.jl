@@ -15,12 +15,12 @@ N = 8
 tde = 3
 
 # FNN or L-statistic based?
-FNN = true
+FNN = false
 
 # display results
-show1 = false # embedding dimension and FNN/L-statistic
+show1 = true # embedding dimension and FNN/L-statistic
 show2 = false # RQA statistics
-show3 = false  # RP-accordance
+show3 = true  # RP-accordance
 
 # bind variables
 methodss = ["Cao", "Kennel", "Hegger"]

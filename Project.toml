@@ -4,6 +4,8 @@ authors = ["Maximilian Gelbrecht, K. Hauke Kraemer"]
 version = "0.4.0"
 
 [deps]
+ARFIMA = "9d0fb3db-ba49-4108-bc86-650b3813b6d5"
+DSP = "717857b8-e6f2-59f4-9121-6e50c889abd2"
 DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
 DelayEmbeddings = "5732040d-69e3-5649-938a-b6b4f237613f"
 Distances = "b4f34e82-e78d-54a5-968a-f98e89d6e8f7"
@@ -17,5 +19,6 @@ Pkg = "44cfe95a-1eb2-52ea-b672-e2afdf69b78f"
 Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
 RecurrenceAnalysis = "639c3291-70d9-5ea2-8c5b-839eba1ee399"
 Statistics = "10745b16-79ce-11e8-11f9-7d13ad32a3b2"
+StatsBase = "2913bbd2-ae8a-5f71-8c99-4fb6c76f3a91"
 StructuredOptimization = "46cd3e9d-64ff-517d-a929-236bc1a1fc9d"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"

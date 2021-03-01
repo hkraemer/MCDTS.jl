@@ -1,5 +1,13 @@
 # This file is machine-generated - editing it directly is not advised
 
+[[ARFIMA]]
+deps = ["LinearAlgebra", "Random", "StaticArrays", "Test"]
+git-tree-sha1 = "2418569280e934b727597b7921b0b6f1b34b91b1"
+repo-rev = "master"
+repo-url = "https://github.com/JuliaDynamics/ARFIMA.jl"
+uuid = "9d0fb3db-ba49-4108-bc86-650b3813b6d5"
+version = "0.3.1"
+
 [[AbstractFFTs]]
 deps = ["LinearAlgebra"]
 git-tree-sha1 = "051c95d6836228d120f5f4b984dd5aba1624f716"

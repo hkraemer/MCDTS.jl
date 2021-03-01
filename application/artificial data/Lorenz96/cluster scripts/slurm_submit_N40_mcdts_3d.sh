@@ -8,6 +8,7 @@
 #SBATCH --error=name-%j.err
 #SBATCH --nodes=2
 #SBATCH --ntasks-per-node=8
+#SBATCH --mem-per-cpu=6G
 
 
 echo "------------------------------------------------------------"

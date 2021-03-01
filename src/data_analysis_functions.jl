@@ -6,6 +6,7 @@ using Statistics
 using LinearAlgebra
 using Neighborhood
 using DataFrames
+using StatsBase
 using GLM
 
 
@@ -404,6 +405,30 @@ moving_average(vs,n) = [sum(@view vs[i:(i+n-1)])/n for i in 1:(length(vs)-(n-1))
 
 
 function local_linear_prediction(Y::Dataset{D,T}, K::Int = 5;
+    metric = Euclidean(), theiler::Int = 1, Tw::Int = 1) where {D,T}
+
+    NN = length(Y)
+    ns = 1:NN
+    vs = Y[ns]
+    vtree = KDTree(Y[1:length(Y)-Tw,:], metric)
+    allNNidxs, _ = DelayEmbeddings.all_neighbors(vtree, vs, ns, K, theiler)
+
+    ϵ_ball = zeros(T, K, D) # preallocation
+    # loop over each fiducial point
+    NNidxs = allNNidxs[end] # indices of k nearest neighbors to v
+    # determine neighborhood `Tw` time steps ahead
+    @inbounds for (i, j) in enumerate(NNidxs)
+        ϵ_ball[i, :] .= Y[j + Tw]
+    end
+    # take the average as a prediction
+    prediction = mean(ϵ_ball; dims=1)
+    # predicted prediction error
+    error_predict = sum((ϵ_ball .- prediction).^2; dims=1)
+
+    return vec(prediction), vec(error_predict)
+end
+
+function local_random_analogue_prediction(Y::Dataset{D,T}, K::Int = 5;
     metric = Euclidean(), theiler::Int = 1) where {D,T}
 
     Tw = 1
@@ -420,60 +445,28 @@ function local_linear_prediction(Y::Dataset{D,T}, K::Int = 5;
     @inbounds for (i, j) in enumerate(NNidxs)
         ϵ_ball[i, :] .= Y[j + Tw]
     end
-    # take the average as a prediction
-    prediction = mean(ϵ_ball; dims=1)
+    # take a random sample as the prediction
+    idx = sample(vec(1:K))
+    prediction = ϵ_ball[idx,:]
 
     return vec(prediction)
+
+
 end
+
 
 function compute_mse(prediction::Vector{T}, reference::Vector{T}) where {T}
     return sqrt(mean((prediction .- reference).^2))
 end
 
 
-# function local_linear_prediction_ar(Y::Dataset{D,T}, K::Int = 5;
-#     metric = Euclidean(), theiler::Int = 1) where {D,T}
-#
-#     Tw = 1
-#     NN = length(Y)
-#     ns = 1:NN
-#     vs = Y[ns]
-#     vtree = KDTree(Y, metric)
-#     allNNidxs, _ = DelayEmbeddings.all_neighbors(vtree, vs, ns, K, theiler)
-#
-#     ϵ_ball = zeros(T, K, D) # preallocation
-#     A = ones(K,D) # datamatrix for later linear equation to solve for AR-process
-#     # loop over each fiducial point
-#     NNidxs = allNNidxs[end] # indices of k nearest neighbors to v
-#     # determine neighborhood `Tw` time steps ahead
-#     @inbounds for (i, j) in enumerate(NNidxs)
-#         ϵ_ball[i, :] .= Y[j + Tw]
-#         A[i,:] = Y[j]
-#     end
-#     # make local linear model of the last point of the trajectory
-#     b = zeros(D)
-#     ar_coeffs = zeros(D)
-#     for i = 1:D
-#         data = DataFrame(X=A[:,i], Y=ϵ_ball[:,i])
-#         ols = lm(@formula(Y ~ X), data)
-#         b[i] = coef(ols)[1]
-#         ar_coeffs[i] = coef(ols)[2]
-#     end
-#
-#     prediction = Y[NN,:].*ar_coeffs .+ b
-#     return vec(prediction)
-# end
-#
-
-
 function local_linear_prediction_ar(Y::Dataset{D,T}, K::Int = 5;
-    metric = Euclidean(), theiler::Int = 1) where {D,T}
+    metric = Euclidean(), theiler::Int = 1, Tw::Int = 1) where {D,T}
 
-    Tw = 1
     NN = length(Y)
     ns = 1:NN
     vs = Y[ns]
-    vtree = KDTree(Y, metric)
+    vtree = KDTree(Y[1:length(Y)-Tw,:], metric)
     allNNidxs, _ = DelayEmbeddings.all_neighbors(vtree, vs, ns, K, theiler)
 
     ϵ_ball = zeros(T, K, D) # preallocation
@@ -509,5 +502,65 @@ function local_linear_prediction_ar(Y::Dataset{D,T}, K::Int = 5;
         prediction[i] = Y[NN,:]'*ar_coeffs[i,:] + b[i]
     end
 
-    return vec(prediction)
+    # predicted prediction error
+    error_predict = sum((ϵ_ball .- prediction').^2; dims=1)
+
+    return vec(prediction), vec(error_predict)
+end
+
+function embed_for_prediction(Y::Dataset{D,T}, x::Vector{T}, τ::Int) where {D,T}
+    N = length(Y)
+    MM = length(x)
+    MMM = MM - τ
+    M = minimum([N, MMM])
+    Y2 = hcat(Y[end-M+1:end,:], x[end-M-τ+1:end-τ])
+    return(Y2)
+end
+
+function embed_for_prediction(Y::Vector{T}, x::Vector{T}, τ::Int) where {T}
+    N = length(Y)
+    MM = length(x)
+    MMM = MM - τ
+    M = minimum([N, MMM])
+    Y2 = hcat(Y[end-M+1:end], x[end-M-τ+1:end-τ])
+    return Dataset(Y2)
+end
+
+
+function genembed_for_prediction(Y::Vector{T}, τs::Vector{Int}) where {T}
+    @assert τs[1] == 0
+    YY = Y
+    for τ in τs[2:end]
+        YY = embed_for_prediction(YY, Y, τ)
+    end
+    return YY
+end
+
+function genembed_for_prediction(Y::Dataset{D,T}, τs::Vector{Int}, ts::Vector{Int}) where {D,T}
+    @assert length(τs) == length(ts)
+    @assert maximum(ts) ≤ size(Y,2)
+    @assert sum(ts.<1) == 0
+    @assert τs[1] == 0
+    YY = Y[:,ts[1]]
+    for (idx,τ) in enumerate(τs[2:end])
+        YY = embed_for_prediction(YY, Y[:,ts[idx+1]], τ)
+    end
+    return YY
+end
+
+function get_ar_prediction(x::Vector{T}, coeffs::Vector; Tw::Int = 1, σ::Real = 1,
+    c::Real = 0, rng::AbstractRNG = Random.GLOBAL_RNG) where {T}
+
+
+    N = length(x)
+    @assert N == length(coeffs) "Priors must be as many as the order of the chosen AR-process."
+    @assert Tw > 0  "Provide a valid forecast horizon in sampling units (positiv integer)."
+    forecast = zeros(N+Tw)
+    forecast[1:N] = x
+    idx = N + 1
+    for i = 1:Tw
+        forecast[idx] = c + forecast[idx-N:idx-1]'*coeffs + σ*randn(rng)
+        idx += 1
+    end
+    return forecast[N+1:end]
 end

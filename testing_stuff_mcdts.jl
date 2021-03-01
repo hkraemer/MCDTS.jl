@@ -3,10 +3,215 @@ using DelayEmbeddings
 using DynamicalSystemsBase
 using DelimitedFiles
 using ChaosTools
+using DSP
+using Statistics
 
 using PyPlot
 pygui(true)
 
+
+data = readdlm("AR3_example.csv")
+data = vec(data)
+
+trajectories = zeros(100,T_steps)
+coeffs = vec([0.4, 0.2, 0.3])
+for i = 1:100
+    trajectories[i,:] = MCDTS.get_ar_prediction(data[end-T_steps-2:end-T_steps], coeffs; Tw = T_steps, c=-4, σ=0.4)
+end
+
+
+figure()
+plot(1:length(data),data, "k.-", linewidth = 2)
+plot(length(data)-T_steps+1:length(data), vec(mean(trajectories;dims=1)))
+grid()
+
+
+tt = vec(mean(trajectories;dims=1))
+length(tt)
+
+theiler = DelayEmbeddings.estimate_delay(data, "mi_min")
+
+T_steps = 50
+Y_pec, τ_pec, _, L, _ = pecuzal_embedding(data[1:end-T_steps]; τs = 0:100, w = theiler)
+
+YY = MCDTS.genembed_for_prediction(data[1:end-T_steps], τ_pec)
+
+K1 = K2 = 6
+
+tr = deepcopy(YY)
+
+prediction1_ms = deepcopy(tr)
+error_prediction1_ms = Dataset(zeros(size(tr)))
+prediction1_ios = deepcopy(tr)
+error_prediction1_ios = Dataset(zeros(size(tr)))
+prediction2_ms = deepcopy(tr)
+error_prediction2_ms = Dataset(zeros(size(tr)))
+prediction2_ios = deepcopy(tr)
+error_prediction2_ios = Dataset(zeros(size(tr)))
+for T = 1:T_steps
+    println(T)
+    # iterated one step
+    predicted1_ios, error_predicted1_ios = MCDTS.local_linear_prediction(prediction1_ios, K1; theiler = theiler)
+    push!(prediction1_ios,predicted1_ios)
+    push!(error_prediction1_ios, error_predicted1_ios)
+    predicted2_ios, error_predicted2_ios = MCDTS.local_linear_prediction_ar(prediction2_ios, K2; theiler = theiler)
+    push!(prediction2_ios,predicted2_ios)
+    push!(error_prediction2_ios,error_predicted2_ios)
+    # multistep
+    predicted1_ms, error_predicted1_ms = MCDTS.local_linear_prediction(tr, K1; Tw = T, theiler = theiler)
+    push!(prediction1_ms,predicted1_ms)
+    push!(error_prediction1_ms,error_predicted1_ms)
+    predicted2_ms, error_predicted2_ms = MCDTS.local_linear_prediction_ar(tr, K2; Tw = T, theiler = theiler)
+    push!(prediction2_ms,predicted2_ms)
+    push!(error_prediction2_ms,error_predicted2_ms)
+end
+
+# Compute real error
+actual_error_prediction1_ios = zeros(size(data))
+actual_error_prediction1_ms = zeros(size(data))
+actual_error_prediction2_ios = zeros(size(data))
+actual_error_prediction2_ms = zeros(size(data))
+diff = abs(length(tr)-length(data)+T_steps)
+for i = 1+diff:length(data)
+    actual_error_prediction1_ios[i] = abs.(data[i] .- prediction1_ios[i-diff,1])
+    actual_error_prediction1_ms[i] = abs.(data[i] .- prediction1_ms[i-diff,1])
+    actual_error_prediction2_ios[i] = abs.(data[i] .- prediction2_ios[i-diff,1])
+    actual_error_prediction2_ms[i] = abs.(data[i] .- prediction2_ms[i-diff,1])
+end
+
+# Plot predicted vs actual errors
+figure(figsize=(20,10))
+
+subplot(1,2,1)
+scatter(error_prediction1_ios[end-T_steps:end,1], actual_error_prediction1_ios[end-T_steps:end])
+plot(0:110, 0:110, "k--")
+title("Reliability (IOS), loc-lin")
+xlabel("predicted error")
+ylabel("actual error")
+yscale("log")
+xscale("log")
+grid()
+
+subplot(1,2,2)
+scatter(error_prediction1_ms[end-T_steps:end,1], actual_error_prediction1_ms[end-T_steps:end])
+plot(0:100, 0:100, "k--")
+title("Reliability (MS), loc-lin")
+xlabel("predicted error")
+ylabel("actual error")
+yscale("log")
+xscale("log")
+grid()
+subplots_adjust(hspace=.6)
+
+
+figure(figsize=(20,10))
+subplot(1,2,1)
+scatter(error_prediction2_ios[end-T_steps:end,1], actual_error_prediction2_ios[end-T_steps:end])
+plot(0:110, 0:110, "k--")
+title("Reliability (IOS), loc-lin-ar")
+xlabel("predicted error")
+ylabel("actual error")
+yscale("log")
+xscale("log")
+grid()
+
+subplot(1,2,2)
+scatter(error_prediction2_ms[end-T_steps:end,1], actual_error_prediction2_ms[end-T_steps:end])
+plot(0:100, 0:100, "k--")
+title("Reliability (MS), loc-lin-ar")
+xlabel("predicted error")
+ylabel("actual error")
+yscale("log")
+xscale("log")
+grid()
+
+subplots_adjust(hspace=.6)
+
+# Plot predictions
+time_axis = 1:length(data)
+sp = length(data)-T_steps
+t2 = (-sp+1:T_steps)
+
+figure(figsize=(20,10))
+subplot(2,1,1)
+plot(t2[1+diff:end], data[1+diff:end], ".-", label="true data")
+plot(t2[end-T_steps:end], prediction1_ios[end-T_steps:end,1], ".-", label="prediction [loc-lin]")
+plot(t2[end-T_steps:end], prediction2_ios[end-T_steps:end,1], ".-", label="prediction [loc-lin-ar]")
+title("iterated one-step forecast ($K2 neighbours)")
+xlim(-10, T_steps)
+# ylim(-20,20)
+xlabel("time units")
+legend()
+grid()
+
+subplot(2,1,2)
+plot(t2, data, ".-", label="true data")
+plot(t2[end-T_steps:end], prediction1_ms[end-T_steps:end,1], ".-", label="prediction [loc-lin]")
+plot(t2[end-T_steps:end], prediction2_ms[end-T_steps:end,1], ".-", label="prediction [loc-lin-ar]")
+title("multi-step forecast ($K2 neighbours)")
+xlim(-10, T_steps)
+# ylim(-20,20)
+xlabel("time units")
+legend()
+grid()
+
+
+## Many different Neighbourhoodsizes
+MSEs1_ios = zeros(length(4:20))
+MSEs2_ios = zeros(length(4:20))
+MSEs1_ms = zeros(length(4:20))
+MSEs2_ms = zeros(length(4:20))
+cnt = 1
+for K = 4:20
+    global cnt
+    println(K)
+    tr = deepcopy(YY)
+    K1 = K2 = K
+    prediction1_ms = deepcopy(tr)
+    error_prediction1_ms = Dataset(zeros(size(tr)))
+    prediction1_ios = deepcopy(tr)
+    error_prediction1_ios = Dataset(zeros(size(tr)))
+    prediction2_ms = deepcopy(tr)
+    error_prediction2_ms = Dataset(zeros(size(tr)))
+    prediction2_ios = deepcopy(tr)
+    error_prediction2_ios = Dataset(zeros(size(tr)))
+    for T = 1:T_steps
+        # iterated one step
+        predicted1_ios, error_predicted1_ios = MCDTS.local_linear_prediction(prediction1_ios, K1; theiler = theiler)
+        push!(prediction1_ios,predicted1_ios)
+        push!(error_prediction1_ios, error_predicted1_ios)
+        predicted2_ios, error_predicted2_ios = MCDTS.local_linear_prediction_ar(prediction2_ios, K2; theiler = theiler)
+        push!(prediction2_ios,predicted2_ios)
+        push!(error_prediction2_ios,error_predicted2_ios)
+        # multistep
+        predicted1_ms, error_predicted1_ms = MCDTS.local_linear_prediction(tr, K1; Tw = T, theiler = theiler)
+        push!(prediction1_ms,predicted1_ms)
+        push!(error_prediction1_ms,error_predicted1_ms)
+        predicted2_ms, error_predicted2_ms = MCDTS.local_linear_prediction_ar(tr, K2; Tw = T, theiler = theiler)
+        push!(prediction2_ms,predicted2_ms)
+        push!(error_prediction2_ms,error_predicted2_ms)
+    end
+
+    MSEs1_ios[cnt] = MCDTS.compute_mse(data[1+diff:end], prediction1_ios[:,1])
+    MSEs2_ios[cnt] = MCDTS.compute_mse(data[1+diff:end], prediction2_ios[:,1])
+    MSEs1_ms[cnt] = MCDTS.compute_mse(data[1+diff:end], prediction1_ms[:,1])
+    MSEs2_ms[cnt] = MCDTS.compute_mse(data[1+diff:end], prediction2_ms[:,1])
+
+    cnt += 1
+end
+
+figure()
+plot(4:20,MSEs1_ios, label="IOS loc-lin")
+plot(4:20,MSEs1_ms, label="MS loc-lin")
+plot(4:20,MSEs2_ios, label="IOS loc-lin-ar")
+plot(4:20,MSEs2_ms, label="MS loc-lin-ar")
+xlabel("Neighbourhoodsize")
+legend()
+grid()
+ylabel("MSE")
+
+
+##
 
 lo = Systems.lorenz()
 tr = trajectory(lo, 100; dt = 0.01, Ttr = 10)
@@ -68,42 +273,12 @@ prediction[3] = Y[NN,:]'*ar_coeffs[3,:] + b[3]
 
 
 
-prediction = zeros(D)
-b  = zeros(D)
-ar_coeffs = zeros(D, D)
-namess = ["X"*string(i) for i = 1:D]
-
-i= 1
-data = DataFrame()
-Expr_str = ""
-for (cnt,var) in enumerate(namess)
-    global Expr_str
-    println(var)
-    ex = Meta.parse(var)
-    data.ex = A[:,cnt]
-    if cnt == length(namess)
-        Expr_str *= (var)
-    else
-        Expr_str *= (var*"+")
-    end
-end
-data.Y = ϵ_ball[:,i]
-
-ee = Meta.parse(Expr_str)
-ex2 = Expr(:call, :~, Meta.parse("Y"), ee)
-
-ex2.head
-
-ols = lm(@formula(Y ~ X1 + X2 + X3), data)
-b[i] = coef(ols)[1]
-ar_coeffs[i,j] = [coef(ols)[j+1] for j = 1:D]
-
-prediction[i] = Y[NN,:]'*ar_coeffs[i,:] + b[i]
 
 
 # make predictions
 prediction = MCDTS.local_linear_prediction(tr[1:end,:], 5; theiler = 11)
 pre2 = MCDTS.local_linear_prediction_ar(tr[1:end,:], 5; theiler = 11)
+pre3 = MCDTS.local_linear_prediction_ar2(tr[1:end,:], 5; theiler = 11)
 
 
 MSEs = zeros(30)

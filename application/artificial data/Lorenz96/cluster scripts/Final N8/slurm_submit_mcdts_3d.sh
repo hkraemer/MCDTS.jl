@@ -1,13 +1,14 @@
 #!/bin/bash
 
-#SBATCH --qos=priority
-#SBATCH --partition=priority
+#SBATCH --qos=medium
+#SBATCH --partition=standard
 #SBATCH --job-name=8mcd_3d
 #SBATCH --account=synet
 #SBATCH --output=name-%j.out
 #SBATCH --error=name-%j.err
 #SBATCH --nodes=2
 #SBATCH --ntasks-per-node=8
+#SBATCH --mem-per-cpu=6G
 
 
 echo "------------------------------------------------------------"
