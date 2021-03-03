@@ -112,13 +112,13 @@ writedlm("./application/artificial data/Lorenz Prediction/Results/tau_pec2.csv",
 writedlm("./application/artificial data/Lorenz Prediction/Results/ts_pec2.csv", ts_pec2)
 writedlm("./application/artificial data/Lorenz Prediction/Results/Y_mcdts2.csv", Y_mcdts2)
 writedlm("./application/artificial data/Lorenz Prediction/Results/tau_mcdts2.csv", τ_mcdts2)
-writedlm("./application/artificial data/Lorenz Prediction/Results/ts_mcdts2.csv", τ_mcdts2)
+writedlm("./application/artificial data/Lorenz Prediction/Results/ts_mcdts2.csv", ts_mcdts2)
 
 writedlm("./application/artificial data/Lorenz Prediction/Results/Y_mcdts_fnn.csv", Y_mcdts_fnn)
 writedlm("./application/artificial data/Lorenz Prediction/Results/tau_mcdts_fnn.csv", τ_mcdts_fnn)
 writedlm("./application/artificial data/Lorenz Prediction/Results/Y_mcdts_fnn2.csv", Y_mcdts_fnn2)
 writedlm("./application/artificial data/Lorenz Prediction/Results/tau_mcdts_fnn2.csv", τ_mcdts_fnn2)
-writedlm("./application/artificial data/Lorenz Prediction/Results/ts_mcdts_fnn2.csv", τ_mcdts_fnn2)
+writedlm("./application/artificial data/Lorenz Prediction/Results/ts_mcdts_fnn2.csv", ts_mcdts_fnn2)
 
 # Load data
 ####

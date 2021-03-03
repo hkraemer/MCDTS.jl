@@ -403,8 +403,25 @@ end
 """
 moving_average(vs,n) = [sum(@view vs[i:(i+n-1)])/n for i in 1:(length(vs)-(n-1))]
 
+"""
+    local_zeroth_prediction(Y::Dataset, K::Int = 5; kwargs...) → x_pred, e_expect
 
-function local_linear_prediction(Y::Dataset{D,T}, K::Int = 5;
+Perform a "zeroth" order prediction for the time horizon `Tw` (default = 1). Based
+on `K` nearest neighbours of the last point of the given trajectory `Y`, the
+`Tw`-step ahead prediction is simply the mean of the images of these `K`-nearest 
+neighbours. The output `x_pred` is, thus, the `Tw`-step ahead prediction vector.
+The function also returns `e_expect`, the expected error on the prediction `x_pred`,
+computed as the mean of the RMS-errors of all `K`-neighbours-errors.
+
+Keywords:
+* `metric = Euclidean()`: Metric used for distance computation
+* `theiler::Int = 1`: Theiler window for excluding serially correlated points from
+   the nearest neighbour search.
+* `Tw::Int = 1`: The prediction time in sampling units. If `Tw > 1`, a multi-step
+  prediction is performed.
+
+"""
+function local_zeroth_prediction(Y::Dataset{D,T}, K::Int = 5;
     metric = Euclidean(), theiler::Int = 1, Tw::Int = 1) where {D,T}
 
     NN = length(Y)
@@ -459,8 +476,25 @@ function compute_mse(prediction::Vector{T}, reference::Vector{T}) where {T}
     return sqrt(mean((prediction .- reference).^2))
 end
 
+"""
+    local_linear_prediction(Y::Dataset, K::Int = 5; kwargs...) → x_pred, e_expect
 
-function local_linear_prediction_ar(Y::Dataset{D,T}, K::Int = 5;
+Perform a prediction for the time horizon `Tw` (default = 1) by a locally linear
+fit. Based on `K` nearest neighbours of the last point of the given trajectory
+`Y`, we fit a linear model to these points and their `Tw`-step ahead images. The
+output `x_pred` is, thus, the `Tw`-step ahead prediction vector.
+The function also returns `e_expect`, the expected error on the prediction `x_pred`,
+computed as the mean of the RMS-errors of all `K`-neighbours-errors.
+
+Keywords:
+* `metric = Euclidean()`: Metric used for distance computation
+* `theiler::Int = 1`: Theiler window for excluding serially correlated points from
+   the nearest neighbour search.
+* `Tw::Int = 1`: The prediction time in sampling units. If `Tw > 1`, a multi-step
+  prediction is performed.
+
+"""
+function local_linear_prediction(Y::Dataset{D,T}, K::Int = 5;
     metric = Euclidean(), theiler::Int = 1, Tw::Int = 1) where {D,T}
 
     NN = length(Y)

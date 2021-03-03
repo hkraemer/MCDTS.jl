@@ -34,9 +34,10 @@ results = @distributed (vcat) for i in eachindex(Ns)
     global σ
     N = Ns[i]
     D = zeros(Int,length(ar_coeffs),3)
-    τ_pec = []
-    τ_mcdts_L = []
-    τ_mcdts_FNN = []
+    τ_cao = []
+    τ_kennel = []
+    τ_hegger = []
+
     X = zeros(N,length(ar_coeffs))
 
     for j in eachindex(ar_coeffs)
@@ -47,36 +48,31 @@ results = @distributed (vcat) for i in eachindex(Ns)
         w1 = DelayEmbeddings.estimate_delay(X[:,j], "mi_min")
         dmax = 15
 
-        # Pecuzal
-        taus = 0:100
-        _, τ_pecs, ts_pec, Ls_pec , _ = DelayEmbeddings.pecuzal_embedding(X[1:end-T_steps,j]; τs = taus , w = w1)
-        D[j,1] = length(τ_pecs)
-        push!(τ_pec, τ_pecs)
+        Y_cao, τ_tde_cao_, _ = optimal_traditional_de(X[1:end-T_steps,j], "afnn", "mi_min"; dmax = dmax, w = w1)
+        D[j,1] = size(Y_cao,2)
+        τ_caos = [(i-1)*τ_tde_cao_ for i = 1:D[j,1]]
+        push!(τ_cao, τ_caos)
 
-        # MCDTS
-        trials = 80
-        tree = MCDTS.mc_delay(Dataset(X[1:end-T_steps,j]), w1, (L)->(MCDTS.softmaxL(L,β=2.)), taus, trials; tws = 2:taus[end])
-        best_node = MCDTS.best_embedding(tree)
-        τ_mcdts_Ls = best_node.τs
-        D[j,2] = length(τ_mcdts_Ls)
-        push!(τ_mcdts_L, τ_mcdts_Ls)
+        Y_kennel, τ_tde_kennel_, _ = optimal_traditional_de(X[1:end-T_steps,j], "fnn", "mi_min"; dmax = dmax, w = w1)
+        D[j,2] = size(Y_kennel,2)
+        τ_kennels = [(i-1)*τ_tde_kennel_ for i = 1:D[j,2]]
+        push!(τ_kennel, τ_kennels)
 
-        tree2 = MCDTS.mc_delay(Dataset(X[1:end-T_steps,j]), w1, (L)->(MCDTS.softmaxL(L,β=2.)), taus, trials; FNN = true, threshold = 0.05)
-        best_node2 = MCDTS.best_embedding(tree2)
-        τ_mcdts_FNNs = best_node2.τs
-        D[j,3] = length(τ_mcdts_FNNs)
-        push!(τ_mcdts_FNN, τ_mcdts_FNNs)
+        Y_hegger, τ_tde_hegger_, _ = optimal_traditional_de(X[1:end-T_steps,j], "ifnn", "mi_min"; dmax = dmax, w = w1)
+        D[j,3] = size(Y_hegger,2)
+        τ_heggers = [(i-1)*τ_tde_hegger_ for i = 1:D[j,3]]
+        push!(τ_hegger, τ_heggers)
 
     end
 
     # Output
-    tuple(X, D, τ_pec, τ_mcdts_L, τ_mcdts_FNN)
+    tuple(X, D, τ_cao, τ_kennel, τ_hegger)
 
 end
 
 end
 
-varnames = ["ts", "dimension", "taus_pec", "taus_mcdts_L", "taus_mcdts_FNN"]
+varnames = ["ts_tdes", "dimension_tdes", "taus_cao", "taus_kennel", "taus_hegger"]
 
 for i = 1:length(varnames)
     writestr = "N_$(N)_AR$(i+2)_"*varnames[i]*".csv"
