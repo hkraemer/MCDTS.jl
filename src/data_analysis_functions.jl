@@ -60,166 +60,6 @@ end
 
 
 """
-    standard_embedding_hegger(s::Vector; kwargs...) → `Y`, `τ`
-Compute the reconstructed trajectory from a time series using the standard time
-delay embedding. The delay `τ` is taken as the 1st minimum of the mutual
-information [`estimate_dimension`](@ref) and the embedding dimension `m` is
-estimated by using an FNN method from [^Hegger1999] [`fnn_uniform_hegger`](@ref).
-Return the reconstructed trajectory `Y` and the delay `τ`.
-
-Keyword arguments:
-
-*`fnn_thres = 0.05`: a threshold defining at which fraction of FNNs the search
-    should break.
-* The `method` can be one of the following:
-* `"ac_zero"` : first delay at which the auto-correlation function becomes <0.
-* `"ac_min"` : delay of first minimum of the auto-correlation function.
-* `"mi_min"` : delay of first minimum of mutual information of `s` with itself
-  (shifted for various `τs`). <- Default
-
-[^Hegger1999]: Hegger, Rainer and Kantz, Holger (1999). [Improved false nearest neighbor method to detect determinism in time series data. Physical Review E 60, 4970](https://doi.org/10.1103/PhysRevE.60.4970).
-"""
-function standard_embedding_hegger(s::Vector{T}; method::String = "mi_min",
-                                fnn_thres::Real = 0.05, τs = 1:200) where {T}
-    @assert method=="ac_zero" || method=="mi_min" || method=="ac_min"
-    "The absolute correlation function has elements that are = 0. "*
-    "We can't fit an exponential to it. Please choose another method."
-
-    τ = estimate_delay(s, method, τs)
-    _, _, Y = fnn_uniform_hegger(s, τ; fnn_thres = fnn_thres)
-    return Y, τ
-end
-
-
-"""
-    standard_embedding_cao(s::Vector; kwargs...) → `Y`, `τ`
-Compute the reconstructed trajectory from a time series using the standard time
-delay embedding. The delay `τ` is taken as the 1st minimum of the mutual
-information [`estimate_dimension`](@ref) and the embedding dimension `m` is
-estimated by using an FNN method from Cao [`estimate_dimension`](@ref), with the
-threshold parameter `cao_thres`.
-Return the reconstructed trajectory `Y` and the delay `τ`.
-
-Keyword arguments:
-*`cao_thres = 0.05`: This threshold determines the tolerable deviation of the
-    proposed statistic from the optimal value of 1, for breaking the algorithm.
-*`m_max = 10`: The maximum embedding dimension, which is encountered by the
-    algorithm.
-* The `method` can be one of the following:
-* `"ac_zero"` : first delay at which the auto-correlation function becomes <0.
-* `"ac_min"` : delay of first minimum of the auto-correlation function.
-* `"mi_min"` : delay of first minimum of mutual information of `s` with itself
-  (shifted for various `τs`). <- Default
-
-[^Hegger1999]: Hegger, Rainer and Kantz, Holger (1999). [Improved false nearest neighbor method to detect determinism in time series data. Physical Review E 60, 4970](https://doi.org/10.1103/PhysRevE.60.4970).
-"""
-function standard_embedding_cao(s::Vector{T}; cao_thres::Real = 0.05,
-             τs = 1:200, method::String = "mi_min", m_max::Int = 10) where {T}
-    @assert method=="ac_zero" || method=="mi_min" || method=="ac_min"
-    "The absolute correlation function has elements that are = 0. "*
-    "We can't fit an exponential to it. Please choose another method."
-
-    τ = estimate_delay(s, method, τs)
-    rat = estimate_dimension(s, τ, 1:m_max, "afnn")
-    for i = 1:m_max
-        if abs(1-rat[i]) < cao_thres
-            global m = i
-            break
-        end
-    end
-    try
-        if m > 1
-            global Y = embed(s, m, τ)
-        else
-            global Y = s
-        end
-    catch
-        global Y = s
-    end
-    return Y, τ, rat
-end
-
-
-"""
-    fnn_uniform_hegger(s::Vector, τ::Int; kwargs...) →  `m`, `FNNs`, `Y`
-Compute and return the optimal embedding dimension `m` for the time series `s`
-and a uniform time delay `τ` after [^Hegger1999]. Return the optimal `m` and the
-corresponding reconstruction vector `Y` according to that `m` and the input `τ`.
-The optimal `m` is chosen, when the fraction of `FNNs` falls below the threshold
-`fnn_thres` or when fraction of FNN's increases.
-
-Keyword argument:
-*`fnn_thres = 0.05`: Threshold, which defines the tolerable fraction of FNN's
-    for which the algorithm breaks.
-*`max_dimension = 10`: The maximum dimension which is encountered by the
-    algorithm and after which it breaks, if the breaking criterion has not been
-    met yet.
-*`r = 2`: Obligatory threshold, which determines the maximum tolerable spreading
-    of trajectories in the reconstruction space.
-*`metric = Euclidean`: The norm used for distance computations.
-*`w = 1` = The Theiler window, which excludes temporally correlated points from
-    the nearest neighbor search.
-
-[^Hegger1999]: Hegger, Rainer and Kantz, Holger (1999). [Improved false nearest neighbor method to detect determinism in time series data. Physical Review E 60, 4970](https://doi.org/10.1103/PhysRevE.60.4970).
-"""
-function fnn_uniform_hegger(s::Vector{T}, τ::Int; max_dimension::Int = 10,
-            r::Real = 2, w::Int = 1, fnn_thres::Real = 0.05, metric = Euclidean()) where {T}
-    @assert max_dimension > 0
-    s = (s .- mean(s)) ./ std(s)
-    Y_act = s
-
-    vtree = KDTree(Dataset(s), metric)
-    _, NNdist_old = DelayEmbeddings.all_neighbors(vtree, Dataset(s), 1:length(s), 1, w)
-
-    FNNs = zeros(max_dimension)
-    for m = 2:max_dimension+1
-        Y_act = DelayEmbeddings.hcat_lagged_values(Y_act, s, m*τ)
-        Y_act = regularize(Y_act)
-        vtree = KDTree(Y_act, metric)
-        _, NNdist_new = DelayEmbeddings.all_neighbors(vtree, Y_act, 1:length(Y_act), 1, w)
-
-        FNNs[m-1] = DelayEmbeddings.fnn_embedding_cycle(view(NNdist_old,
-                                            1:length(Y_act)), NNdist_new, r)
-
-        flag = fnn_break_criterion(FNNs[1:m-1], fnn_thres)
-        if flag
-            global bm = m
-            break
-        else
-            global bm = m
-        end
-
-        NNdist_old = NNdist_new
-    end
-
-    if bm>2
-        Y_final = embed(s, bm-1, τ)
-    else
-        Y_final = s
-    end
-    return bm, FNNs[1:bm-1], Y_final
-end
-
-"""
-Determines the break criterion for the Hegger-FNN-estimation
-"""
-function fnn_break_criterion(FNNs, fnn_thres)
-    flag = false
-    if FNNs[end] ≤ fnn_thres
-        flag = true
-        println("Algorithm stopped due to sufficiently small FNNs. "*
-                "Valid embedding achieved ✓.")
-    end
-    if length(FNNs) > 1 && FNNs[end] > FNNs[end-1]
-        flag = true
-        println("Algorithm stopped due to rising FNNs. "*
-                "Valid embedding achieved ✓.")
-    end
-    return flag
-end
-
-
-"""
 Computes the similarity between recurrence plots `RP₁` and `RP₂`. Outputs the
 fraction of recurrences rates gained from RP₁ and of the joint recurrence
 plot `RP₁ .* RP₂`.
@@ -408,7 +248,7 @@ moving_average(vs,n) = [sum(@view vs[i:(i+n-1)])/n for i in 1:(length(vs)-(n-1))
 
 Perform a "zeroth" order prediction for the time horizon `Tw` (default = 1). Based
 on `K` nearest neighbours of the last point of the given trajectory `Y`, the
-`Tw`-step ahead prediction is simply the mean of the images of these `K`-nearest 
+`Tw`-step ahead prediction is simply the mean of the images of these `K`-nearest
 neighbours. The output `x_pred` is, thus, the `Tw`-step ahead prediction vector.
 The function also returns `e_expect`, the expected error on the prediction `x_pred`,
 computed as the mean of the RMS-errors of all `K`-neighbours-errors.
@@ -445,6 +285,17 @@ function local_zeroth_prediction(Y::Dataset{D,T}, K::Int = 5;
     return vec(prediction), vec(error_predict)
 end
 
+"""
+    local_random_analogue_prediction(Y::Dataset, K::Int; kwargs...) → Y_predict
+Compute a one step ahead prediction `Y_predict` of the input `Y`, based on `K`
+nearest neighbors. Here the prediction is a random pick from all `K`-nearest
+neighbour images and, thus, invokes some kind of randomness.
+
+Keywords:
+* `metric = Euclidean()`: Metric used for distance computation
+* `theiler::Int = 1`: Theiler window for excluding serially correlated points from
+   the nearest neighbour search.
+"""
 function local_random_analogue_prediction(Y::Dataset{D,T}, K::Int = 5;
     metric = Euclidean(), theiler::Int = 1) where {D,T}
 
@@ -467,13 +318,101 @@ function local_random_analogue_prediction(Y::Dataset{D,T}, K::Int = 5;
     prediction = ϵ_ball[idx,:]
 
     return vec(prediction)
-
-
 end
 
+"""
+    iterated_local_zeroth_prediction(Y::Dataset, K::Int = 5, Tw::Int = 2; kwargs...) → Y_predict
+Perform an iterated one step forecast over `Tw` time steps using the local zeroth
+prediction algorithm. `Y_predict` is a Dataset of length `Tw` and dimension like
+`Y`.
 
+Keywords:
+* `metric = Euclidean()`: Metric used for distance computation
+* `theiler::Int = 1`: Theiler window for excluding serially correlated points from
+   the nearest neighbour search.
+* `verbose::Bool = false`: When set to `true`, the function prints the actual time
+  step, which it is computing.
+"""
+function iterated_local_zeroth_prediction(Y::Dataset{D,T}, K::Int = 5, Tw::Int = 2;
+    metric = Euclidean(), theiler::Int = 1, verbose::Bool = false) where {D,T}
+
+    @assert Tw > 1 "Time horizon must be a positive integer"
+    N = length(Y)
+    predicted_trajectory = deepcopy(Y)
+    for Th = 1:Tw
+        if verbose
+            println("Compute prediction for time step $Th")
+        end
+        # iterated one step
+        predicted, _ = MCDTS.local_zeroth_prediction(predicted_trajectory, K;
+                                            theiler = theiler, metric = metric)
+        push!(predicted_trajectory, predicted)
+    end
+    return Dataset(predicted_trajectory[N+1:end])
+end
+
+"""
+    iterated_local_zeroth_prediction_embed(Y::Dataset, τs::Vector, K::Int = 5, Tw::Int = 2; kwargs...) → Y_predict
+Perform an iterated one step forecast over `Tw` time steps using the local linear
+prediction algorithm. `Y_predict` is a Dataset of length `Tw` and dimension like
+`Y`. In contrast to `iterated_local_linear_prediction()` we here use the time
+delays `τs` to reconstruct all components of a predicted trajectory point from
+the 1st component, which is obtained from the local model. This only works for
+univariate embeddings.
+
+Keywords:
+* `metric = Euclidean()`: Metric used for distance computation
+* `theiler::Int = 1`: Theiler window for excluding serially correlated points from
+   the nearest neighbour search.
+* `verbose::Bool = false`: When set to `true`, the function prints the actual time
+  step, which it is computing.
+"""
+function iterated_local_zeroth_prediction_embed(Y::Dataset{D,T}, τs::Vector, K::Int = 5, Tw::Int = 2;
+    metric = Euclidean(), theiler::Int = 1, verbose::Bool = false) where {D,T}
+
+    @assert Tw > 1 "Time horizon must be a positive integer"
+    N = length(Y)
+    d = size(Y,2)
+    @assert length(τs) == d "Vector storing the delays must have the same dimensionality as the Input trajectory."
+    @assert τs[1] == 0 "Vector storing the delays must have 0 as its first entry."
+    @assert sum(τs.<0) == 0 "Vector storing the delays must have 0 as its first entry."
+    predicted_trajectory = deepcopy(Y)
+    for Th = 1:Tw
+        if verbose
+            println("Compute prediction for time step $Th")
+        end
+        # iterated one step
+        predicted, _ = MCDTS.local_zeroth_prediction(predicted_trajectory, K;
+                                            theiler = theiler, metric = metric)
+        for i = 2:d
+            predicted[i] = predicted_trajectory[end-τs[i],1]
+        end
+        push!(predicted_trajectory, predicted)
+    end
+    return Dataset(predicted_trajectory[N+1:end])
+end
+
+""" Compute the mean squared error between `prediction` and `reference`
+"""
 function compute_mse(prediction::Vector{T}, reference::Vector{T}) where {T}
     return sqrt(mean((prediction .- reference).^2))
+end
+
+""" Compute the total absolute error between `prediction` and `reference`
+"""
+function compute_abs_err(prediction::Vector{T}, reference::Vector{T}) where {T}
+    return abs.(prediction .- reference)
+end
+
+""" Compute the scaling term for the MASE measure. This is tge average in-sample
+forecast error for a random-walk prediction, which uses the previous value in
+the observed signal `x` as the forecast. `Tw` is the prediction time horizon.
+"""
+function rw_norm(x::Vector{T}, Tw::Int) where {T}
+    N = length(x)
+    xx = sum(abs.(diff(x)))
+    xx *= (Tw/length(xx))
+    return xx
 end
 
 """
@@ -542,6 +481,115 @@ function local_linear_prediction(Y::Dataset{D,T}, K::Int = 5;
     return vec(prediction), vec(error_predict)
 end
 
+"""
+    iterated_local_linear_prediction(Y::Dataset, K::Int = 5, Tw::Int = 2; kwargs...) → Y_predict
+Perform an iterated one step forecast over `Tw` time steps using the local linear
+prediction algorithm. `Y_predict` is a Dataset of length `Tw` and dimension like
+`Y`.
+
+Keywords:
+* `metric = Euclidean()`: Metric used for distance computation
+* `theiler::Int = 1`: Theiler window for excluding serially correlated points from
+   the nearest neighbour search.
+* `verbose::Bool = false`: When set to `true`, the function prints the actual time
+  step, which it is computing.
+"""
+function iterated_local_linear_prediction(Y::Dataset{D,T}, K::Int = 5, Tw::Int = 2;
+    metric = Euclidean(), theiler::Int = 1, verbose::Bool = false) where {D,T}
+
+    @assert Tw > 1 "Time horizon must be a positive integer"
+    N = length(Y)
+    predicted_trajectory = deepcopy(Y)
+    for Th = 1:Tw
+        if verbose
+            println("Compute prediction for time step $Th")
+        end
+        # iterated one step
+        predicted, _ = MCDTS.local_linear_prediction(predicted_trajectory, K;
+                                            theiler = theiler, metric = metric)
+        push!(predicted_trajectory, predicted)
+    end
+    return Dataset(predicted_trajectory[N+1:end])
+end
+
+"""
+    iterated_local_linear_prediction_embed(Y::Dataset, τs::Vector, K::Int = 5, Tw::Int = 2; kwargs...) → Y_predict
+Perform an iterated one step forecast over `Tw` time steps using the local linear
+prediction algorithm. `Y_predict` is a Dataset of length `Tw` and dimension like
+`Y`. In contrast to `iterated_local_linear_prediction()` we here use the time
+delays `τs` to reconstruct all components of a predicted trajectory point from
+the 1st component, which is obtained from the local model. This only works for
+univariate embeddings.
+
+Keywords:
+* `metric = Euclidean()`: Metric used for distance computation
+* `theiler::Int = 1`: Theiler window for excluding serially correlated points from
+   the nearest neighbour search.
+* `verbose::Bool = false`: When set to `true`, the function prints the actual time
+  step, which it is computing.
+"""
+function iterated_local_linear_prediction_embed(Y::Dataset{D,T}, τs::Vector, K::Int = 5, Tw::Int = 2;
+    metric = Euclidean(), theiler::Int = 1, verbose::Bool = false) where {D,T}
+
+    @assert Tw > 1 "Time horizon must be a positive integer"
+    N = length(Y)
+    d = size(Y,2)
+    @assert length(τs) == d "Vector storing the delays must have the same dimensionality as the Input trajectory."
+    @assert τs[1] == 0 "Vector storing the delays must have 0 as its first entry."
+    @assert sum(τs.<0) == 0 "Vector storing the delays must have 0 as its first entry."
+    predicted_trajectory = deepcopy(Y)
+    for Th = 1:Tw
+        if verbose
+            println("Compute prediction for time step $Th")
+        end
+        # iterated one step
+        predicted, _ = MCDTS.local_linear_prediction(predicted_trajectory, K;
+                                            theiler = theiler, metric = metric)
+        for i = 2:d
+            predicted[i] = predicted_trajectory[end-τs[i],1]
+        end
+        push!(predicted_trajectory, predicted)
+    end
+    return Dataset(predicted_trajectory[N+1:end])
+end
+
+"""
+    get_ar_prediction(x::Vector, coeffs::Vector; kwargs...) → Y_predict
+Computes a prediction `Y_predict` of the AR-model determined by the coefficients
+in `coeffs`. The order of the AR-model equals the length of `coeffs`. `x` can be
+a long vector (the time series), but needs to contain at least `length(coeffs)`
+values, in order to initialize the model. If the time horizon `Tw` is larger than
+1, an iterated one-step prediction is peformed.
+
+Keywords:
+* `Tw::Int = 1`: Time horizon for the prediction
+* `c::Real = 0`: Offset-parameter for AR-model
+* `rng::AbstractRNG = Random.GLOBAL_RNG`: Random number generator
+
+"""
+function get_ar_prediction(x::Vector{T}, coeffs::Vector; Tw::Int = 1, σ::Real = 1,
+    c::Real = 0, rng::AbstractRNG = Random.GLOBAL_RNG) where {T}
+
+
+    N = length(x)
+    @assert N == length(coeffs) "Priors must be as many as the order of the chosen AR-process."
+    @assert Tw > 0  "Provide a valid forecast horizon in sampling units (positiv integer)."
+    forecast = zeros(N+Tw)
+    forecast[1:N] = x
+    idx = N + 1
+    for i = 1:Tw
+        forecast[idx] = c + forecast[idx-N:idx-1]'*coeffs + σ*randn(rng)
+        idx += 1
+    end
+    return forecast[N+1:end]
+end
+
+"""
+    embed_for_prediction(Y::Dataset, x::Vector, τ::Int) → Y_embed
+Embeds the trajectory (or Vector) `Y` in an additional dimension, using the time
+series `x` and the provided lag `τ`. Here we enforce a causal embedding, meaning
+that we shift `x` by the negative values `τ`.
+"""
 function embed_for_prediction(Y::Dataset{D,T}, x::Vector{T}, τ::Int) where {D,T}
     N = length(Y)
     MM = length(x)
@@ -560,7 +608,15 @@ function embed_for_prediction(Y::Vector{T}, x::Vector{T}, τ::Int) where {T}
     return Dataset(Y2)
 end
 
-
+"""
+    genembed_for_prediction(Y, τs::Vector (,ts::Vector)) → Y_embed
+Embeds the trajectory (or Vector) `Y` using the provided lags `τ`. If `Y` is a
+dataset, a vector `ts` must be provided, which stores the indices of the time
+series contained in `Y`, which needs to be used for each embedding cycle. Here
+we enforce a causal embedding, meaning that we shift the time series `Y` (or any
+of the time series in `Y`, if `Y` is a Dataset) by the negative values `τ` from
+`τs`.
+"""
 function genembed_for_prediction(Y::Vector{T}, τs::Vector{Int}) where {T}
     @assert τs[1] == 0
     YY = Y
@@ -582,19 +638,135 @@ function genembed_for_prediction(Y::Dataset{D,T}, τs::Vector{Int}, ts::Vector{I
     return YY
 end
 
-function get_ar_prediction(x::Vector{T}, coeffs::Vector; Tw::Int = 1, σ::Real = 1,
-    c::Real = 0, rng::AbstractRNG = Random.GLOBAL_RNG) where {T}
+"""
+    zeroth_prediction_cost(Y::Dataset; kwargs...) → Cost
+Compute the mean squared one-step prediction error `Cost` of the Dataset `Y`.
+The prediction is based on [`local_zeroth_prediction`](@ref).
 
+## Keyword arguments
 
-    N = length(x)
-    @assert N == length(coeffs) "Priors must be as many as the order of the chosen AR-process."
-    @assert Tw > 0  "Provide a valid forecast horizon in sampling units (positiv integer)."
-    forecast = zeros(N+Tw)
-    forecast[1:N] = x
-    idx = N + 1
-    for i = 1:Tw
-        forecast[idx] = c + forecast[idx-N:idx-1]'*coeffs + σ*randn(rng)
-        idx += 1
+* `samplesize = 1.0`: Number of considered fiducial points v as a fraction of
+  input state space trajectory `Y`'s length, in order to average the conditional
+  variances and neighborhood sizes (read algorithm description) to produce `L`.
+* `K = 3`: the amount of nearest neighbors considered, in order to compute the
+  mean squared prediction error (read algorithm description).
+* `metric = Euclidean()`: metric used for finding nearest neigbhors in the input
+  state space trajectory `Y.
+* `w = 1`: Theiler window (neighbors in time with index `w` close to the point,
+  that are excluded from being true neighbors). `w=0` means to exclude only the
+  point itself, and no temporal neighbors.
+* `Tw = 1`: The time horizon for predictions. The `Cost` is the average error
+  over these timesteps.
+
+"""
+function zeroth_prediction_cost(Y::AbstractDataset{D, ET};
+        K::Int = 3, w::Int = 1, Tw::Int = 1,samplesize::Real = 1.0,
+        metric = Euclidean()) where {D, ET}
+
+    # select a random state space vector sample according to input samplesize
+    NN = length(Y)-Tw;
+    NNN = floor(Int, samplesize*NN)
+    ns = sample(1:NN, NNN; replace=false) # the fiducial point indices
+
+    vs = Y[ns] # the fiducial points in the data set
+
+    vtree = KDTree(Y[1:end-Tw], metric)
+    allNNidxs, _ = DelayEmbeddings.all_neighbors(vtree, vs, ns, K, w)
+
+    error = zeros(ET, NN, D)
+    # loop over each fiducial point
+    for (i,v) in enumerate(vs)
+        NNidxs = allNNidxs[i] # indices of k nearest neighbors to v
+        errors = zeros(ET, Tw, D)
+        for T = 1:Tw
+            ϵ_ball = zeros(ET, K, D) # preallocation
+            # determine neighborhood one time step ahead
+            @inbounds for (k, j) in enumerate(NNidxs)
+                ϵ_ball[k, :] .= Y[j + T]
+            end
+            # take the average as a prediction
+            prediction = mean(ϵ_ball; dims=1)
+            errors[T,:] = (prediction .- Y[ns[i]+T]).^2
+        end
+        error[i,:] = mean(errors; dims=1)
     end
-    return forecast[N+1:end]
+    return sqrt.(mean(error; dims=1))
+end
+
+
+"""
+    linear_prediction_cost(Y::Dataset; kwargs...) → Cost
+Compute the mean squared one-step prediction error `Cost` of the Dataset `Y`.
+The prediction is based on [`local_linear_prediction`](@ref).
+
+## Keyword arguments
+
+* `samplesize = 1.0`: Number of considered fiducial points v as a fraction of
+  input state space trajectory `Y`'s length, in order to average the conditional
+  variances and neighborhood sizes (read algorithm description) to produce `L`.
+* `K = 3`: the amount of nearest neighbors considered, in order to compute the
+  mean squared prediction error (read algorithm description).
+* `metric = Euclidean()`: metric used for finding nearest neigbhors in the input
+  state space trajectory `Y.
+* `w = 1`: Theiler window (neighbors in time with index `w` close to the point,
+  that are excluded from being true neighbors). `w=0` means to exclude only the
+  point itself, and no temporal neighbors.
+* `Tw = 1`: The time horizon for predictions. The `Cost` is the average error
+  over these timesteps.
+
+"""
+function linear_prediction_cost(Y::AbstractDataset{D, ET};
+        K::Int = 3, w::Int = 1, Tw::Int = 1, samplesize::Real = 1.0,
+        metric = Euclidean()) where {D, ET}
+
+    # select a random state space vector sample according to input samplesize
+    NN = length(Y)-Tw;
+    NNN = floor(Int, samplesize*NN)
+    ns = sample(1:NN, NNN; replace=false) # the fiducial point indices
+
+    vs = Y[ns] # the fiducial points in the data set
+
+    vtree = KDTree(Y[1:end-Tw], metric)
+    allNNidxs, _ = DelayEmbeddings.all_neighbors(vtree, vs, ns, K, w)
+
+    error = zeros(ET, NN, D)
+    # loop over each fiducial point
+    for (i,v) in enumerate(vs)
+        NNidxs = allNNidxs[i] # indices of k nearest neighbors to v
+        errors = zeros(ET, Tw, D)
+        for T = 1:Tw
+            A = ones(K,D) # datamatrix for later linear equation to solve for AR-process
+            ϵ_ball = zeros(ET, K, D) # preallocation
+            # determine neighborhood one time step ahead
+            @inbounds for (k, j) in enumerate(NNidxs)
+                ϵ_ball[k, :] .= Y[j + T]
+                A[k,:] = Y[j]
+            end
+            # make local linear model of the last point of the trajectory
+            prediction = zeros(D)
+            b  = zeros(D)
+            ar_coeffs = zeros(D, D)
+            namess = ["X"*string(z) for z = 1:D]
+            ee = Meta.parse.(namess)
+            formula_expression = Term(:Y) ~ sum(term.(ee))
+
+            for j = 1:D
+                data = DataFrame()
+                for (cnt,var) in enumerate(namess)
+                    data[!, var] = A[:,cnt]
+                end
+                data.Y = ϵ_ball[:,j]
+
+                ols = lm(formula_expression, data)
+                b[j] = coef(ols)[1]
+                for k = 1:D
+                    ar_coeffs[j,k] = coef(ols)[k+1]
+                end
+                prediction[j] = Y[ns[i],:]'*ar_coeffs[j,:] + b[j]
+            end
+            errors[T,:] = (prediction .- Y[ns[i]+T]).^2
+        end
+        error[i,:] = mean(errors; dims=1)
+    end
+    return vec(sqrt.(mean(error; dims=1)))
 end

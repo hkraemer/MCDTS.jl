@@ -8,11 +8,12 @@ using Random
 ## We predict the Lorenz63-system based on different state space reconstruction methods
 Random.seed!(1234)
 lo = Systems.lorenz()
-tr = trajectory(lo, 500; dt = 0.01, Ttr = 100)
+# tr = trajectory(lo, 500; dt = 0.01, Ttr = 100) # results 2
+tr = trajectory(lo, 1000; dt = 0.01, Ttr = 100) # results 3
 
 # noise level
-σ = .1
-
+#σ = .1  # results 2
+σ = .05 # results 3
 # normalize time series
 tr = regularize(tr)
 

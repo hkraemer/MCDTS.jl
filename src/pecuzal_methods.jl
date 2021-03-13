@@ -30,6 +30,9 @@ of multivariate time series input choose `w` as the maximum of all `wᵢ's`.
   computation of the continuity statistic ⟨ε★⟩.
 * `FNN:Bool = false`: Determines whether the algorithm should minimize the L-statistic
   or the FNN-statistic
+* `PRED::Bool = false`: Determines whether the algorithm should minimize the
+  L-statistic or a cost function based on minimizing the `Tw`-step-prediction error
+* `Tw::Int = 1`: If `PRED = true`, this is the considered prediction horizon
 * `threshold::Real = 0`: The algorithm does not pick a peak from the continuity
   statistic, when its corresponding `ΔL`/FNN-value exceeds this threshold. Please
   provide a positive number for both, `L` and `FNN`-statistic option (since the
@@ -41,12 +44,13 @@ of multivariate time series input choose `w` as the maximum of all `wᵢ's`.
 """
 function give_potential_delays(Yss::Dataset{D, T}, τs, w::Int, τ_vals, ts_vals, L_old;
                 samplesize::Real=1, K::Int = 13, α::Real = 0.05, p::Real = 0.5,
-                KNN::Int = 3, FNN::Bool = false, threshold::Real = 0,
-                tws::AbstractRange{Int} = 2:τs[end]) where {D, T}
+                KNN::Int = 3, FNN::Bool = false, PRED::Bool = false, Tw::Int = 1,
+                threshold::Real = 0, tws::AbstractRange{Int} = 2:τs[end]) where {D, T}
+    @assert (FNN || PRED) || (~FNN && ~PRED) "Select either FNN or PRED keyword (or none)."
     @assert 0 < samplesize ≤ 1 "Please select a valid `samplesize`, which denotes a fraction of considered fiducial points, i.e. `samplesize` ∈ (0 1]"
     @assert all(x -> x ≥ 0, τs)
     @assert threshold ≥ 0
-    if ~FNN
+    if ~FNN && ~PRED
         threshold = -threshold # due to the negativity of L-decrease
     end
     metric = Euclidean()
@@ -55,33 +59,36 @@ function give_potential_delays(Yss::Dataset{D, T}, τs, w::Int, τ_vals, ts_vals
     Y_act = genembed(Ys, τ_vals, ts_vals)
 
     # compute potential delay values with corresponding time series values and
-    # L-statistic-values (or FNN-statistic-values, these will be binded in
-    # `L_pots` for simplicity, anyway)
+    # L-statistic-values (or FNN-statistic-values or PRED-statistic-values,
+    # these will be binded in `L_pots` for simplicity, anyway)
     τ_pots, ts_pots, L_pots = embedding_cycle_pecuzal(Y_act, Ys, τs, w, samplesize,
-                            K, metric, α, p, KNN, τ_vals, ts_vals, FNN, tws)
+                            K, metric, α, p, KNN, τ_vals, ts_vals, FNN, tws, PRED, Tw)
 
     # transform array of arrays to a single array
     τ_pot = reduce(vcat, τ_pots)
     ts_pot = reduce(vcat, ts_pots)
     L_pot = reduce(vcat, L_pots)
 
-    if FNN
-        if minimum(L_pot) ≥ L_old || minimum(L_pot) ≤ threshold
+    if FNN || PRED
+        if (minimum(L_pot) ≥ L_old)
             flag = true
             return Int[],Int[],eltype(L_pot)[], flag
+        elseif (minimum(L_pot) ≤ threshold)
+            flag = true
+            ind = L_pot .< L_old
+            return τ_pot[ind],ts_pot[ind],L_pot[ind],flag
         else
             flag = false
-
             ind = L_pot .< L_old
             return τ_pot[ind],ts_pot[ind],L_pot[ind],flag
         end
     else
         if minimum(L_pot) > threshold
             flag = true
-            return Int[],Int[],eltype(L_pot)[], flag
+            ind = L_pot .≤ threshold
+            return τ_pot[ind],ts_pot[ind],L_pot[ind],flag
         else
             flag = false
-
             ind = L_pot .≤ threshold
             return τ_pot[ind],ts_pot[ind],L_pot[ind],flag
         end
@@ -97,14 +104,18 @@ the corresponding L-statistic-values, `L_pot` for each peak, i.e. for each
 fnn-statistic-values.
 """
 function embedding_cycle_pecuzal(Y_act, Ys, τs, w, samplesize,
-                    K, metric, α, p, KNN, τ_vals, ts_vals, FNN, tws)
-
-    ε★, _ = pecora(Ys, Tuple(τ_vals), Tuple(ts_vals); delays = τs, w = w,
-            samplesize = samplesize, K = K, metric = metric, α = α,
-            p = p, undersampling = false)
+                    K, metric, α, p, KNN, τ_vals, ts_vals, FNN, tws, PRED, Tw)
+    if PRED
+        ε★ = zeros(length(τs), size(Ys,2))
+    else
+        ε★, _ = pecora(Ys, Tuple(τ_vals), Tuple(ts_vals); delays = τs, w = w,
+                samplesize = samplesize, K = K, metric = metric, α = α,
+                p = p, undersampling = false)
+    end
     # update τ_vals, ts_vals, Ls, ε★s
     τ_pot, ts_pot, L_pot = pick_possible_embedding_params(ε★, Y_act, Ys, τs,
-                                            KNN, w, samplesize, metric, FNN, tws)
+                                            KNN, w, samplesize, metric, FNN,
+                                            tws, PRED, Tw; τ_vals = τ_vals)
 
     return τ_pot, ts_pot, L_pot
 end
@@ -115,8 +126,8 @@ end
 corresponding L-statistics (or FNN-statistics, if `FNN=true`) for the input
 continuity statistic ε★.
 """
-function pick_possible_embedding_params(ε★, Y_act, Ys, τs, KNN, w,
-                                            samplesize, metric, FNN, tws)
+function pick_possible_embedding_params(ε★, Y_act, Ys, τs, KNN, w, samplesize,
+            metric, FNN, tws, PRED, Tw; τ_vals = [0])
     L_pots = []
     τ_pots = []
     ts_pots = []
@@ -127,6 +138,9 @@ function pick_possible_embedding_params(ε★, Y_act, Ys, τs, KNN, w,
         if FNN
             L_trials, max_idx, _ = local_fnn_statistics(vec([0; ε★[:,ts]]), Y_act,
                                    Ys[:,ts], τs, w, metric)
+        elseif PRED
+            L_trials, max_idx = local_PRED_statistics(vec([0; ε★[:,ts]]), Y_act,
+                                   Ys[:,ts], τs, w, metric, Tw; τ_vals = τ_vals)
         else
             L_trials, max_idx = MCDTS.local_L_statistics(vec([0; ε★[:,ts]]), Y_act,
                             Ys[:,ts], τs, KNN, w, samplesize, metric; tws = tws)
@@ -186,6 +200,25 @@ function local_fnn_statistics(ε★, Y_act, s, τs, w, metric; r=2)
         ξ_trials[i] = FNN_trials[i]*maxima[i]
     end
     return FNN_trials, max_idx, ξ_trials
+end
+
+
+"""
+Return costs (MSE) of a `Tw`-step-ahead local-linear prediction.
+"""
+function local_PRED_statistics(ε★, Y_act, s, τs, w, metric, Tw; τ_vals = [0])
+    #_, max_idx = get_maxima(ε★) # determine local maxima in ⟨ε★⟩
+    max_idx = Vector(2:20)
+    filter!(e->e∉(τ_vals .+ 1), max_idx)
+    PRED_mse = zeros(Float64, length(max_idx))
+    for (i,τ_idx) in enumerate(max_idx)
+        # create candidate phase space vector for this peak/τ-value
+        Y_trial = DelayEmbeddings.hcat_lagged_values(Y_act, s, τs[τ_idx-1])
+        # compute PRED-statistic for Y_trial
+        PRED_mse[i] = mean(MCDTS.linear_prediction_cost(Y_trial; w = w,
+                K = 2*(size(Y_trial,2)+1), Tw = Tw, metric = metric))
+    end
+    return PRED_mse, max_idx
 end
 
 

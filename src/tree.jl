@@ -89,8 +89,8 @@ end
 
 """
     next_embedding(n::Node, Ys::Dataset{D, T}, w::Int, τs; KNN:Int = 3,
-                        FNN::Bool = false, threshold::Real = 0,
-                        tws::AbstractRange = 2:τs[end]) → τ_pot, ts_pot, L_pot, flag
+                        FNN::Bool = false, PRED::Bool = false, Tw::Int = 1,
+                        threshold::Real = 0, tws::AbstractRange = 2:τs[end]) → τ_pot, ts_pot, L_pot, flag
 
 Performs the next embedding step. For the actual embedding contained in `n`
 compute as many conitnuity statistics as there are time series in the Dataset
@@ -101,8 +101,11 @@ compute as many conitnuity statistics as there are time series in the Dataset
 # Keyword arguments
 * `KNN = 3`: The number of nearest neighbors considered in the computation of
   the L-statistic.
-* `FNN:Bool = false`: Determines whether the algorithm should minimize the
+* `FNN::Bool = false`: Determines whether the algorithm should minimize the
   L-statistic or the FNN-statistic.
+* `PRED::Bool = false`: Determines whether the algorithm should minimize the
+  L-statistic or a cost function based on minimizing the `Tw`-step-prediction error
+* `Tw::Int = 1`: If `PRED = true`, this is the considered prediction horizon
 * `threshold::Real = 0`: The algorithm does not pick a peak from the continuity
   statistic, when its corresponding `ΔL`/FNN-value exceeds this threshold. Please
   provide a positive number for both, `L` and `FNN`-statistic option (since the
@@ -121,15 +124,17 @@ compute as many conitnuity statistics as there are time series in the Dataset
 
 """
 function next_embedding(n::Node, Ys::Dataset{D, T}, w::Int, τs; KNN::Int = 3,
-                            FNN::Bool = false, tws::AbstractRange{Int} = 2:τs[end],
+                            FNN::Bool = false, PRED::Bool = false, Tw::Int=1,
+                            tws::AbstractRange{Int} = 2:τs[end],
                             threshold::Real = 0) where {D, T<:Real}
+    @assert (FNN || PRED) || (~FNN && ~PRED) "Select either FNN or PRED keyword (or none)."
     τs_old = get_τs(n)
     ts_old = get_ts(n)
     L_old = n.L
     # do the next embedding step
     τ_pot, ts_pot, L_pot, flag = give_potential_delays(Ys, τs, w, Tuple(τs_old),
-                            Tuple(ts_old), L_old; KNN = KNN, FNN = FNN, tws = tws,
-                            threshold = threshold)
+                            Tuple(ts_old), L_old; KNN = KNN, FNN = FNN,
+                            PRED = PRED, Tw = Tw, tws = tws, threshold = threshold)
     return τ_pot, ts_pot, L_pot, flag
 end
 
@@ -139,12 +144,16 @@ end
 The first embedding step
 """
 function next_embedding(n::Root, Ys::Dataset{D, T}, w::Int, τs; KNN::Int = 3,
-                            FNN::Bool = false, tws::AbstractRange{Int} = 2:τs[end],
+                            FNN::Bool = false, PRED::Bool = false, Tw::Int=1,
+                            tws::AbstractRange{Int} = 2:τs[end],
                             threshold::Real = 0) where {D, T<:Real}
+    @assert (FNN || PRED) || (~FNN && ~PRED) "Select either FNN or PRED keyword (or none)."
     τ_pot = zeros(Int, size(Ys,2))
     ts_pot = Array(1:size(Ys,2))
     if FNN
         L_pot = ones(size(Ys,2))
+    elseif PRED
+        L_pot = 99999*ones(size(Ys,2))
     else
         L_pot = zeros(size(Ys,2))
     end
@@ -157,7 +166,10 @@ end
 
 Returns one of the children of based on the function `func(Ls)->i_node`,
 Lmin_global is the best L value so far in the optimization process, if any of
-the input Ls to choose from is smaller than it, it is always chosen. `choose_mode` is only relevant for the first embedding step right now: it determines if the first step is chosen uniform (`choose_mode==0`) or with the `func` (`choose_mode==1`).
+the input Ls to choose from is smaller than it, it is always chosen.
+`choose_mode` is only relevant for the first embedding step right now: it
+determines if the first step is chosen uniform (`choose_mode==0`) or with the
+`func` (`choose_mode==1`).
 """
 function choose_next_node(n::Node,func, Lmin_global=-Inf,choose_mode=1)
     N = N_children(n)
@@ -223,8 +235,8 @@ end
 
 """
     expand!(n::Union{Node,Root}, data::Dataset, w::Int, choose_func, delays;
-                            max_depth=20, KNN=3, FNN=false, L_threshold=0,
-                            tws=2:delays[end])
+                            max_depth=20, KNN=3, FNN=false, PRED=false, Tw=1,
+                            L_threshold=0, tws=2:delays[end])
 
 This is one single rollout and backprop of the tree.
 
@@ -242,6 +254,9 @@ This is one single rollout and backprop of the tree.
   the L-statistic.
 * `FNN:Bool = false`: Determines whether the algorithm should minimize the
   L-statistic or the FNN-statistic.
+* `PRED::Bool = false`: Determines whether the algorithm should minimize the
+  L-statistic or a cost function based on minimizing the `Tw`-step-prediction error
+* `Tw::Int = 1`: If `PRED = true`, this is the considered prediction horizon
 * `threshold::Real = 0`: The algorithm does not pick a peak from the continuity
   statistic, when its corresponding `ΔL`/FNN-value exceeds this threshold. Please
   provide a positive number for both, `L` and `FNN`-statistic option (since the
@@ -255,9 +270,11 @@ This is one single rollout and backprop of the tree.
 """
 function expand!(n::Root, data::Dataset{D, T}, w::Int, choose_func,
             delays::AbstractRange{DT} = 0:100; max_depth::Int=20, KNN::Int=3,
-            verbose=false, FNN::Bool = false, tws::AbstractRange{DT} = 2:delays[end],
-            threshold::Real = 0, choose_mode::Int=0) where {D, DT, T<:Real}
+            verbose=false, FNN::Bool = false, PRED::Bool = false, Tw::Int = 1,
+            tws::AbstractRange{DT} = 2:delays[end], threshold::Real = 0,
+            choose_mode::Int=0) where {D, DT, T<:Real}
 
+    @assert (FNN || PRED) || (~FNN && ~PRED) "Select either FNN or PRED keyword (or none)."
     @assert threshold ≥ 0
     @assert tws[1] == 2
     @assert w > 0
@@ -269,15 +286,15 @@ function expand!(n::Root, data::Dataset{D, T}, w::Int, choose_func,
         # only if it was not already computed
         if current_node.children == nothing
             τs, ts, Ls, converged = next_embedding(current_node, data, w, delays;
-                                                KNN = KNN, FNN = FNN, tws = tws,
-                                                threshold = threshold)
+                                                KNN = KNN, FNN = FNN, PRED = PRED,
+                                                Tw = Tw, tws = tws, threshold = threshold)
             if converged
                 break
             else
                 # spawn children
                 children = []
                 for j = 1:length(τs)
-                    if FNN
+                    if FNN || PRED
                         push!(children, Node(τs[j],ts[j],Ls[j],[get_τs(current_node); τs[j]], [get_ts(current_node); ts[j]], nothing))
                     else
                         if typeof(current_node) == MCDTS.Root
@@ -288,6 +305,7 @@ function expand!(n::Root, data::Dataset{D, T}, w::Int, choose_func,
                     end
                 end
                 current_node.children = children
+
             end
         end
 
@@ -328,8 +346,9 @@ end
 Do the monte carlo run with `N` trials, returns the tree.
 """
 function mc_delay(data, w::Int, choose_func, delays::AbstractRange{D}, N::Int=40;
-            max_depth::Int=20, KNN::Int = 3, FNN::Bool = false, verbose::Bool=false,
-            tws::AbstractRange{D} = 2:delays[end], threshold::Real = 0) where {D}
+            max_depth::Int=20, KNN::Int = 3, FNN::Bool = false, PRED::Bool=false,
+            Tw::Int = 1, verbose::Bool=false, tws::AbstractRange{D} = 2:delays[end],
+            threshold::Real = 0) where {D}
 
     # initialize tree
     tree = Root()
@@ -337,7 +356,8 @@ function mc_delay(data, w::Int, choose_func, delays::AbstractRange{D}, N::Int=40
     for i=1:N
 
         expand!(tree, data, w, choose_func, delays; KNN = KNN, FNN = FNN,
-                    max_depth = max_depth, tws = tws, threshold = threshold, choose_mode=i<(N/2) ? 0 : 1)
+                    PRED = PRED, Tw = Tw, max_depth = max_depth, tws = tws,
+                    threshold = threshold, choose_mode=i<(N/2) ? 0 : 1)
 
         if verbose
             if (i%1)==0
