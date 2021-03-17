@@ -51,12 +51,13 @@ taus = 0:100
 data_sample = Dataset(hcat(x1,y1))
 data_sample_n = Dataset(hcat(x1_n,y1_n))
 
-
 # mcdts
-trials = 50
-max_depth = 10
+KK = 1 # considered nearest neighbors
+trials = 100
+max_depth = 15
 tree = MCDTS.mc_delay(Dataset(x1),w1,(L)->(MCDTS.softmaxL(L,β=2.)),
-    taus, trials; max_depth = max_depth, PRED = true, verbose = true, threshold = 5e-6, Tw = Tw)
+    taus, trials; max_depth = max_depth, PRED = true, verbose = true, threshold = 5e-6,
+    KNN = K, Tw = Tw)
 best_node = MCDTS.best_embedding(tree)
 τ_mcdts_PRED = best_node.τs
 Y_mcdts_PRED = MCDTS.genembed_for_prediction(x1, τ_mcdts_fnn)

@@ -8,6 +8,7 @@ using Neighborhood
 using DataFrames
 using StatsBase
 using GLM
+using Revise
 
 
 """
@@ -401,7 +402,7 @@ end
 """ Compute the total absolute error between `prediction` and `reference`
 """
 function compute_abs_err(prediction::Vector{T}, reference::Vector{T}) where {T}
-    return abs.(prediction .- reference)
+    return sum(abs.(prediction .- reference))
 end
 
 """ Compute the scaling term for the MASE measure. This is tge average in-sample
@@ -685,8 +686,9 @@ function zeroth_prediction_cost(Y::AbstractDataset{D, ET};
                 ϵ_ball[k, :] .= Y[j + T]
             end
             # take the average as a prediction
-            prediction = mean(ϵ_ball; dims=1)
-            errors[T,:] = (prediction .- Y[ns[i]+T]).^2
+            prediction = zeros(ET, D)
+            prediction[:] = mean(ϵ_ball; dims=1)
+            errors[T,:] = (Vector(prediction) .- Vector(Y[ns[i]+T])).^2
         end
         error[i,:] = mean(errors; dims=1)
     end

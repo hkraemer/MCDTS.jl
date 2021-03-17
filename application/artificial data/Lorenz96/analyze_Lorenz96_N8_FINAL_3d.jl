@@ -12,14 +12,14 @@ N = 8
 #cd("./application/artificial data/Lorenz96/Results/Final N8")
 
 # determine the tde method; #1 Cao, #2 Kennel, #3 Hegger
-tde = 3
+tde = 2
 
 # FNN or L-statistic based?
-FNN = false
+FNN = true
 
 # display results
-show1 = true # embedding dimension and FNN/L-statistic
-show2 = false  # RQA statistics
+show1 = false # embedding dimension and FNN/L-statistic
+show2 = true  # RQA statistics
 show3 = false  # RP-accordance
 
 # bind variables

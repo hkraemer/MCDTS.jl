@@ -5,6 +5,7 @@ using DelimitedFiles
 using ChaosTools
 using DSP
 using Statistics
+using Revise
 
 using PyPlot
 pygui(true)
@@ -14,6 +15,8 @@ pygui(true)
 
 lo = Systems.lorenz()
 tr = trajectory(lo, 100; dt = 0.01, Ttr = 10)
+
+
 tr = trajectory(lo, 1000; dt = 0.01, Ttr = 100) # results 3
 
 s = tr[:,1]
@@ -22,19 +25,12 @@ mi = DelayEmbeddings.estimate_delay(s, "mi_min")
 
 delays = 0:100
 trials = 1
-max_depth = 10
+max_depth = 3
 @time tree = MCDTS.mc_delay(Dataset(s[1:1000]),mi,(L)->(MCDTS.softmaxL(L,β=2.)),
-    delays, trials; max_depth = max_depth, PRED = true, verbose = true, threshold = 5e-6)
+    delays, trials; max_depth = max_depth, PRED = true, verbose = true, threshold = 5e-6, linear = false)
 best_node = MCDTS.best_embedding(tree)
 FNNS = best_node.L
 println(best_node)
-
-
-
-
-
-
-
 
 
 Y = DelayEmbeddings.hcat_lagged_values(s,s,mi)

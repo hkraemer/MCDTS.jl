@@ -1,7 +1,7 @@
 #!/bin/bash
 
-#SBATCH --qos=medium
-#SBATCH --partition=standard
+#SBATCH --qos=priority
+#SBATCH --partition=priority
 #SBATCH --job-name=PRE_5
 #SBATCH --account=synet
 #SBATCH --output=name-%j.out

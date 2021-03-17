@@ -1,5 +1,6 @@
 using DynamicalSystemsBase
 using DelayEmbeddings
+using Revise
 import Base.show
 
 abstract type AbstractTreeElement end
@@ -106,6 +107,8 @@ compute as many conitnuity statistics as there are time series in the Dataset
 * `PRED::Bool = false`: Determines whether the algorithm should minimize the
   L-statistic or a cost function based on minimizing the `Tw`-step-prediction error
 * `Tw::Int = 1`: If `PRED = true`, this is the considered prediction horizon
+* `linear::Bool=false`: If `PRED = true`, this determines whether the prediction shall
+  be made on the zeroth or a linear predictor.
 * `threshold::Real = 0`: The algorithm does not pick a peak from the continuity
   statistic, when its corresponding `ΔL`/FNN-value exceeds this threshold. Please
   provide a positive number for both, `L` and `FNN`-statistic option (since the
@@ -126,7 +129,7 @@ compute as many conitnuity statistics as there are time series in the Dataset
 function next_embedding(n::Node, Ys::Dataset{D, T}, w::Int, τs; KNN::Int = 3,
                             FNN::Bool = false, PRED::Bool = false, Tw::Int=1,
                             tws::AbstractRange{Int} = 2:τs[end],
-                            threshold::Real = 0) where {D, T<:Real}
+                            threshold::Real = 0, linear::Bool = false) where {D, T<:Real}
     @assert (FNN || PRED) || (~FNN && ~PRED) "Select either FNN or PRED keyword (or none)."
     τs_old = get_τs(n)
     ts_old = get_ts(n)
@@ -134,7 +137,9 @@ function next_embedding(n::Node, Ys::Dataset{D, T}, w::Int, τs; KNN::Int = 3,
     # do the next embedding step
     τ_pot, ts_pot, L_pot, flag = give_potential_delays(Ys, τs, w, Tuple(τs_old),
                             Tuple(ts_old), L_old; KNN = KNN, FNN = FNN,
-                            PRED = PRED, Tw = Tw, tws = tws, threshold = threshold)
+                            PRED = PRED, Tw = Tw, linear = linear, tws = tws,
+                            threshold = threshold)
+
     return τ_pot, ts_pot, L_pot, flag
 end
 
@@ -146,7 +151,7 @@ The first embedding step
 function next_embedding(n::Root, Ys::Dataset{D, T}, w::Int, τs; KNN::Int = 3,
                             FNN::Bool = false, PRED::Bool = false, Tw::Int=1,
                             tws::AbstractRange{Int} = 2:τs[end],
-                            threshold::Real = 0) where {D, T<:Real}
+                            threshold::Real = 0, linear::Bool = false) where {D, T<:Real}
     @assert (FNN || PRED) || (~FNN && ~PRED) "Select either FNN or PRED keyword (or none)."
     τ_pot = zeros(Int, size(Ys,2))
     ts_pot = Array(1:size(Ys,2))
@@ -257,6 +262,8 @@ This is one single rollout and backprop of the tree.
 * `PRED::Bool = false`: Determines whether the algorithm should minimize the
   L-statistic or a cost function based on minimizing the `Tw`-step-prediction error
 * `Tw::Int = 1`: If `PRED = true`, this is the considered prediction horizon
+* `linear::Bool=false`: If `PRED = true`, this determines whether the prediction shall
+  be made on the zeroth or a linear predictor.
 * `threshold::Real = 0`: The algorithm does not pick a peak from the continuity
   statistic, when its corresponding `ΔL`/FNN-value exceeds this threshold. Please
   provide a positive number for both, `L` and `FNN`-statistic option (since the
@@ -272,7 +279,7 @@ function expand!(n::Root, data::Dataset{D, T}, w::Int, choose_func,
             delays::AbstractRange{DT} = 0:100; max_depth::Int=20, KNN::Int=3,
             verbose=false, FNN::Bool = false, PRED::Bool = false, Tw::Int = 1,
             tws::AbstractRange{DT} = 2:delays[end], threshold::Real = 0,
-            choose_mode::Int=0) where {D, DT, T<:Real}
+            choose_mode::Int=0, linear::Bool = false) where {D, DT, T<:Real}
 
     @assert (FNN || PRED) || (~FNN && ~PRED) "Select either FNN or PRED keyword (or none)."
     @assert threshold ≥ 0
@@ -287,7 +294,8 @@ function expand!(n::Root, data::Dataset{D, T}, w::Int, choose_func,
         if current_node.children == nothing
             τs, ts, Ls, converged = next_embedding(current_node, data, w, delays;
                                                 KNN = KNN, FNN = FNN, PRED = PRED,
-                                                Tw = Tw, tws = tws, threshold = threshold)
+                                                Tw = Tw, tws = tws, threshold = threshold,
+                                                linear = linear)
             if converged
                 break
             else
@@ -348,7 +356,7 @@ Do the monte carlo run with `N` trials, returns the tree.
 function mc_delay(data, w::Int, choose_func, delays::AbstractRange{D}, N::Int=40;
             max_depth::Int=20, KNN::Int = 3, FNN::Bool = false, PRED::Bool=false,
             Tw::Int = 1, verbose::Bool=false, tws::AbstractRange{D} = 2:delays[end],
-            threshold::Real = 0) where {D}
+            threshold::Real = 0, linear::Bool = false) where {D}
 
     # initialize tree
     tree = Root()
@@ -357,7 +365,7 @@ function mc_delay(data, w::Int, choose_func, delays::AbstractRange{D}, N::Int=40
 
         expand!(tree, data, w, choose_func, delays; KNN = KNN, FNN = FNN,
                     PRED = PRED, Tw = Tw, max_depth = max_depth, tws = tws,
-                    threshold = threshold, choose_mode=i<(N/2) ? 0 : 1)
+                    linear = linear, threshold = threshold, choose_mode=i<(N/2) ? 0 : 1)
 
         if verbose
             if (i%1)==0
