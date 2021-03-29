@@ -217,7 +217,7 @@ Return costs (MSE) of a `Tw`-step-ahead local-prediction.
 function local_PRED_statistics(ε★, Y_act, s, τs, w, metric, Tw; τ_vals = [0],
                                                 K::Int = 1,linear::Bool=false)
     #_, max_idx = get_maxima(ε★) # determine local maxima in ⟨ε★⟩
-    max_idx = Vector(1:20)
+    max_idx = Vector(1:25)
     filter!(e->e∉(τ_vals .+ 1), max_idx)
     PRED_mse = zeros(Float64, length(max_idx))
     for (i,τ_idx) in enumerate(max_idx)
@@ -225,11 +225,11 @@ function local_PRED_statistics(ε★, Y_act, s, τs, w, metric, Tw; τ_vals = [0
         Y_trial = DelayEmbeddings.hcat_lagged_values(Y_act, s, τs[τ_idx-1])
         # compute PRED-statistic for Y_trial
         if linear
-            PRED_mse[i] = mean(MCDTS.linear_prediction_cost(Y_trial; w = w,
-                    K = 2*(size(Y_trial,2)+1), Tw = Tw, metric = metric))
+            PRED_mse[i] = MCDTS.linear_prediction_cost(Y_trial; w = w,
+                    K = 2*(size(Y_trial,2)+1), Tw = Tw, metric = metric)[1]
         else
-            PRED_mse[i] = mean(MCDTS.zeroth_prediction_cost(Y_trial; w = w,
-                    K = K, Tw = Tw,  metric = metric))
+            PRED_mse[i] = MCDTS.zeroth_prediction_cost(Y_trial; w = w,
+                    K = K, Tw = Tw,  metric = metric)[1]
         end
 
     end

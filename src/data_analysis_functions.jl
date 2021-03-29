@@ -673,7 +673,7 @@ function zeroth_prediction_cost(Y::AbstractDataset{D, ET};
 
     vtree = KDTree(Y[1:end-Tw], metric)
     allNNidxs, _ = DelayEmbeddings.all_neighbors(vtree, vs, ns, K, w)
-
+ 
     error = zeros(ET, NN, D)
     # loop over each fiducial point
     for (i,v) in enumerate(vs)

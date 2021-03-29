@@ -144,35 +144,105 @@ Ls_n[11] = MCDTS.compute_delta_L(Y_mcdts_fnn2_n, τ_mcdts_fnn2_n, ts_mcdts_fnn2_
 Ls_n[12] = MCDTS.compute_delta_L(Y_pec_n, τ_pec_n, ones(Int,length(τ_pec_n)),T_max; w = w1_n)
 Ls_n[13] = MCDTS.compute_delta_L(Y_pec2_n, τ_pec2_n, ts_pec2_n, T_max; w = w1_n)
 
+# mean Forecast error
+Preds = zeros(13)
+Preds_n = zeros(13)
+K = 1
+
+Preds[1] = mean(MCDTS.zeroth_prediction_cost(Y_cao; K = K, w = w1))
+Preds[2] = mean(MCDTS.zeroth_prediction_cost(Y_hegger; K = K, w = w1))
+Preds[3] = mean(MCDTS.zeroth_prediction_cost(Y_kennel; K = K, w = w1))
+Preds[4] = mean(MCDTS.zeroth_prediction_cost(Y_mcdts; K = K, w = w1))
+Preds[5] = mean(MCDTS.zeroth_prediction_cost(Y_mcdts2; K = K, w = w1))
+Preds[6] = mean(MCDTS.zeroth_prediction_cost(Y_mcdts_PRED; K = K, w = w1))
+Preds[7] = mean(MCDTS.zeroth_prediction_cost(Y_mcdts_PRED2; K = K, w = w1))
+Preds[8] = mean(MCDTS.zeroth_prediction_cost(Y_mcdts_PRED2_5; K = K, w = w1))
+Preds[9] = mean(MCDTS.zeroth_prediction_cost(Y_mcdts_PRED_5; K = K, w = w1))
+Preds[10] = mean(MCDTS.zeroth_prediction_cost(Y_mcdts_fnn; K = K, w = w1))
+Preds[11] = mean(MCDTS.zeroth_prediction_cost(Y_mcdts_fnn2; K = K, w = w1))
+Preds[12] = mean(MCDTS.zeroth_prediction_cost(Y_pec; K = K, w = w1))
+Preds[13] = mean(MCDTS.zeroth_prediction_cost(Y_pec2; K = K, w = w1))
+
+Preds_n[1] = mean(MCDTS.zeroth_prediction_cost(Y_cao_n; K = K, w = w1_n))
+Preds_n[2] = mean(MCDTS.zeroth_prediction_cost(Y_hegger_n; K = K, w = w1_n))
+Preds_n[3] = mean(MCDTS.zeroth_prediction_cost(Y_kennel_n; K = K, w = w1_n))
+Preds_n[4] = mean(MCDTS.zeroth_prediction_cost(Y_mcdts_n; K = K, w = w1_n))
+Preds_n[5] = mean(MCDTS.zeroth_prediction_cost(Y_mcdts2_n; K = K, w = w1_n))
+Preds_n[6] = mean(MCDTS.zeroth_prediction_cost(Y_mcdts_PRED_n; K = K, w = w1_n))
+Preds_n[7] = mean(MCDTS.zeroth_prediction_cost(Y_mcdts_PRED2_n; K = K, w = w1_n))
+Preds_n[8] = mean(MCDTS.zeroth_prediction_cost(Y_mcdts_PRED2_5_n; K = K, w = w1_n))
+Preds_n[9] = mean(MCDTS.zeroth_prediction_cost(Y_mcdts_PRED_5_n; K = K, w = w1_n))
+Preds_n[10] = mean(MCDTS.zeroth_prediction_cost(Y_mcdts_fnn_n; K = K, w = w1_n))
+Preds_n[11] = mean(MCDTS.zeroth_prediction_cost(Y_mcdts_fnn2_n; K = K, w = w1_n))
+Preds_n[12] = mean(MCDTS.zeroth_prediction_cost(Y_pec_n; K = K, w = w1_n))
+Preds_n[13] = mean(MCDTS.zeroth_prediction_cost(Y_pec2_n; K = K, w = w1_n))
+
+# Forecast error on x-component
 
 Preds = zeros(13)
 Preds_n = zeros(13)
 K = 1
 
-Preds[1] = MCDTS.zeroth_prediction_cost(Y_cao; K = K, w = w1)
-Preds[2] = MCDTS.zeroth_prediction_cost(Y_hegger; K = K, w = w1)
-Preds[3] = MCDTS.zeroth_prediction_cost(Y_kennel; K = K, w = w1)
-Preds[4] = MCDTS.zeroth_prediction_cost(Y_mcdts; K = K, w = w1)
-Preds[5] = MCDTS.zeroth_prediction_cost(Y_mcdts2; K = K, w = w1)
-Preds[6] = MCDTS.zeroth_prediction_cost(Y_mcdts_PRED; K = K, w = w1)
-Preds[7] = MCDTS.zeroth_prediction_cost(Y_mcdts_PRED2; K = K, w = w1)
-Preds[8] = MCDTS.zeroth_prediction_cost(Y_mcdts_PRED2_5; K = K, w = w1)
-Preds[9] = MCDTS.zeroth_prediction_cost(Y_mcdts_PRED_5; K = K, w = w1)
-Preds[10] = MCDTS.zeroth_prediction_cost(Y_mcdts_fnn; K = K, w = w1)
-Preds[11] = MCDTS.zeroth_prediction_cost(Y_mcdts_fnn2; K = K, w = w1)
-Preds[12] = MCDTS.zeroth_prediction_cost(Y_pec; K = K, w = w1)
-Preds[13] = MCDTS.zeroth_prediction_cost(Y_pec2; K = K, w = w1)
+Preds[1] = MCDTS.zeroth_prediction_cost(Y_cao; K = K, w = w1)[1]
+Preds[2] = MCDTS.zeroth_prediction_cost(Y_hegger; K = K, w = w1)[1]
+Preds[3] = MCDTS.zeroth_prediction_cost(Y_kennel; K = K, w = w1)[1]
+Preds[4] = MCDTS.zeroth_prediction_cost(Y_mcdts; K = K, w = w1)[1]
+Preds[5] = MCDTS.zeroth_prediction_cost(Y_mcdts2; K = K, w = w1)[2]
+Preds[6] = MCDTS.zeroth_prediction_cost(Y_mcdts_PRED; K = K, w = w1)[1]
+Preds[7] = MCDTS.zeroth_prediction_cost(Y_mcdts_PRED2; K = K, w = w1)[1]
+Preds[8] = MCDTS.zeroth_prediction_cost(Y_mcdts_PRED2_5; K = K, w = w1)[1]
+Preds[9] = MCDTS.zeroth_prediction_cost(Y_mcdts_PRED_5; K = K, w = w1)[1]
+Preds[10] = MCDTS.zeroth_prediction_cost(Y_mcdts_fnn; K = K, w = w1)[1]
+Preds[11] = MCDTS.zeroth_prediction_cost(Y_mcdts_fnn2; K = K, w = w1)[1]
+Preds[12] = MCDTS.zeroth_prediction_cost(Y_pec; K = K, w = w1)[1]
+Preds[13] = MCDTS.zeroth_prediction_cost(Y_pec2; K = K, w = w1)[2]
 
-Preds_n[1] = MCDTS.zeroth_prediction_cost(Y_cao_n; K = K, w = w1_n)
-Preds_n[2] = MCDTS.zeroth_prediction_cost(Y_hegger_n; K = K, w = w1_n)
-Preds_n[3] = MCDTS.zeroth_prediction_cost(Y_kennel_n; K = K, w = w1_n)
-Preds_n[4] = MCDTS.zeroth_prediction_cost(Y_mcdts_n; K = K, w = w1_n)
-Preds_n[5] = MCDTS.zeroth_prediction_cost(Y_mcdts2_n; K = K, w = w1_n)
-Preds_n[6] = MCDTS.zeroth_prediction_cost(Y_mcdts_PRED_n; K = K, w = w1_n)
-Preds_n[7] = MCDTS.zeroth_prediction_cost(Y_mcdts_PRED2_n; K = K, w = w1_n)
-Preds_n[8] = MCDTS.zeroth_prediction_cost(Y_mcdts_PRED2_5_n; K = K, w = w1_n)
-Preds_n[9] = MCDTS.zeroth_prediction_cost(Y_mcdts_PRED_5_n; K = K, w = w1_n)
-Preds_n[10] = MCDTS.zeroth_prediction_cost(Y_mcdts_fnn_n; K = K, w = w1_n)
-Preds_n[11] = MCDTS.zeroth_prediction_cost(Y_mcdts_fnn2_n; K = K, w = w1_n)
-Preds_n[12] = MCDTS.zeroth_prediction_cost(Y_pec_n; K = K, w = w1_n)
-Preds_n[13] = MCDTS.zeroth_prediction_cost(Y_pec2_n; K = K, w = w1_n)
+Preds_n[1] = MCDTS.zeroth_prediction_cost(Y_cao_n; K = K, w = w1_n)[1]
+Preds_n[2] = MCDTS.zeroth_prediction_cost(Y_hegger_n; K = K, w = w1_n)[1]
+Preds_n[3] = MCDTS.zeroth_prediction_cost(Y_kennel_n; K = K, w = w1_n)[1]
+Preds_n[4] = MCDTS.zeroth_prediction_cost(Y_mcdts_n; K = K, w = w1_n)[1]
+Preds_n[5] = MCDTS.zeroth_prediction_cost(Y_mcdts2_n; K = K, w = w1_n)[1]
+Preds_n[6] = MCDTS.zeroth_prediction_cost(Y_mcdts_PRED_n; K = K, w = w1_n)[1]
+Preds_n[7] = MCDTS.zeroth_prediction_cost(Y_mcdts_PRED2_n; K = K, w = w1_n)[1]
+Preds_n[8] = MCDTS.zeroth_prediction_cost(Y_mcdts_PRED2_5_n; K = K, w = w1_n)[1]
+Preds_n[9] = MCDTS.zeroth_prediction_cost(Y_mcdts_PRED_5_n; K = K, w = w1_n)[1]
+Preds_n[10] = MCDTS.zeroth_prediction_cost(Y_mcdts_fnn_n; K = K, w = w1_n)[1]
+Preds_n[11] = MCDTS.zeroth_prediction_cost(Y_mcdts_fnn2_n; K = K, w = w1_n)[1]
+Preds_n[12] = MCDTS.zeroth_prediction_cost(Y_pec_n; K = K, w = w1_n)[1]
+Preds_n[13] = MCDTS.zeroth_prediction_cost(Y_pec2_n; K = K, w = w1_n)[1]
+
+
+
+## Plot results
+
+recons = ["Cao", "Hegger", "Kennel", "MCDTS", "MCDTS mult.","MCDTS PRED","MCDTS PRED mult.",
+        "MCDTS PRED mult. 5", "MCDTS PRED 5", "MCDTS FNN", "MCDTS FNN mult.", "PECUZAL", "PECUZAL mult."]
+colors = ["b","b","b","r","r","g","g","g","g","m","m","y","y"]
+
+figure(figsize=(15,10))
+bar(1:2:26,Ls, color=colors)
+xticks(1:2:26, recons, rotation=45)
+title("Noisefree")
+ylabel("L-statistic")
+grid()
+
+figure(figsize=(15,10))
+bar(1:2:26,Ls_n, color=colors)
+xticks(1:2:26, recons, rotation=45)
+title("5 % additive noise")
+ylabel("L-statistic")
+grid()
+
+figure(figsize=(15,10))
+bar(1:2:26,Preds, color=colors)
+xticks(1:2:26, recons, rotation=45)
+title("Noisefree")
+ylabel("Forecast-error")
+grid()
+
+figure(figsize=(15,10))
+bar(1:2:26,Preds_n, color=colors)
+xticks(1:2:26, recons, rotation=45)
+title("5 % additive noise")
+ylabel("Forecast-error")
+grid()
