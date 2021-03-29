@@ -24,10 +24,10 @@ mi = DelayEmbeddings.estimate_delay(s, "mi_min")
 
 
 delays = 0:100
-trials = 1
-max_depth = 3
-@time tree = MCDTS.mc_delay(Dataset(s[1:1000]),mi,(L)->(MCDTS.softmaxL(L,β=2.)),
-    delays, trials; max_depth = max_depth, PRED = true, verbose = true, threshold = 5e-6, linear = false)
+trials = 10
+max_depth = 10
+@time tree = MCDTS.mc_delay(Dataset(s[1:10000]),mi,(L)->(MCDTS.softmaxL(L,β=2.)),
+    delays, trials; max_depth = max_depth, PRED = true, verbose = true, threshold = 5e-6, linear = false, Tw = 10)
 best_node = MCDTS.best_embedding(tree)
 FNNS = best_node.L
 println(best_node)

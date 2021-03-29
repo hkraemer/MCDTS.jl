@@ -12,14 +12,14 @@ N = 8
 #cd("./application/artificial data/Lorenz96/Results/Final N8")
 
 # determine the tde method; #1 Cao, #2 Kennel, #3 Hegger
-tde = 2
+tde = 1
 
 # FNN or L-statistic based?
 FNN = true
 
 # display results
 show1 = false # embedding dimension and FNN/L-statistic
-show2 = true  # RQA statistics
+show2 = false  # RQA statistics
 show3 = false  # RP-accordance
 
 # bind variables
@@ -439,6 +439,12 @@ if show3
 end
 
 # compute mean squared errors
+MSE_Pecuzal_2 = zeros(10)
+MSE_MCDTS_L_2 = zeros(10)
+MSE_MCDTS_FNN_2 = zeros(10)
+MSE_Cao = zeros(10)
+MSE_Kennel = zeros(10)
+MSE_Hegger = zeros(10)
 cnt = 0
 cnt2 = 0
 for i = 1:size(RQA_ref,2)-1
@@ -448,6 +454,19 @@ for i = 1:size(RQA_ref,2)-1
         println("MSE TDE $method $(RQA_names[i]):  $(mean((RQA_tde[:,i] .- RQA_ref[:,i]).^2 ./ RQA_ref[:,i]))")
         println("MSE MCDTS $statistic $(RQA_names[i]):  $(mean((RQA_mcdts[:,i] .- RQA_ref[:,i]).^2 ./ RQA_ref[:,i]))")
 
+        MSE_MCDTS_FNN_2[i] = mean((RQA_mcdts[:,i] .- RQA_ref[:,i]).^2 ./ RQA_ref[:,i])
+        writedlm("./MSEs/MSE_MCDTS_FNN_2.csv", MSE_MCDTS_FNN_2)
+        if tde == 1
+            MSE_Cao[i] = mean((RQA_tde[:,i] .- RQA_ref[:,i]).^2 ./ RQA_ref[:,i])
+            writedlm("./MSEs/MSE_Cao.csv", MSE_Cao)
+        elseif tde == 2
+            MSE_Kennel[i] = mean((RQA_tde[:,i] .- RQA_ref[:,i]).^2 ./ RQA_ref[:,i])
+            writedlm("./MSEs/MSE_Kennel.csv", MSE_Kennel)
+        elseif tde == 3
+            MSE_Hegger[i] = mean((RQA_tde[:,i] .- RQA_ref[:,i]).^2 ./ RQA_ref[:,i])
+            writedlm("./MSEs/MSE_Hegger.csv", MSE_Hegger)
+        end
+
         if mean((RQA_mcdts[:,i] .- RQA_ref[:,i]).^2 ./ RQA_ref[:,i]) < mean((RQA_tde[:,i] .- RQA_ref[:,i]).^2 ./ RQA_ref[:,i])
             cnt += 1
         end
@@ -456,6 +475,24 @@ for i = 1:size(RQA_ref,2)-1
         println("MSE TDE $method $(RQA_names[i]):  $(mean((RQA_tde[:,i] .- RQA_ref[:,i]).^2 ./ RQA_ref[:,i]))")
         println("MSE PECUZAL $(RQA_names[i]):  $(mean((RQA_pec[:,i] .- RQA_ref[:,i]).^2 ./ RQA_ref[:,i]))")
         println("MSE MCDTS $statistic $(RQA_names[i]):  $(mean((RQA_mcdts[:,i] .- RQA_ref[:,i]).^2 ./ RQA_ref[:,i]))")
+
+        MSE_Pecuzal_2[i] = mean((RQA_pec[:,i] .- RQA_ref[:,i]).^2 ./ RQA_ref[:,i])
+        MSE_MCDTS_L_2[i] = mean((RQA_mcdts[:,i] .- RQA_ref[:,i]).^2 ./ RQA_ref[:,i])
+
+        writedlm("./MSEs/MSE_Pecuzal_2.csv", MSE_Pecuzal_2)
+        writedlm("./MSEs/MSE_MCDTS_L_2.csv", MSE_MCDTS_L_2)
+
+        if tde == 1
+            MSE_Cao[i] = mean((RQA_tde[:,i] .- RQA_ref[:,i]).^2 ./ RQA_ref[:,i])
+            writedlm("./MSEs/MSE_Cao.csv", MSE_Cao)
+        elseif tde == 2
+            MSE_Kennel[i] = mean((RQA_tde[:,i] .- RQA_ref[:,i]).^2 ./ RQA_ref[:,i])
+            writedlm("./MSEs/MSE_Kennel.csv", MSE_Kennel)
+        elseif tde == 3
+            MSE_Hegger[i] = mean((RQA_tde[:,i] .- RQA_ref[:,i]).^2 ./ RQA_ref[:,i])
+            writedlm("./MSEs/MSE_Hegger.csv", MSE_Hegger)
+        end
+
 
         if mean((RQA_mcdts[:,i] .- RQA_ref[:,i]).^2 ./ RQA_ref[:,i]) < mean((RQA_tde[:,i] .- RQA_ref[:,i]).^2 ./ RQA_ref[:,i])
             cnt += 1
@@ -471,6 +508,15 @@ if FNN
     if mean(RP_frac_mcdts) > mean(RP_frac_tde)
         cnt += 1
     end
+
+    MSE_MCDTS_FNN_2[10] = mean(RP_frac_mcdts)
+    if tde == 1
+        MSE_Cao[10] = mean(RP_frac_tde)
+    elseif tde == 2
+        MSE_Kennel[10] = mean(RP_frac_tde)
+    elseif tde == 3
+        MSE_Hegger[10] = mean(RP_frac_tde)
+    end
 else
     if mean(RP_frac_mcdts) > mean(RP_frac_tde)
         cnt += 1
@@ -478,7 +524,33 @@ else
     if mean(RP_frac_pec) > mean(RP_frac_tde)
         cnt2 += 1
     end
+
+    MSE_Pecuzal_2[10] = mean(RP_frac_pec)
+    MSE_MCDTS_L_2[10] = mean(RP_frac_mcdts)
+    if tde == 1
+        MSE_Cao[10] = mean(RP_frac_tde)
+    elseif tde == 2
+        MSE_Kennel[10] = mean(RP_frac_tde)
+    elseif tde == 3
+        MSE_Hegger[10] = mean(RP_frac_tde)
+    end
 end
+
+
+if FNN
+    writedlm("./MSEs/MSE_MCDTS_FNN_2.csv", MSE_MCDTS_FNN_2)
+    if tde == 1
+        writedlm("./MSEs/MSE_Cao.csv", MSE_Cao)
+    elseif tde == 2
+        writedlm("./MSEs/MSE_Kennel.csv", MSE_Kennel)
+    elseif tde == 3
+        writedlm("./MSEs/MSE_Hegger.csv", MSE_Hegger)
+    end
+else
+    writedlm("./MSEs/MSE_Pecuzal_2.csv", MSE_Pecuzal_2)
+    writedlm("./MSEs/MSE_MCDTS_L_2.csv", MSE_MCDTS_L_2)
+end
+
 
 # compute pearson correlation
 cnt3 = 0
@@ -487,17 +559,17 @@ for i = 1:size(RQA_ref,2)-1
     global cnt3
     global cnt4
     if FNN
-        println("ρ(Pearson) TDE $method $(RQA_names[i]):  $(cor(RQA_tde[:,i],RQA_ref[:,i]))")
-        println("ρ(Pearson) MCDTS $statistic $(RQA_names[i]):  $(cor(RQA_mcdts[:,i],RQA_ref[:,i]))")
+        # println("ρ(Pearson) TDE $method $(RQA_names[i]):  $(cor(RQA_tde[:,i],RQA_ref[:,i]))")
+        # println("ρ(Pearson) MCDTS $statistic $(RQA_names[i]):  $(cor(RQA_mcdts[:,i],RQA_ref[:,i]))")
 
         if cor(RQA_mcdts[:,i],RQA_ref[:,i]) > cor(RQA_tde[:,i],RQA_ref[:,i])
             cnt3 += 1
         end
         println("*******************")
     else
-        println("ρ(Pearson) TDE $method $(RQA_names[i]):  $(cor(RQA_tde[:,i],RQA_ref[:,i]))")
-        println("ρ(Pearson) PECUZAL $statistic $(RQA_names[i]):  $(cor(RQA_pec[:,i],RQA_ref[:,i]))")
-        println("ρ(Pearson) MCDTS $statistic $(RQA_names[i]):  $(cor(RQA_mcdts[:,i],RQA_ref[:,i]))")
+        # println("ρ(Pearson) TDE $method $(RQA_names[i]):  $(cor(RQA_tde[:,i],RQA_ref[:,i]))")
+        # println("ρ(Pearson) PECUZAL $statistic $(RQA_names[i]):  $(cor(RQA_pec[:,i],RQA_ref[:,i]))")
+        # println("ρ(Pearson) MCDTS $statistic $(RQA_names[i]):  $(cor(RQA_mcdts[:,i],RQA_ref[:,i]))")
 
         if cor(RQA_mcdts[:,i],RQA_ref[:,i]) > cor(RQA_tde[:,i],RQA_ref[:,i])
             cnt3 += 1
@@ -513,6 +585,6 @@ end
 
 println("PECUZAL (based on MSE) $cnt2 / $(size(RQA_ref,2))")
 println("MCDTS (based on MSE) $cnt / $(size(RQA_ref,2))")
-println("*******************")
-println("PECUZAL (based on ρ(Pearson)) $cnt4 / $(size(RQA_ref,2)-1)")
-println("MCDTS (based on ρ(Pearson)) $cnt3 / $(size(RQA_ref,2)-1)")
+# println("*******************")
+# println("PECUZAL (based on ρ(Pearson)) $cnt4 / $(size(RQA_ref,2)-1)")
+# println("MCDTS (based on ρ(Pearson)) $cnt3 / $(size(RQA_ref,2)-1)")
