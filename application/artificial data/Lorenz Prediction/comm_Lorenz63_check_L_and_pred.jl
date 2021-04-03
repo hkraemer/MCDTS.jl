@@ -144,6 +144,42 @@ Ls_n[11] = MCDTS.compute_delta_L(Y_mcdts_fnn2_n, τ_mcdts_fnn2_n, ts_mcdts_fnn2_
 Ls_n[12] = MCDTS.compute_delta_L(Y_pec_n, τ_pec_n, ones(Int,length(τ_pec_n)),T_max; w = w1_n)
 Ls_n[13] = MCDTS.compute_delta_L(Y_pec2_n, τ_pec2_n, ts_pec2_n, T_max; w = w1_n)
 
+
+Ls_tot = zeros(13,50)
+Ls_tot_n = zeros(13,50)
+
+for i = 1:50
+    println("run: $i")
+    Ls_tot[1,i] = DelayEmbeddings.uzal_cost(Y_cao; w = w1, Tw=i)
+    Ls_tot[2,i] = DelayEmbeddings.uzal_cost(Y_hegger; w = w1, Tw=i)
+    Ls_tot[3,i] = DelayEmbeddings.uzal_cost(Y_kennel; w = w1, Tw=i)
+    Ls_tot[4,i] = DelayEmbeddings.uzal_cost(Y_mcdts; w = w1, Tw=i)
+    Ls_tot[5,i] = DelayEmbeddings.uzal_cost(Y_mcdts2; w = w1, Tw=i)
+    Ls_tot[6,i] = DelayEmbeddings.uzal_cost(Y_mcdts_PRED; w = w1, Tw=i)
+    Ls_tot[7,i] = DelayEmbeddings.uzal_cost(Y_mcdts_PRED2; w = w1, Tw=i)
+    Ls_tot[8,i] = DelayEmbeddings.uzal_cost(Y_mcdts_PRED2_5; w = w1, Tw=i)
+    Ls_tot[9,i] = DelayEmbeddings.uzal_cost(Y_mcdts_PRED_5; w = w1, Tw=i)
+    Ls_tot[10,i] = DelayEmbeddings.uzal_cost(Y_mcdts_fnn; w = w1, Tw=i)
+    Ls_tot[11,i] = DelayEmbeddings.uzal_cost(Y_mcdts_fnn2; w = w1, Tw=i)
+    Ls_tot[12,i] = DelayEmbeddings.uzal_cost(Y_pec; w = w1, Tw=i)
+    Ls_tot[13,i] = DelayEmbeddings.uzal_cost(Y_pec2; w = w1, Tw=i)
+
+    Ls_tot_n[1,i] = DelayEmbeddings.uzal_cost(Y_cao_n; w = w1_n, Tw=i)
+    Ls_tot_n[2,i] = DelayEmbeddings.uzal_cost(Y_hegger_n; w = w1_n, Tw=i)
+    Ls_tot_n[3,i] = DelayEmbeddings.uzal_cost(Y_kennel_n; w = w1_n, Tw=i)
+    Ls_tot_n[4,i] = DelayEmbeddings.uzal_cost(Y_mcdts_n; w = w1_n, Tw=i)
+    Ls_tot_n[5,i] = DelayEmbeddings.uzal_cost(Y_mcdts2_n; w = w1_n, Tw=i)
+    Ls_tot_n[6,i] = DelayEmbeddings.uzal_cost(Y_mcdts_PRED_n; w = w1_n, Tw=i)
+    Ls_tot_n[7,i] = DelayEmbeddings.uzal_cost(Y_mcdts_PRED2_n; w = w1_n, Tw=i)
+    Ls_tot_n[8,i] = DelayEmbeddings.uzal_cost(Y_mcdts_PRED2_5_n; w = w1_n, Tw=i)
+    Ls_tot_n[9,i] = DelayEmbeddings.uzal_cost(Y_mcdts_PRED_5_n; w = w1_n, Tw=i)
+    Ls_tot_n[10,i] = DelayEmbeddings.uzal_cost(Y_mcdts_fnn_n; w = w1_n, Tw=i)
+    Ls_tot_n[11,i] = DelayEmbeddings.uzal_cost(Y_mcdts_fnn2_n; w = w1_n, Tw=i)
+    Ls_tot_n[12,i] = DelayEmbeddings.uzal_cost(Y_pec_n; w = w1_n, Tw=i)
+    Ls_tot_n[13,i] = DelayEmbeddings.uzal_cost(Y_pec2_n; w = w1_n, Tw=i)
+end
+
+
 # mean Forecast error
 Preds = zeros(13)
 Preds_n = zeros(13)
@@ -178,38 +214,37 @@ Preds_n[12] = mean(MCDTS.zeroth_prediction_cost(Y_pec_n; K = K, w = w1_n))
 Preds_n[13] = mean(MCDTS.zeroth_prediction_cost(Y_pec2_n; K = K, w = w1_n))
 
 # Forecast error on x-component
-
-Preds = zeros(13)
-Preds_n = zeros(13)
+Preds_x = zeros(13)
+Preds_x_n = zeros(13)
 K = 1
 
-Preds[1] = MCDTS.zeroth_prediction_cost(Y_cao; K = K, w = w1)[1]
-Preds[2] = MCDTS.zeroth_prediction_cost(Y_hegger; K = K, w = w1)[1]
-Preds[3] = MCDTS.zeroth_prediction_cost(Y_kennel; K = K, w = w1)[1]
-Preds[4] = MCDTS.zeroth_prediction_cost(Y_mcdts; K = K, w = w1)[1]
-Preds[5] = MCDTS.zeroth_prediction_cost(Y_mcdts2; K = K, w = w1)[2]
-Preds[6] = MCDTS.zeroth_prediction_cost(Y_mcdts_PRED; K = K, w = w1)[1]
-Preds[7] = MCDTS.zeroth_prediction_cost(Y_mcdts_PRED2; K = K, w = w1)[1]
-Preds[8] = MCDTS.zeroth_prediction_cost(Y_mcdts_PRED2_5; K = K, w = w1)[1]
-Preds[9] = MCDTS.zeroth_prediction_cost(Y_mcdts_PRED_5; K = K, w = w1)[1]
-Preds[10] = MCDTS.zeroth_prediction_cost(Y_mcdts_fnn; K = K, w = w1)[1]
-Preds[11] = MCDTS.zeroth_prediction_cost(Y_mcdts_fnn2; K = K, w = w1)[1]
-Preds[12] = MCDTS.zeroth_prediction_cost(Y_pec; K = K, w = w1)[1]
-Preds[13] = MCDTS.zeroth_prediction_cost(Y_pec2; K = K, w = w1)[2]
+Preds_x[1] = MCDTS.zeroth_prediction_cost(Y_cao; K = K, w = w1)[1]
+Preds_x[2] = MCDTS.zeroth_prediction_cost(Y_hegger; K = K, w = w1)[1]
+Preds_x[3] = MCDTS.zeroth_prediction_cost(Y_kennel; K = K, w = w1)[1]
+Preds_x[4] = MCDTS.zeroth_prediction_cost(Y_mcdts; K = K, w = w1)[1]
+Preds_x[5] = MCDTS.zeroth_prediction_cost(Y_mcdts2; K = K, w = w1)[2]
+Preds_x[6] = MCDTS.zeroth_prediction_cost(Y_mcdts_PRED; K = K, w = w1)[1]
+Preds_x[7] = MCDTS.zeroth_prediction_cost(Y_mcdts_PRED2; K = K, w = w1)[1]
+Preds_x[8] = MCDTS.zeroth_prediction_cost(Y_mcdts_PRED2_5; K = K, w = w1)[1]
+Preds_x[9] = MCDTS.zeroth_prediction_cost(Y_mcdts_PRED_5; K = K, w = w1)[1]
+Preds_x[10] = MCDTS.zeroth_prediction_cost(Y_mcdts_fnn; K = K, w = w1)[1]
+Preds_x[11] = MCDTS.zeroth_prediction_cost(Y_mcdts_fnn2; K = K, w = w1)[1]
+Preds_x[12] = MCDTS.zeroth_prediction_cost(Y_pec; K = K, w = w1)[1]
+Preds_x[13] = MCDTS.zeroth_prediction_cost(Y_pec2; K = K, w = w1)[2]
 
-Preds_n[1] = MCDTS.zeroth_prediction_cost(Y_cao_n; K = K, w = w1_n)[1]
-Preds_n[2] = MCDTS.zeroth_prediction_cost(Y_hegger_n; K = K, w = w1_n)[1]
-Preds_n[3] = MCDTS.zeroth_prediction_cost(Y_kennel_n; K = K, w = w1_n)[1]
-Preds_n[4] = MCDTS.zeroth_prediction_cost(Y_mcdts_n; K = K, w = w1_n)[1]
-Preds_n[5] = MCDTS.zeroth_prediction_cost(Y_mcdts2_n; K = K, w = w1_n)[1]
-Preds_n[6] = MCDTS.zeroth_prediction_cost(Y_mcdts_PRED_n; K = K, w = w1_n)[1]
-Preds_n[7] = MCDTS.zeroth_prediction_cost(Y_mcdts_PRED2_n; K = K, w = w1_n)[1]
-Preds_n[8] = MCDTS.zeroth_prediction_cost(Y_mcdts_PRED2_5_n; K = K, w = w1_n)[1]
-Preds_n[9] = MCDTS.zeroth_prediction_cost(Y_mcdts_PRED_5_n; K = K, w = w1_n)[1]
-Preds_n[10] = MCDTS.zeroth_prediction_cost(Y_mcdts_fnn_n; K = K, w = w1_n)[1]
-Preds_n[11] = MCDTS.zeroth_prediction_cost(Y_mcdts_fnn2_n; K = K, w = w1_n)[1]
-Preds_n[12] = MCDTS.zeroth_prediction_cost(Y_pec_n; K = K, w = w1_n)[1]
-Preds_n[13] = MCDTS.zeroth_prediction_cost(Y_pec2_n; K = K, w = w1_n)[1]
+Preds_x_n[1] = MCDTS.zeroth_prediction_cost(Y_cao_n; K = K, w = w1_n)[1]
+Preds_x_n[2] = MCDTS.zeroth_prediction_cost(Y_hegger_n; K = K, w = w1_n)[1]
+Preds_x_n[3] = MCDTS.zeroth_prediction_cost(Y_kennel_n; K = K, w = w1_n)[1]
+Preds_x_n[4] = MCDTS.zeroth_prediction_cost(Y_mcdts_n; K = K, w = w1_n)[1]
+Preds_x_n[5] = MCDTS.zeroth_prediction_cost(Y_mcdts2_n; K = K, w = w1_n)[1]
+Preds_x_n[6] = MCDTS.zeroth_prediction_cost(Y_mcdts_PRED_n; K = K, w = w1_n)[1]
+Preds_x_n[7] = MCDTS.zeroth_prediction_cost(Y_mcdts_PRED2_n; K = K, w = w1_n)[1]
+Preds_x_n[8] = MCDTS.zeroth_prediction_cost(Y_mcdts_PRED2_5_n; K = K, w = w1_n)[1]
+Preds_x_n[9] = MCDTS.zeroth_prediction_cost(Y_mcdts_PRED_5_n; K = K, w = w1_n)[1]
+Preds_x_n[10] = MCDTS.zeroth_prediction_cost(Y_mcdts_fnn_n; K = K, w = w1_n)[1]
+Preds_x_n[11] = MCDTS.zeroth_prediction_cost(Y_mcdts_fnn2_n; K = K, w = w1_n)[1]
+Preds_x_n[12] = MCDTS.zeroth_prediction_cost(Y_pec_n; K = K, w = w1_n)[1]
+Preds_x_n[13] = MCDTS.zeroth_prediction_cost(Y_pec2_n; K = K, w = w1_n)[1]
 
 
 
@@ -217,32 +252,112 @@ Preds_n[13] = MCDTS.zeroth_prediction_cost(Y_pec2_n; K = K, w = w1_n)[1]
 
 recons = ["Cao", "Hegger", "Kennel", "MCDTS", "MCDTS mult.","MCDTS PRED","MCDTS PRED mult.",
         "MCDTS PRED mult. 5", "MCDTS PRED 5", "MCDTS FNN", "MCDTS FNN mult.", "PECUZAL", "PECUZAL mult."]
-colors = ["b","b","b","r","r","g","g","g","g","m","m","y","y"]
+marks = [".", "o","v","1","8","s","p","*","H","+","x","D","X"]
+colorss = ["b","b","b","r","r","g","g","g","g","m","m","y","y"]
 
+# L statistics
 figure(figsize=(15,10))
-bar(1:2:26,Ls, color=colors)
+bar(1:2:26,Ls, color=colorss)
 xticks(1:2:26, recons, rotation=45)
 title("Noisefree")
 ylabel("L-statistic")
 grid()
 
 figure(figsize=(15,10))
-bar(1:2:26,Ls_n, color=colors)
+bar(1:2:26,Ls_n, color=colorss)
 xticks(1:2:26, recons, rotation=45)
 title("5 % additive noise")
 ylabel("L-statistic")
 grid()
 
+# forecats errors
 figure(figsize=(15,10))
-bar(1:2:26,Preds, color=colors)
+bar(1:2:26,Preds, color=colorss)
 xticks(1:2:26, recons, rotation=45)
 title("Noisefree")
-ylabel("Forecast-error")
+ylabel("Mean Forecast-error")
 grid()
 
 figure(figsize=(15,10))
-bar(1:2:26,Preds_n, color=colors)
+bar(1:2:26,Preds_n, color=colorss)
 xticks(1:2:26, recons, rotation=45)
 title("5 % additive noise")
-ylabel("Forecast-error")
+ylabel("Mean Forecast-error")
 grid()
+
+figure(figsize=(15,10))
+bar(1:2:26,Preds_x, color=colorss)
+xticks(1:2:26, recons, rotation=45)
+title("Noisefree")
+ylabel("Forecast-error on x-component")
+grid()
+
+figure(figsize=(15,10))
+bar(1:2:26,Preds_x_n, color=colorss)
+xticks(1:2:26, recons, rotation=45)
+title("5 % additive noise")
+ylabel("Forecast-error on x-component")
+grid()
+
+
+figure(figsize=(15,10))
+for i = 1:length(recons)
+    plot(1:50, Ls_tot[i,:], label=recons[i], color=colorss[i], marker=marks[i])
+end
+grid()
+legend()
+xlabel("Horizon")
+ylabel("L-statistic value")
+title("L-Statistic for different time horizons (noisefree)")
+
+figure(figsize=(15,10))
+for i = 1:length(recons)
+    plot(1:50, Ls_tot_n[i,:], label=recons[i], color=colorss[i], marker=marks[i])
+end
+grid()
+legend()
+title("L-Statistic for different time horizons (noisy)")
+xlabel("Horizon")
+ylabel("L-statistic value")
+
+
+## Double check for noisy case:
+
+# example Cao and mcdts_PRED
+Y_example_cao = MCDTS.genembed_for_prediction(x1_n, [0, 17])
+Y_example_PRED = MCDTS.genembed_for_prediction(x1_n, [0, 2])
+
+Error_cao = MCDTS.zeroth_prediction_cost(Y_example_cao; K = 1, w = w1_n)[1]
+Error_PRED = MCDTS.zeroth_prediction_cost(Y_example_PRED; K = 1, w = w1_n)[1]
+
+Error = zeros(40)
+for i = 1:40
+    Y_example = MCDTS.genembed_for_prediction(Vector(xx[:,1]), [0, i])
+    Y_example = DelayEmbeddings.hcat_lagged_values(xx, Vector(xx[:,1]), i)
+    Error[i] = MCDTS.zeroth_prediction_cost(Y_example; K = 1, w = w1_n, Tw = 1)[1]
+end
+
+figure()
+plot(Error)
+
+Y_example1 = MCDTS.genembed_for_prediction(Vector(xx[:,1]), [0, 1])
+Y_example2 = DelayEmbeddings.hcat_lagged_values(xx, Vector(xx[:,1]), 1)
+Y_example3 = genembed(xx, (0,-1))
+
+m1 = MCDTS.zeroth_prediction_cost(Y_example1; K = 1, w = w1_n, Tw = 1)[1]
+m2 = MCDTS.zeroth_prediction_cost(Y_example2; K = 1, w = w1_n, Tw = 1)[1]
+m3 = MCDTS.zeroth_prediction_cost(Y_example3; K = 1, w = w1_n, Tw = 1)[1]
+
+using Revise
+using MCDTS
+
+Tw = 1  # time horizon
+KK = 1 # considered nearest neighbors
+trials = 1
+max_depth = 15
+PRED_mean = false
+PRED_L = false
+tree = MCDTS.mc_delay(Dataset(x1_n) ,w1_n,(L)->(MCDTS.softmaxL(L,β=2.)),
+    0:5, trials; max_depth = max_depth, PRED = true, verbose = true, KNN = KK,
+    threshold = 5e-6, PRED_mean = PRED_mean, PRED_L = PRED_L)
+best_node = MCDTS.best_embedding(tree)

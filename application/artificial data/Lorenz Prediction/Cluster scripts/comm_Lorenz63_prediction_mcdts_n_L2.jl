@@ -50,7 +50,7 @@ data_sample_n = Dataset(hcat(x1_n,y1_n))
 
 
 # mcdts
-trials = 120
+trials = 100
 
 tree = MCDTS.mc_delay(data_sample_n, w1_n, (L)->(MCDTS.softmaxL(L,β=2.)), taus, trials; tws = 2:taus[end], verbose=true)
 best_node = MCDTS.best_embedding(tree)

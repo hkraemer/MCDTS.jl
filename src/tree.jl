@@ -89,9 +89,7 @@ end
 
 
 """
-    next_embedding(n::Node, Ys::Dataset{D, T}, w::Int, τs; KNN:Int = 3,
-                        FNN::Bool = false, PRED::Bool = false, Tw::Int = 1,
-                        threshold::Real = 0, tws::AbstractRange = 2:τs[end]) → τ_pot, ts_pot, L_pot, flag
+    next_embedding(n::Node, Ys::Dataset{D, T}, w::Int, τs; kwars...) → τ_pot, ts_pot, L_pot, flag
 
 Performs the next embedding step. For the actual embedding contained in `n`
 compute as many conitnuity statistics as there are time series in the Dataset
@@ -109,6 +107,11 @@ compute as many conitnuity statistics as there are time series in the Dataset
 * `Tw::Int = 1`: If `PRED = true`, this is the considered prediction horizon
 * `linear::Bool=false`: If `PRED = true`, this determines whether the prediction shall
   be made on the zeroth or a linear predictor.
+* `PRED_mean::Bool=false`: If `PRED = true`, this determines whether the prediction shall
+    be optimized on the mean MSE of all components or only on the 1st-component (Default)
+* `PRED_L::Bool=false`: If `PRED = true`, this determines whether the prediction shall
+    be optimized on possible delay values gained from the continuity statistic or on
+    delays = 0:25 (Default)
 * `threshold::Real = 0`: The algorithm does not pick a peak from the continuity
   statistic, when its corresponding `ΔL`/FNN-value exceeds this threshold. Please
   provide a positive number for both, `L` and `FNN`-statistic option (since the
@@ -129,7 +132,10 @@ compute as many conitnuity statistics as there are time series in the Dataset
 function next_embedding(n::Node, Ys::Dataset{D, T}, w::Int, τs; KNN::Int = 3,
                             FNN::Bool = false, PRED::Bool = false, Tw::Int=1,
                             tws::AbstractRange{Int} = 2:τs[end],
-                            threshold::Real = 0, linear::Bool = false) where {D, T<:Real}
+                            threshold::Real = 0, linear::Bool = false,
+                            PRED_L::Bool = false, PRED_mean::Bool = false
+                            ) where {D, T<:Real}
+
     @assert (FNN || PRED) || (~FNN && ~PRED) "Select either FNN or PRED keyword (or none)."
     τs_old = get_τs(n)
     ts_old = get_ts(n)
@@ -138,20 +144,18 @@ function next_embedding(n::Node, Ys::Dataset{D, T}, w::Int, τs; KNN::Int = 3,
     τ_pot, ts_pot, L_pot, flag = give_potential_delays(Ys, τs, w, Tuple(τs_old),
                             Tuple(ts_old), L_old; KNN = KNN, FNN = FNN,
                             PRED = PRED, Tw = Tw, linear = linear, tws = tws,
-                            threshold = threshold)
+                            threshold = threshold, PRED_L = PRED_L, PRED_mean = PRED_mean)
 
     return τ_pot, ts_pot, L_pot, flag
 end
 
-"""
-    next_embedding(n::Node, Ys::Dataset, w::Int, τs = 0:100, KNN = 3)
-
-The first embedding step
-"""
 function next_embedding(n::Root, Ys::Dataset{D, T}, w::Int, τs; KNN::Int = 3,
                             FNN::Bool = false, PRED::Bool = false, Tw::Int=1,
                             tws::AbstractRange{Int} = 2:τs[end],
-                            threshold::Real = 0, linear::Bool = false) where {D, T<:Real}
+                            threshold::Real = 0, linear::Bool = false,
+                            PRED_L::Bool = false, PRED_mean::Bool = false
+                            ) where {D, T<:Real}
+
     @assert (FNN || PRED) || (~FNN && ~PRED) "Select either FNN or PRED keyword (or none)."
     τ_pot = zeros(Int, size(Ys,2))
     ts_pot = Array(1:size(Ys,2))
@@ -264,6 +268,11 @@ This is one single rollout and backprop of the tree.
 * `Tw::Int = 1`: If `PRED = true`, this is the considered prediction horizon
 * `linear::Bool=false`: If `PRED = true`, this determines whether the prediction shall
   be made on the zeroth or a linear predictor.
+* `PRED_mean::Bool=false`: If `PRED = true`, this determines whether the prediction shall
+  be optimized on the mean MSE of all components or only on the 1st-component (Default)
+* `PRED_L::Bool=false`: If `PRED = true`, this determines whether the prediction shall
+  be optimized on possible delay values gained from the continuity statistic or on
+  delays = 0:25 (Default)
 * `threshold::Real = 0`: The algorithm does not pick a peak from the continuity
   statistic, when its corresponding `ΔL`/FNN-value exceeds this threshold. Please
   provide a positive number for both, `L` and `FNN`-statistic option (since the
@@ -279,7 +288,8 @@ function expand!(n::Root, data::Dataset{D, T}, w::Int, choose_func,
             delays::AbstractRange{DT} = 0:100; max_depth::Int=20, KNN::Int=3,
             verbose=false, FNN::Bool = false, PRED::Bool = false, Tw::Int = 1,
             tws::AbstractRange{DT} = 2:delays[end], threshold::Real = 0,
-            choose_mode::Int=0, linear::Bool = false) where {D, DT, T<:Real}
+            choose_mode::Int=0, linear::Bool = false, PRED_mean::Bool=false,
+            PRED_L::Bool=false) where {D, DT, T<:Real}
 
     @assert (FNN || PRED) || (~FNN && ~PRED) "Select either FNN or PRED keyword (or none)."
     @assert threshold ≥ 0
@@ -295,7 +305,8 @@ function expand!(n::Root, data::Dataset{D, T}, w::Int, choose_func,
             τs, ts, Ls, converged = next_embedding(current_node, data, w, delays;
                                                 KNN = KNN, FNN = FNN, PRED = PRED,
                                                 Tw = Tw, tws = tws, threshold = threshold,
-                                                linear = linear)
+                                                linear = linear, PRED_mean = PRED_mean,
+                                                PRED_L = PRED_L)
             if converged
                 break
             else
@@ -356,7 +367,8 @@ Do the monte carlo run with `N` trials, returns the tree.
 function mc_delay(data, w::Int, choose_func, delays::AbstractRange{D}, N::Int=40;
             max_depth::Int=20, KNN::Int = 3, FNN::Bool = false, PRED::Bool=false,
             Tw::Int = 1, verbose::Bool=false, tws::AbstractRange{D} = 2:delays[end],
-            threshold::Real = 0, linear::Bool = false) where {D}
+            threshold::Real = 0, linear::Bool = false, PRED_mean::Bool=false,
+            PRED_L::Bool=false) where {D}
 
     # initialize tree
     tree = Root()
@@ -365,7 +377,8 @@ function mc_delay(data, w::Int, choose_func, delays::AbstractRange{D}, N::Int=40
 
         expand!(tree, data, w, choose_func, delays; KNN = KNN, FNN = FNN,
                     PRED = PRED, Tw = Tw, max_depth = max_depth, tws = tws,
-                    linear = linear, threshold = threshold, choose_mode=i<(N/2) ? 0 : 1)
+                    linear = linear, PRED_mean = PRED_mean, PRED_L = PRED_L,
+                    threshold = threshold, choose_mode=i<(N/2) ? 0 : 1)
 
         if verbose
             if (i%1)==0

@@ -10,7 +10,9 @@ using PyPlot
 pygui(true)
 
 
-# load data
+# load data (Reconstructions)
+# The reconstructions have been computed in the script `comm_Lorenz63_reconstructions.jl`
+# and in the scripts stored in the folder `/Cluster scripts`.
 begin
     x1 = vec(readdlm("./application/artificial data/Lorenz Prediction/Results 3/x1.csv"))
     x2 = vec(readdlm("./application/artificial data/Lorenz Prediction/Results 3/x2.csv"))
@@ -113,32 +115,9 @@ lyap_time = 110
 T_steps = 1700
 
 ## make predictions
-
-# params = 1
-# # Choose right Neighbourhoodsize
-# K_cao = Int(ceil(factorial(params+size(Y_cao,2))/(factorial(params)+factorial(size(Y_cao,2)))))
-# K_cao_n = Int(ceil(factorial(params+size(Y_cao_n,2))/(factorial(params)+factorial(size(Y_cao_n,2)))))
-# K_kennel = Int(ceil(factorial(params+size(Y_kennel,2))/(factorial(params)+factorial(size(Y_kennel,2)))))
-# K_kennel_n = Int(ceil(factorial(params+size(Y_kennel_n,2))/(factorial(params)+factorial(size(Y_kennel_n,2)))))
-# K_hegger = Int(ceil(factorial(params+size(Y_hegger,2))/(factorial(params)+factorial(size(Y_hegger,2)))))
-# K_hegger_n = Int(ceil(factorial(params+size(Y_hegger_n,2))/(factorial(params)+factorial(size(Y_hegger_n,2)))))
-# K_pec = Int(ceil(factorial(params+size(Y_pec,2))/(factorial(params)+factorial(size(Y_pec,2)))))
-# K_pec2 = Int(ceil(factorial(params+size(Y_pec2,2))/(factorial(params)+factorial(size(Y_pec2,2)))))
-# K_pec_n = Int(ceil(factorial(params+size(Y_pec_n,2))/(factorial(params)+factorial(size(Y_pec_n,2)))))
-# K_pec2_n = Int(ceil(factorial(params+size(Y_pec2_n,2))/(factorial(params)+factorial(size(Y_pec2_n,2)))))
-# K_mcdts = Int(ceil(factorial(params+size(Y_mcdts,2))/(factorial(params)+factorial(size(Y_mcdts,2)))))
-# K_mcdts2 = Int(ceil(factorial(params+size(Y_mcdts2,2))/(factorial(params)+factorial(size(Y_mcdts2,2)))))
-# K_mcdts_n = Int(ceil(factorial(params+size(Y_mcdts_n,2))/(factorial(params)+factorial(size(Y_mcdts_n,2)))))
-# K_mcdts2_n = Int(ceil(factorial(params+size(Y_mcdts2_n,2))/(factorial(params)+factorial(size(Y_mcdts2_n,2)))))
-# K_mcdts_fnn = Int(ceil(factorial(params+size(Y_mcdts_fnn,2))/(factorial(params)+factorial(size(Y_mcdts_fnn,2)))))
-# K_mcdts_fnn2 = Int(ceil(factorial(params+size(Y_mcdts_fnn2,2))/(factorial(params)+factorial(size(Y_mcdts_fnn2,2)))))
-# K_mcdts_fnn_n = Int(ceil(factorial(params+size(Y_mcdts_fnn_n,2))/(factorial(params)+factorial(size(Y_mcdts_fnn_n,2)))))
-# K_mcdts_fnn2_n = Int(ceil(factorial(params+size(Y_mcdts_fnn2_n,2))/(factorial(params)+factorial(size(Y_mcdts_fnn2_n,2)))))
-
-
-#T_steps = 100 # prediction horizon
-
-# factor = 6 # factor for the neúmber of nearest neighbours, to get a better statistic
+# Different computations for different number of considered nearest neighbours
+# the prediction (KK). Results for KK=1 look the best for all reconstruction
+# methods.
 
 # Results 3: zeroth and linear T_steps = 900, KK = 1
 # Results 4: zeroth T_steps = 1700, KK = 1
@@ -152,51 +131,51 @@ begin
     # println("Cao:")
     # println("*****")
     # Cao_zeroth = MCDTS.iterated_local_zeroth_prediction(Y_cao, KK, T_steps; theiler = w1, verbose=true)
-    # writedlm("./application/artificial data/Lorenz Prediction/Results 6/Cao_zeroth.csv",Cao_zeroth)
+    # writedlm("./application/artificial data/Lorenz Prediction/Results 4/Cao_zeroth.csv",Cao_zeroth)
     # Cao_zeroth_n = MCDTS.iterated_local_zeroth_prediction(Y_cao_n, KK, T_steps; theiler = w1_n, verbose=true)
-    # writedlm("./application/artificial data/Lorenz Prediction/Results 6/Cao_zeroth_n.csv",Cao_zeroth_n)
+    # writedlm("./application/artificial data/Lorenz Prediction/Results 4/Cao_zeroth_n.csv",Cao_zeroth_n)
     # println("Kennel")
     # println("*****")
     # Kennel_zeroth = MCDTS.iterated_local_zeroth_prediction(Y_kennel, KK, T_steps; theiler = w1, verbose=true)
-    # writedlm("./application/artificial data/Lorenz Prediction/Results 6/Kennel_zeroth.csv",Kennel_zeroth)
+    # writedlm("./application/artificial data/Lorenz Prediction/Results 4/Kennel_zeroth.csv",Kennel_zeroth)
     # Kennel_zeroth_n = MCDTS.iterated_local_zeroth_prediction(Y_kennel_n, KK, T_steps; theiler = w1_n, verbose=true)
-    # writedlm("./application/artificial data/Lorenz Prediction/Results 6/Kennel_zeroth_n.csv",Kennel_zeroth_n)
+    # writedlm("./application/artificial data/Lorenz Prediction/Results 4/Kennel_zeroth_n.csv",Kennel_zeroth_n)
     # println("Hegger")
     # println("*****")
     # Hegger_zeroth = MCDTS.iterated_local_zeroth_prediction(Y_hegger, KK, T_steps; theiler = w1, verbose=true)
-    # writedlm("./application/artificial data/Lorenz Prediction/Results 6/Hegger_zeroth.csv",Hegger_zeroth)
+    # writedlm("./application/artificial data/Lorenz Prediction/Results 4/Hegger_zeroth.csv",Hegger_zeroth)
     # Hegger_zeroth_n = MCDTS.iterated_local_zeroth_prediction(Y_hegger_n, KK, T_steps; theiler = w1_n, verbose=true)
-    # writedlm("./application/artificial data/Lorenz Prediction/Results 6/Hegger_zeroth_n.csv",Hegger_zeroth_n)
+    # writedlm("./application/artificial data/Lorenz Prediction/Results 4/Hegger_zeroth_n.csv",Hegger_zeroth_n)
     # println("Pec")
     # println("*****")
     # Pec_zeroth = MCDTS.iterated_local_zeroth_prediction(Y_pec, KK, T_steps; theiler = w1, verbose=true)
-    # writedlm("./application/artificial data/Lorenz Prediction/Results 6/Pec_zeroth.csv",Pec_zeroth)
+    # writedlm("./application/artificial data/Lorenz Prediction/Results 4/Pec_zeroth.csv",Pec_zeroth)
     # Pec_zeroth2 = MCDTS.iterated_local_zeroth_prediction(Y_pec2, KK, T_steps; theiler = w1, verbose=true)
-    # writedlm("./application/artificial data/Lorenz Prediction/Results 6/Pec_zeroth2.csv",Pec_zeroth2)
+    # writedlm("./application/artificial data/Lorenz Prediction/Results 4/Pec_zeroth2.csv",Pec_zeroth2)
     # Pec_zeroth_n = MCDTS.iterated_local_zeroth_prediction(Y_pec_n, KK, T_steps; theiler = w1_n, verbose=true)
-    # writedlm("./application/artificial data/Lorenz Prediction/Results 6/Pec_zeroth_n.csv",Pec_zeroth_n)
+    # writedlm("./application/artificial data/Lorenz Prediction/Results 4/Pec_zeroth_n.csv",Pec_zeroth_n)
     # Pec_zeroth2_n = MCDTS.iterated_local_zeroth_prediction(Y_pec2_n, KK, T_steps; theiler = w1_n, verbose=true)
-    # writedlm("./application/artificial data/Lorenz Prediction/Results 6/Pec_zeroth2_n.csv", Pec_zeroth2_n)
+    # writedlm("./application/artificial data/Lorenz Prediction/Results 4/Pec_zeroth2_n.csv", Pec_zeroth2_n)
     # println("mcdts:")
     # println("*****")
     # mcdts_zeroth = MCDTS.iterated_local_zeroth_prediction(Y_mcdts, KK, T_steps; theiler = w1, verbose=true)
     # writedlm("./application/artificial data/Lorenz Prediction/Results 4/mcdts_zeroth.csv",mcdts_zeroth)
     # mcdts_zeroth2 = MCDTS.iterated_local_zeroth_prediction(Y_mcdts2, KK, T_steps; theiler = w1, verbose=true)
-    # writedlm("./application/artificial data/Lorenz Prediction/Results 6/mcdts_zeroth2.csv",mcdts_zeroth2)
+    # writedlm("./application/artificial data/Lorenz Prediction/Results 4/mcdts_zeroth2.csv",mcdts_zeroth2)
     # mcdts_zeroth_n = MCDTS.iterated_local_zeroth_prediction(Y_mcdts_n, KK, T_steps; theiler = w1_n, verbose=true)
     # writedlm("./application/artificial data/Lorenz Prediction/Results 4/mcdts_zeroth_n.csv",mcdts_zeroth_n)
-    mcdts_zeroth2_n = MCDTS.iterated_local_zeroth_prediction(Y_mcdts2_n, KK, T_steps; theiler = w1_n, verbose=true)
-    writedlm("./application/artificial data/Lorenz Prediction/Results 4/mcdts_zeroth2_n.csv",mcdts_zeroth2_n)
+    # mcdts_zeroth2_n = MCDTS.iterated_local_zeroth_prediction(Y_mcdts2_n, KK, T_steps; theiler = w1_n, verbose=true)
+    # writedlm("./application/artificial data/Lorenz Prediction/Results 4/mcdts_zeroth2_n.csv",mcdts_zeroth2_n)
     # println("mcdts FNN:")
     # println("*****")
     # mcdts_fnn_zeroth = MCDTS.iterated_local_zeroth_prediction(Y_mcdts_fnn, KK, T_steps; theiler = w1, verbose=true)
-    # writedlm("./application/artificial data/Lorenz Prediction/Results 6/mcdts_fnn_zeroth.csv",mcdts_fnn_zeroth)
+    # writedlm("./application/artificial data/Lorenz Prediction/Results 4/mcdts_fnn_zeroth.csv",mcdts_fnn_zeroth)
     # mcdts_fnn_zeroth2 = MCDTS.iterated_local_zeroth_prediction(Y_mcdts_fnn2, KK, T_steps; theiler = w1, verbose=true)
-    # writedlm("./application/artificial data/Lorenz Prediction/Results 6/mcdts_fnn_zeroth2.csv",mcdts_fnn_zeroth2)
+    # writedlm("./application/artificial data/Lorenz Prediction/Results 4/mcdts_fnn_zeroth2.csv",mcdts_fnn_zeroth2)
     # mcdts_fnn_zeroth_n = MCDTS.iterated_local_zeroth_prediction(Y_mcdts_fnn_n,  KK, T_steps; theiler = w1_n, verbose=true)
-    # writedlm("./application/artificial data/Lorenz Prediction/Results 6/mcdts_fnn_zeroth_n.csv",mcdts_fnn_zeroth_n)
+    # writedlm("./application/artificial data/Lorenz Prediction/Results 4/mcdts_fnn_zeroth_n.csv",mcdts_fnn_zeroth_n)
     # mcdts_fnn_zeroth2_n = MCDTS.iterated_local_zeroth_prediction(Y_mcdts_fnn2_n, KK, T_steps; theiler = w1_n, verbose=true)
-    # writedlm("./application/artificial data/Lorenz Prediction/Results 6/mcdts_fnn_zeroth.csv",mcdts_fnn_zeroth2_n)
+    # writedlm("./application/artificial data/Lorenz Prediction/Results 4/mcdts_fnn_zeroth.csv",mcdts_fnn_zeroth2_n)
     # println("mcdts PRED:")
     # println("*****")
     # mcdts_PRED_zeroth = MCDTS.iterated_local_zeroth_prediction(Y_mcdts_PRED, KK, T_steps; theiler = w1, verbose=true)
@@ -206,7 +185,7 @@ begin
     # mcdts_PRED_zeroth_n = MCDTS.iterated_local_zeroth_prediction(Y_mcdts_PRED_n,  KK, T_steps; theiler = w1_n, verbose=true)
     # writedlm("./application/artificial data/Lorenz Prediction/Results 4/mcdts_PRED_zeroth_n.csv",mcdts_PRED_zeroth_n)
     # mcdts_PRED_zeroth2_n = MCDTS.iterated_local_zeroth_prediction(Y_mcdts_PRED2_n, KK, T_steps; theiler = w1_n, verbose=true)
-    # writedlm("./application/artificial data/Lorenz Prediction/Results 4/mcdts_PRED_zeroth.csv",mcdts_PRED_zeroth2_n)
+    # writedlm("./application/artificial data/Lorenz Prediction/Results 4/mcdts_PRED_zeroth2_n.csv",mcdts_PRED_zeroth2_n)
     # println("mcdts PRED 5:")
     # println("*****")
     # mcdts_PRED_5_zeroth = MCDTS.iterated_local_zeroth_prediction(Y_mcdts_PRED_5, KK, T_steps; theiler = w1, verbose=true)
@@ -214,79 +193,23 @@ begin
     # mcdts_PRED_5_zeroth2 = MCDTS.iterated_local_zeroth_prediction(Y_mcdts_PRED2_5, KK, T_steps; theiler = w1, verbose=true)
     # writedlm("./application/artificial data/Lorenz Prediction/Results 4/mcdts_PRED_5_zeroth2.csv",mcdts_PRED_5_zeroth2)
     # mcdts_PRED_5_zeroth_n = MCDTS.iterated_local_zeroth_prediction(Y_mcdts_PRED_5_n,  KK, T_steps; theiler = w1_n, verbose=true)
-    # writedlm("./application/artificial data/Lorenz Prediction/Results 6/mcdts_PRED_5_zeroth_n.csv",mcdts_PRED_5_zeroth_n)
+    # writedlm("./application/artificial data/Lorenz Prediction/Results 4/mcdts_PRED_5_zeroth_n.csv",mcdts_PRED_5_zeroth_n)
     # mcdts_PRED_5_zeroth2_n = MCDTS.iterated_local_zeroth_prediction(Y_mcdts_PRED2_5_n, KK, T_steps; theiler = w1_n, verbose=true)
-    # writedlm("./application/artificial data/Lorenz Prediction/Results 4/mcdts_PRED_5_zeroth.csv",mcdts_PRED_5_zeroth2_n)
+    # writedlm("./application/artificial data/Lorenz Prediction/Results 4/mcdts_PRED_5_zeroth2_n.csv",mcdts_PRED_5_zeroth2_n)
 
-
-
-    # println("*****")
-    # println("LOCAL LINEAR")
-    # println("*****")
-    #
-    # # Local linear
-    # println("Cao:")
-    # println("*****")
-    # Cao_linear = MCDTS.iterated_local_linear_prediction(Y_cao, factor*K_cao, T_steps; theiler = w1, verbose=true)
-    # writedlm("./application/artificial data/Lorenz Prediction/Results 3/Cao_linear.csv",Cao_linear)
-    # Cao_linear_n = MCDTS.iterated_local_linear_prediction(Y_cao_n, factor*K_cao_n, T_steps; theiler = w1_n, verbose=true)
-    # writedlm("./application/artificial data/Lorenz Prediction/Results 3/Cao_linear_n.csv",Cao_linear_n)
-    # println("Kennel")
-    # println("*****")
-    # Kennel_linear = MCDTS.iterated_local_linear_prediction(Y_kennel, factor*K_kennel, T_steps; theiler = w1, verbose=true)
-    # writedlm("./application/artificial data/Lorenz Prediction/Results 3/Kennel_linear.csv",Kennel_linear)
-    # Kennel_linear_n = MCDTS.iterated_local_linear_prediction(Y_kennel_n, factor*K_kennel_n, T_steps; theiler = w1_n, verbose=true)
-    # writedlm("./application/artificial data/Lorenz Prediction/Results 3/Kennel_linear_n.csv",Kennel_linear_n)
-    # println("Hegger")
-    # println("*****")
-    # # Hegger_linear = MCDTS.iterated_local_linear_prediction(Y_hegger, factor*K_hegger, T_steps; theiler = w1, verbose=true)
-    # Hegger_linear = MCDTS.iterated_local_linear_prediction(Y_hegger, 75, T_steps; theiler = w1, verbose=true)
-    # writedlm("./application/artificial data/Lorenz Prediction/Results 3/Hegger_linear.csv",Hegger_linear)
-    # # Hegger_linear_n = MCDTS.iterated_local_linear_prediction(Y_hegger_n, factor*K_hegger_n, T_steps; theiler = w1_n, verbose=true)
-    # Hegger_linear_n = MCDTS.iterated_local_linear_prediction(Y_hegger_n, 75, T_steps; theiler = w1_n, verbose=true)
-    # writedlm("./application/artificial data/Lorenz Prediction/Results 3/Hegger_linear_n.csv",Hegger_linear_n)
-    # println("Pec")
-    # println("*****")
-    # Pec_linear = MCDTS.iterated_local_linear_prediction(Y_pec, factor*K_pec, T_steps; theiler = w1, verbose=true)
-    # writedlm("./application/artificial data/Lorenz Prediction/Results 3/Pec_linear.csv",Pec_linear)
-    # Pec_linear2 = MCDTS.iterated_local_linear_prediction(Y_pec2, factor*K_pec2, T_steps; theiler = w1, verbose=true)
-    # writedlm("./application/artificial data/Lorenz Prediction/Results 3/Pec_linear2.csv",Pec_linear2)
-    # Pec_linear_n = MCDTS.iterated_local_linear_prediction(Y_pec_n, factor*K_pec_n, T_steps; theiler = w1_n, verbose=true)
-    # writedlm("./application/artificial data/Lorenz Prediction/Results 3/Pec_linear_n.csv",Pec_linear_n)
-    # Pec_linear2_n = MCDTS.iterated_local_linear_prediction(Y_pec2_n, factor*K_pec2_n, T_steps; theiler = w1_n, verbose=true)
-    # writedlm("./application/artificial data/Lorenz Prediction/Results 3/Pec_linear2_n.csv",Pec_linear2_n)
-    # println("mcdts:")
-    # println("*****")
-    # mcdts_linear = MCDTS.iterated_local_linear_prediction(Y_mcdts, factor*K_mcdts, T_steps; theiler = w1, verbose=true)
-    # writedlm("./application/artificial data/Lorenz Prediction/Results 3/mcdts_linear.csv",mcdts_linear)
-    # mcdts_linear2 = MCDTS.iterated_local_linear_prediction(Y_mcdts2, factor*K_mcdts2, 2; theiler = w1, verbose=true)
-    # writedlm("./application/artificial data/Lorenz Prediction/Results 3/mcdts_linear2.csv",mcdts_linear2)
-    # mcdts_linear2 = mcdts_linear
-    # mcdts_linear_n = MCDTS.iterated_local_linear_prediction(Y_mcdts_n, factor*K_mcdts_n, T_steps; theiler = w1_n, verbose=true)
-    # writedlm("./application/artificial data/Lorenz Prediction/Results 3/mcdts_linear_n.csv",mcdts_linear_n)
-    # mcdts_linear2_n = MCDTS.iterated_local_linear_prediction(Y_mcdts2_n, factor*K_mcdts2_n, T_steps; theiler = w1_n, verbose=true)
-    # writedlm("./application/artificial data/Lorenz Prediction/Results 3/mcdts_linear2_n.csv",mcdts_linear2_n)
-    # println("mcdts FNN:")
-    # println("*****")
-    # mcdts_fnn_linear = MCDTS.iterated_local_linear_prediction(Y_mcdts_fnn, factor*K_mcdts_fnn, T_steps; theiler = w1, verbose=true)
-    # #mcdts_fnn_linear = MCDTS.iterated_local_linear_prediction_embed(Y_mcdts_fnn, τ_mcdts_fnn, 50, T_steps; theiler = w1, verbose=true)
-    # writedlm("./application/artificial data/Lorenz Prediction/Results 3/mcdts_fnn_linear.csv",mcdts_fnn_linear)
-    # mcdts_fnn_linear2 = MCDTS.iterated_local_linear_prediction(Y_mcdts_fnn2, factor*K_mcdts_fnn2, T_steps; theiler = w1, verbose=true)
-    # writedlm("./application/artificial data/Lorenz Prediction/Results 3/mcdts_fnn_linear2.csv",mcdts_fnn_linear2)
-    # mcdts_fnn_linear_n = MCDTS.iterated_local_linear_prediction(Y_mcdts_fnn_n, factor*K_mcdts_fnn_n, T_steps; theiler = w1_n, verbose=true)
-    # writedlm("./application/artificial data/Lorenz Prediction/Results 3/mcdts_fnn_linear_n.csv",mcdts_fnn_linear_n)
-    # mcdts_fnn_linear2_n = MCDTS.iterated_local_linear_prediction(Y_mcdts_fnn2_n, factor*K_mcdts_fnn2_n, T_steps; theiler = w1_n, verbose=true)
-    # writedlm("./application/artificial data/Lorenz Prediction/Results 3/mcdts_fnn_linear2_n.csv",mcdts_fnn_linear2_n)
 end
 
+# Different computations for different number of considered nearest neighbours
+# the prediction (KK). Results for KK=1 look the best for all reconstruction
+# methods.
 
-# Results 3: zeroth and linear T_steps = 900, KK = 1
+# Results 3: zeroth and linear T_steps = 900, KK = 1    (all reconstructions are stored here)
 # Results 4: zeroth T_steps = 1700, KK = 1
 # Results 5: zeroth T_steps = 1700, KK = 10
 # Results 6: zeroth T_steps = 1700, KK = 5
 
 # load data
-Numbers = 4
+Numbers = 4     # We only consider the case KK=1
 load = begin
     Cao_zeroth = Dataset(readdlm("./application/artificial data/Lorenz Prediction/Results $Numbers/Cao_zeroth.csv"))
     Cao_zeroth_n = Dataset(readdlm("./application/artificial data/Lorenz Prediction/Results $Numbers/Cao_zeroth_n.csv"))
@@ -309,13 +232,12 @@ load = begin
     mcdts_PRED_zeroth = Dataset(readdlm("./application/artificial data/Lorenz Prediction/Results $Numbers/mcdts_PRED_zeroth.csv"))
     mcdts_PRED_zeroth2 = Dataset(readdlm("./application/artificial data/Lorenz Prediction/Results $Numbers/mcdts_PRED_zeroth2.csv"))
     mcdts_PRED_zeroth_n = Dataset(readdlm("./application/artificial data/Lorenz Prediction/Results $Numbers/mcdts_PRED_zeroth_n.csv"))
-    mcdts_PRED_zeroth2_n = Dataset(readdlm("./application/artificial data/Lorenz Prediction/Results $Numbers/mcdts_PRED_zeroth.csv"))
+    mcdts_PRED_zeroth2_n = Dataset(readdlm("./application/artificial data/Lorenz Prediction/Results $Numbers/mcdts_PRED_zeroth2_n.csv"))
     mcdts_PRED_5_zeroth = Dataset(readdlm("./application/artificial data/Lorenz Prediction/Results $Numbers/mcdts_PRED_5_zeroth.csv"))
     mcdts_PRED_5_zeroth2 = Dataset(readdlm("./application/artificial data/Lorenz Prediction/Results $Numbers/mcdts_PRED_5_zeroth2.csv"))
     mcdts_PRED_5_zeroth_n = Dataset(readdlm("./application/artificial data/Lorenz Prediction/Results $Numbers/mcdts_PRED_5_zeroth_n.csv"))
-    mcdts_PRED_5_zeroth2_n = Dataset(readdlm("./application/artificial data/Lorenz Prediction/Results $Numbers/mcdts_PRED_5_zeroth.csv"))
+    mcdts_PRED_5_zeroth2_n = Dataset(readdlm("./application/artificial data/Lorenz Prediction/Results $Numbers/mcdts_PRED_5_zeroth2_n.csv"))
 end
-
 
 
 # time axis
@@ -324,8 +246,6 @@ t1 = (-length(x1):-1) ./lyap_time
 NN = 1000
 tt = vcat(t1[end-NN:end], t2)
 M = length(tt)
-#true_data = vcat(x1[end-NN:end], x2)
-#true_data_n = vcat(x1_n[end-NN:end], x2_n)
 true_data = vcat(x1_[end-NN:end], x2_)
 true_data_n = vcat(x1_n_[end-NN:end], x2_n_)
 
@@ -361,28 +281,9 @@ begin
     MSE_zeroth_mcdts_PRED2_5 = zeros(T_steps)
     MSE_zeroth_mcdts_PRED2_5_n = zeros(T_steps)
 
-    # MSE_linear_cao = zeros(T_steps)
-    # MSE_linear_cao_n = zeros(T_steps)
-    # MSE_linear_kennel = zeros(T_steps)
-    # MSE_linear_kennel_n = zeros(T_steps)
-    # MSE_linear_hegger = zeros(T_steps)
-    # MSE_linear_hegger_n = zeros(T_steps)
-    # MSE_linear_pec = zeros(T_steps)
-    # MSE_linear_pec_n = zeros(T_steps)
-    # MSE_linear_pec2 = zeros(T_steps)
-    # MSE_linear_pec2_n = zeros(T_steps)
-    # MSE_linear_mcdts = zeros(T_steps)
-    # MSE_linear_mcdts_n = zeros(T_steps)
-    # MSE_linear_mcdts2 = zeros(T_steps)
-    # MSE_linear_mcdts2_n = zeros(T_steps)
-    # MSE_linear_mcdts_fnn = zeros(T_steps)
-    # MSE_linear_mcdts_fnn_n = zeros(T_steps)
-    # MSE_linear_mcdts_fnn2 = zeros(T_steps)
-    # MSE_linear_mcdts_fnn2_n = zeros(T_steps)
-
     σ₂ = sqrt(var(x2_[1:T_steps]))   # rms deviation for normalization
-    MASE_norm = MCDTS.rw_norm(x1_, T_steps)
-    MASE_norm_n = MCDTS.rw_norm(x1_n_, T_steps)
+    # MASE_norm = MCDTS.rw_norm(x1_, T_steps)
+    # MASE_norm_n = MCDTS.rw_norm(x1_n_, T_steps)
     for i = 1:T_steps
         # normalized MSE error
         MSE_zeroth_cao[i] = MCDTS.compute_mse(Cao_zeroth[1:i,1], x2_[1:i]) / σ₂
@@ -414,115 +315,7 @@ begin
         MSE_zeroth_mcdts_PRED_5_n[i] = MCDTS.compute_mse(mcdts_PRED_5_zeroth_n[1:i,1], x2_n_[1:i]) / σ₂
         MSE_zeroth_mcdts_PRED2_5_n[i] = MCDTS.compute_mse(mcdts_PRED_5_zeroth2_n[1:i,1], x2_n_[1:i]) / σ₂
 
-
-        #
-        # MSE_linear_cao[i] = MCDTS.compute_mse(Cao_linear[1:i,1], x2_[1:i]) / σ₂
-        # MSE_linear_kennel[i] = MCDTS.compute_mse(Kennel_linear[1:i,1], x2_[1:i]) / σ₂
-        # MSE_linear_hegger[i] = MCDTS.compute_mse(Hegger_linear[1:i,1], x2_[1:i]) / σ₂
-        # MSE_linear_pec[i] = MCDTS.compute_mse(Pec_linear[1:i,1], x2_[1:i]) / σ₂
-        # MSE_linear_pec2[i] = MCDTS.compute_mse(Pec_linear2[1:i,2], x2_[1:i]) / σ₂
-        # MSE_linear_mcdts[i] = MCDTS.compute_mse(mcdts_linear[1:i,1], x2_[1:i]) / σ₂
-        # MSE_linear_mcdts2[i] = MCDTS.compute_mse(mcdts_linear2[1:i,1], x2_[1:i]) / σ₂
-        # MSE_linear_mcdts_fnn[i] = MCDTS.compute_mse(mcdts_fnn_linear[1:i,1], x2_[1:i]) / σ₂
-        # MSE_linear_mcdts_fnn2[i] = MCDTS.compute_mse(mcdts_fnn_linear2[1:i,1], x2_[1:i]) / σ₂
-        # MSE_linear_cao_n[i] = MCDTS.compute_mse(Cao_linear[1:i,1], x2_n_[1:i]) / σ₂
-        # MSE_linear_kennel_n[i] = MCDTS.compute_mse(Kennel_linear_n[1:i,1], x2_n_[1:i]) / σ₂
-        # MSE_linear_hegger_n[i] = MCDTS.compute_mse(Hegger_linear_n[1:i,1], x2_n_[1:i]) / σ₂
-        # MSE_linear_pec_n[i] = MCDTS.compute_mse(Pec_linear_n[1:i,1], x2_n_[1:i]) / σ₂
-        # MSE_linear_pec2_n[i] = MCDTS.compute_mse(Pec_linear2_n[1:i,1], x2_n_[1:i]) / σ₂
-        # MSE_linear_mcdts_n[i] = MCDTS.compute_mse(mcdts_linear_n[1:i,1], x2_n_[1:i]) / σ₂
-        # MSE_linear_mcdts2_n[i] = MCDTS.compute_mse(mcdts_linear2_n[1:i,4], x2_n_[1:i]) / σ₂
-        # MSE_linear_mcdts_fnn_n[i] = MCDTS.compute_mse(mcdts_fnn_linear_n[1:i,1], x2_n_[1:i]) / σ₂
-        # MSE_linear_mcdts_fnn2_n[i] = MCDTS.compute_mse(mcdts_fnn_linear2_n[1:i,1], x2_n_[1:i]) / σ₂
-
-        # MASE error
-        # MSE_zeroth_cao[i] = MCDTS.compute_abs_err(Cao_zeroth[1:i,1], x2_[1:i]) / MASE_norm
-        # MSE_zeroth_kennel[i] = MCDTS.compute_abs_err(Kennel_zeroth[1:i,1], x2_[1:i]) / MASE_norm
-        # MSE_zeroth_hegger[i] = MCDTS.compute_abs_err(Hegger_zeroth[1:i,1], x2_[1:i]) / MASE_norm
-        # MSE_zeroth_pec[i] = MCDTS.compute_abs_err(Pec_zeroth[1:i,1], x2_[1:i]) / MASE_norm
-        # MSE_zeroth_pec2[i] = MCDTS.compute_abs_err(Pec_zeroth2[1:i,2], x2_[1:i]) / MASE_norm
-        # MSE_zeroth_mcdts[i] = MCDTS.compute_abs_err(mcdts_zeroth[1:i,1], x2_[1:i]) / MASE_norm
-        # MSE_zeroth_mcdts2[i] = MCDTS.compute_abs_err(mcdts_zeroth2[1:i,2], x2_[1:i]) / MASE_norm
-        # MSE_zeroth_mcdts_fnn[i] = MCDTS.compute_abs_err(mcdts_fnn_zeroth[1:i,1], x2_[1:i]) / MASE_norm
-        # MSE_zeroth_mcdts_fnn2[i] = MCDTS.compute_abs_err(mcdts_fnn_zeroth2[1:i,1], x2_[1:i]) / MASE_norm
-        # MSE_zeroth_cao_n[i] = MCDTS.compute_abs_err(Cao_zeroth[1:i,1], x2_n_[1:i]) / MASE_norm_n
-        # MSE_zeroth_kennel_n[i] = MCDTS.compute_abs_err(Kennel_zeroth_n[1:i,1], x2_n_[1:i]) / MASE_norm_n
-        # MSE_zeroth_hegger_n[i] = MCDTS.compute_abs_err(Hegger_zeroth_n[1:i,1], x2_n_[1:i]) / MASE_norm_n
-        # MSE_zeroth_pec_n[i] = MCDTS.compute_abs_err(Pec_zeroth_n[1:i,1], x2_n_[1:i]) / MASE_norm_n
-        # MSE_zeroth_pec2_n[i] = MCDTS.compute_abs_err(Pec_zeroth2_n[1:i,1], x2_n_[1:i]) / MASE_norm_n
-        # MSE_zeroth_mcdts_n[i] = MCDTS.compute_abs_err(mcdts_zeroth_n[1:i,2], x2_n_[1:i]) / MASE_norm_n
-        # MSE_zeroth_mcdts2_n[i] = MCDTS.compute_abs_err(mcdts_zeroth2_n[1:i,2], x2_n_[1:i]) / MASE_norm_n
-        # MSE_zeroth_mcdts_fnn_n[i] = MCDTS.compute_abs_err(mcdts_fnn_zeroth_n[1:i,1], x2_n_[1:i]) / MASE_norm_n
-        # MSE_zeroth_mcdts_fnn2_n[i] = MCDTS.compute_abs_err(mcdts_fnn_zeroth2_n[1:i,1], x2_n_[1:i]) / MASE_norm_n
-
-        # MSE_linear_cao[i] = MCDTS.compute_abs_err(Cao_linear[1:i,1], x2_[1:i]) / MASE_norm
-        # MSE_linear_kennel[i] = MCDTS.compute_abs_err(Kennel_linear[1:i,1], x2_[1:i]) / MASE_norm
-        # MSE_linear_hegger[i] = MCDTS.compute_abs_err(Hegger_linear[1:i,1], x2_[1:i]) / MASE_norm
-        # MSE_linear_pec[i] = MCDTS.compute_abs_err(Pec_linear[1:i,1], x2_[1:i]) / MASE_norm
-        # MSE_linear_pec2[i] = MCDTS.compute_abs_err(Pec_linear2[1:i,2], x2_[1:i]) / MASE_norm
-        # MSE_linear_mcdts[i] = MCDTS.compute_abs_err(mcdts_linear[1:i,1], x2_[1:i]) / MASE_norm
-        # MSE_linear_mcdts2[i] = MCDTS.compute_abs_err(mcdts_linear2[1:i,1], x2_[1:i]) / MASE_norm
-        # MSE_linear_mcdts_fnn[i] = MCDTS.compute_abs_err(mcdts_fnn_linear[1:i,1], x2_[1:i]) / MASE_norm
-        # MSE_linear_mcdts_fnn2[i] = MCDTS.compute_abs_err(mcdts_fnn_linear2[1:i,1], x2_[1:i]) / MASE_norm
-        # MSE_linear_cao_n[i] = MCDTS.compute_abs_err(Cao_linear[1:i,1], x2_n_[1:i]) / MASE_norm_n
-        # MSE_linear_kennel_n[i] = MCDTS.compute_abs_err(Kennel_linear_n[1:i,1], x2_n_[1:i]) / MASE_norm_n
-        # MSE_linear_hegger_n[i] = MCDTS.compute_abs_err(Hegger_linear_n[1:i,1], x2_n_[1:i]) / MASE_norm_n
-        # MSE_linear_pec_n[i] = MCDTS.compute_abs_err(Pec_linear_n[1:i,1], x2_n_[1:i]) / MASE_norm_n
-        # MSE_linear_pec2_n[i] = MCDTS.compute_abs_err(Pec_linear2_n[1:i,1], x2_n_[1:i]) / MASE_norm_n
-        # MSE_linear_mcdts_n[i] = MCDTS.compute_abs_err(mcdts_linear_n[1:i,1], x2_n_[1:i]) / MASE_norm_n
-        # MSE_linear_mcdts2_n[i] = MCDTS.compute_abs_err(mcdts_linear2_n[1:i,4], x2_n_[1:i]) / MASE_norm_n
-        # MSE_linear_mcdts_fnn_n[i] = MCDTS.compute_abs_err(mcdts_fnn_linear_n[1:i,1], x2_n_[1:i]) / MASE_norm_n
-        # MSE_linear_mcdts_fnn2_n[i] = MCDTS.compute_abs_err(mcdts_fnn_linear2_n[1:i,1], x2_n_[1:i]) / MASE_norm_n
     end
-
-    # Plot MSEs
-    figure(figsize=(20,10))
-    subplot(121)
-    plot(t2[1:T_steps], MSE_zeroth_mcdts2, "r.-", label="MCDTS L 2")
-    plot(t2[1:T_steps], MSE_zeroth_mcdts, "ro--", label="MCDTS L")
-    plot(t2[1:T_steps], MSE_zeroth_mcdts_fnn2, "mv-", label="MCDTS FNN 2")
-    plot(t2[1:T_steps], MSE_zeroth_mcdts_fnn, "m<-", label="MCDTS FNN")
-    plot(t2[1:T_steps], MSE_zeroth_pec2, "yo-", label="PECUZAL 2")
-    plot(t2[1:T_steps], MSE_zeroth_pec, "y.-.", label="PECUZAL")
-    plot(t2[1:T_steps], MSE_zeroth_cao, "b<--", label="CAO")
-    plot(t2[1:T_steps], MSE_zeroth_kennel, "bv-", label="Kennel")
-    plot(t2[1:T_steps], MSE_zeroth_hegger, "bo-.", label="Hegger")
-    plot(t2[1:T_steps], MSE_zeroth_mcdts_PRED2, "go-", label="MCDTS PRED 2")
-    plot(t2[1:T_steps], MSE_zeroth_mcdts_PRED, "gv-", label="MCDTS PRED")
-    plot(t2[1:T_steps], MSE_zeroth_mcdts_PRED2_5, "g<--", label="MCDTS PRED 2 5 Tw")
-    plot(t2[1:T_steps], MSE_zeroth_mcdts_PRED_5, "g>-.", label="MCDTS PRED 5 Tw")
-    legend()
-    title("Forecast Error (ZEROTH predictor)")
-    yscale("log")
-    xlim(-0, T_steps/lyap_time)
-    ylim(0.001, 1.1)
-    ylabel("MSE")
-    xlabel("Lyapunov time units")
-    grid()
-
-    subplot(122)
-    plot(t2[1:T_steps], MSE_zeroth_mcdts2_n, "r.-", label="MCDTS L 2")
-    plot(t2[1:T_steps], MSE_zeroth_mcdts_n, "ro--", label="MCDTS L")
-    plot(t2[1:T_steps], MSE_zeroth_mcdts_fnn2_n, "mv-", label="MCDTS FNN 2")
-    plot(t2[1:T_steps], MSE_zeroth_mcdts_fnn_n, "m<-", label="MCDTS FNN")
-    plot(t2[1:T_steps], MSE_zeroth_pec2_n, "yo-", label="PECUZAL 2")
-    plot(t2[1:T_steps], MSE_zeroth_pec_n, "y.-.", label="PECUZAL")
-    plot(t2[1:T_steps], MSE_zeroth_cao_n, "b<--", label="CAO")
-    plot(t2[1:T_steps], MSE_zeroth_kennel_n, "bv-", label="Kennel")
-    plot(t2[1:T_steps], MSE_zeroth_hegger_n, "bo-.", label="Hegger")
-    plot(t2[1:T_steps], MSE_zeroth_mcdts_PRED2_n, "go-", label="MCDTS PRED 2")
-    plot(t2[1:T_steps], MSE_zeroth_mcdts_PRED_n, "gv-", label="MCDTS PRED")
-    plot(t2[1:T_steps], MSE_zeroth_mcdts_PRED2_5_n, "g<--", label="MCDTS PRED 2 5 Tw")
-    plot(t2[1:T_steps], MSE_zeroth_mcdts_PRED_5_n, "g>-.", label="MCDTS PRED 5 Tw")
-    legend()
-    title("Forecast Error of noisy time series (ZEROTH predictor)")
-    yscale("log")
-    xlim(-0, T_steps/lyap_time)
-    ylim(0.001, 1.1)
-    ylabel("MSE")
-    xlabel("Lyapunov time units")
-    grid()
-
 
     # Plot MSEs
     figure(figsize=(20,10))
@@ -598,122 +391,84 @@ begin
     xlabel("Lyapunov time units")
     grid()
 
-
-    # figure(figsize=(20,10))
-    # subplot(121)
-    # plot(t2[1:T_steps], MSE_linear_mcdts2, ".-", label="MCDTS L 2")
-    # plot(t2[1:T_steps], MSE_linear_mcdts, "--", label="MCDTS L")
-    # plot(t2[1:T_steps], MSE_linear_mcdts_fnn2, "-", label="MCDTS FNN 2")
-    # plot(t2[1:T_steps], MSE_linear_mcdts_fnn, "-.", label="MCDTS FNN")
-    # plot(t2[1:T_steps], MSE_linear_pec2, "r.-", label="PECUZAL 2")
-    # plot(t2[1:T_steps], MSE_linear_pec, "r.-.", label="PECUZAL")
-    # plot(t2[1:T_steps], MSE_linear_cao, "k--", label="CAO")
-    # plot(t2[1:T_steps], MSE_linear_kennel, "k-", label="Kennel")
-    # plot(t2[1:T_steps], MSE_linear_hegger, "k.-.", label="Hegger")
-    # legend()
-    # title("Forecast Error (LINEAR predictor)")
-    # yscale("log")
-    # xlim(-0, T_steps/lyap_time)
-    # ylabel("MSE")
-    # xlabel("Lyapunov time units")
-    # grid()
-    #
-    # subplot(122)
-    # plot(t2[1:T_steps], MSE_linear_mcdts2_n, ".-", label="MCDTS L 2")
-    # plot(t2[1:T_steps], MSE_linear_mcdts_n, "--", label="MCDTS L")
-    # plot(t2[1:T_steps], MSE_linear_mcdts_fnn2_n, "-", label="MCDTS FNN 2")
-    # plot(t2[1:T_steps], MSE_linear_mcdts_fnn_n, "-.", label="MCDTS FNN")
-    # plot(t2[1:T_steps], MSE_linear_pec2_n, "r.-", label="PECUZAL 2")
-    # plot(t2[1:T_steps], MSE_linear_pec_n, "r.-.", label="PECUZAL")
-    # plot(t2[1:T_steps], MSE_linear_cao_n, "k--", label="CAO")
-    # plot(t2[1:T_steps], MSE_linear_kennel_n, "k-", label="Kennel")
-    # plot(t2[1:T_steps], MSE_linear_hegger_n, "k.-.", label="Hegger")
-    # legend()
-    # title("Forecast Error of noisy time series (LINEAR predictor)")
-    # yscale("log")
-    # xlim(-0, T_steps/lyap_time)
-    # ylabel("MSE")
-    # xlabel("Lyapunov time units")
-    # grid()
 end
-
-
-figure(figsize=(20,10))
-subplot(121)
-plot(t2[1:T_steps], MSE_zeroth_mcdts2, "r")
-scatter(t2[1:T_steps], MSE_zeroth_mcdts2, color="r", marker = "o", label="MCDTS L 2")
-plot(t2[1:T_steps], MSE_zeroth_mcdts, "r")
-scatter(t2[1:T_steps], MSE_zeroth_mcdts, color="r", marker = "d", label="MCDTS L")
-# plot(t2[1:T_steps], MSE_zeroth_mcdts_fnn2, "m")
-# scatter(t2[1:T_steps], MSE_zeroth_mcdts_fnn2, color="m", marker = "*", label="MCDTS FNN 2")
-# plot(t2[1:T_steps], MSE_zeroth_mcdts_fnn, "m")
-# scatter(t2[1:T_steps], MSE_zeroth_mcdts_fnn, color="m", marker = "<", label="MCDTS FNN")
-plot(t2[1:T_steps], MSE_zeroth_pec2, "y")
-scatter(t2[1:T_steps], MSE_zeroth_pec2, color="y", marker = "v", label="PECUZAL 2")
-plot(t2[1:T_steps], MSE_zeroth_pec, "y")
-scatter(t2[1:T_steps], MSE_zeroth_pec, color="y", marker = "1", label="PECUZAL")
-# plot(t2[1:T_steps], MSE_zeroth_cao, "b")
-# scatter(t2[1:T_steps], MSE_zeroth_cao, color="b", marker = "3", label="CAO")
-# plot(t2[1:T_steps], MSE_zeroth_kennel, "b")
-# scatter(t2[1:T_steps], MSE_zeroth_kennel, color="b", marker = "s", label="Kennel")
-plot(t2[1:T_steps], MSE_zeroth_hegger, "b")
-scatter(t2[1:T_steps], MSE_zeroth_hegger, color="b", marker = "p", label="Hegger")
-# plot(t2[1:T_steps], MSE_zeroth_mcdts_PRED2, "g")
-# scatter(t2[1:T_steps], MSE_zeroth_mcdts_PRED2, color="g", marker = "+", label="MCDTS PRED 2")
-# plot(t2[1:T_steps], MSE_zeroth_mcdts_PRED, "g")
-# scatter(t2[1:T_steps], MSE_zeroth_mcdts_PRED, color="g", marker = "p", label="MCDTS PRED")
-# plot(t2[1:T_steps], MSE_zeroth_mcdts_PRED2_5, "g")
-# scatter(t2[1:T_steps], MSE_zeroth_mcdts_PRED2_5, color="g", marker = ".", label="MCDTS PRED 2 5 Tw")
-# plot(t2[1:T_steps], MSE_zeroth_mcdts_PRED_5, "g")
-# scatter(t2[1:T_steps], MSE_zeroth_mcdts_PRED_5, color="g", marker = "D", label="MCDTS PRED 5 Tw")
-legend()
-title("Forecast Error (ZEROTH predictor)")
-yscale("log")
-xlim(-0, T_steps/lyap_time)
-ylim(0.001, 1.1)
-ylabel("MSE")
-xlabel("Lyapunov time units")
-grid()
-
-subplot(122)
-plot(t2[1:T_steps], MSE_zeroth_mcdts2_n, "r")
-scatter(t2[1:T_steps], MSE_zeroth_mcdts2_n, color="r", marker = "o", label="MCDTS L 2")
-plot(t2[1:T_steps], MSE_zeroth_mcdts_n, "r")
-scatter(t2[1:T_steps], MSE_zeroth_mcdts_n, color="r", marker = "d", label="MCDTS L")
-# plot(t2[1:T_steps], MSE_zeroth_mcdts_fnn2_n, "m")
-# scatter(t2[1:T_steps], MSE_zeroth_mcdts_fnn2_n, color="m", marker = "*", label="MCDTS FNN 2")
-# plot(t2[1:T_steps], MSE_zeroth_mcdts_fnn_n, "m")
-# scatter(t2[1:T_steps], MSE_zeroth_mcdts_fnn_n, color="m", marker = "<", label="MCDTS FNN")
-plot(t2[1:T_steps], MSE_zeroth_pec2_n, "y")
-scatter(t2[1:T_steps], MSE_zeroth_pec2_n, color="y", marker = "v", label="PECUZAL 2")
-plot(t2[1:T_steps], MSE_zeroth_pec_n, "y")
-scatter(t2[1:T_steps], MSE_zeroth_pec_n, color="y", marker = "1", label="PECUZAL")
-# plot(t2[1:T_steps], MSE_zeroth_cao_n, "b")
-# scatter(t2[1:T_steps], MSE_zeroth_cao_n, color="b", marker = "3", label="CAO")
-# plot(t2[1:T_steps], MSE_zeroth_kennel_n, "b")
-# scatter(t2[1:T_steps], MSE_zeroth_kennel_n, color="b", marker = "s", label="Kennel")
-plot(t2[1:T_steps], MSE_zeroth_hegger_n, "b")
-scatter(t2[1:T_steps], MSE_zeroth_hegger_n, color="b", marker = "p", label="Hegger")
-# plot(t2[1:T_steps], MSE_zeroth_mcdts_PRED2_n, "g")
-# scatter(t2[1:T_steps], MSE_zeroth_mcdts_PRED2_n, color="g", marker = "+", label="MCDTS PRED 2")
-# plot(t2[1:T_steps], MSE_zeroth_mcdts_PRED_n, "g")
-# scatter(t2[1:T_steps], MSE_zeroth_mcdts_PRED_n, color="g", marker = "p", label="MCDTS PRED")
-# plot(t2[1:T_steps], MSE_zeroth_mcdts_PRED2_5_n, "g")
-# scatter(t2[1:T_steps], MSE_zeroth_mcdts_PRED2_5_n, color="g", marker = ".", label="MCDTS PRED 2 5 Tw")
-# plot(t2[1:T_steps], MSE_zeroth_mcdts_PRED_5_n, "g")
-# scatter(t2[1:T_steps], MSE_zeroth_mcdts_PRED_5_n, color="g", marker = "D", label="MCDTS PRED 5 Tw")
-legend()
-title("Forecast Error of noisy time series (ZEROTH predictor)")
-yscale("log")
-xlim(-0, T_steps/lyap_time)
-ylim(0.001, 1.1)
-ylabel("MSE")
-xlabel("Lyapunov time units")
-grid()
 
 begin
+    figure(figsize=(20,10))
+    subplot(121)
+    # plot(t2[1:T_steps], MSE_zeroth_mcdts2, "r")
+    # scatter(t2[1:T_steps], MSE_zeroth_mcdts2, color="r", marker = "o", label="MCDTS L 2")
+    # plot(t2[1:T_steps], MSE_zeroth_mcdts, "r")
+    # scatter(t2[1:T_steps], MSE_zeroth_mcdts, color="r", marker = "d", label="MCDTS L")
+    # plot(t2[1:T_steps], MSE_zeroth_mcdts_fnn2, "m")
+    # scatter(t2[1:T_steps], MSE_zeroth_mcdts_fnn2, color="m", marker = "*", label="MCDTS FNN 2")
+    # plot(t2[1:T_steps], MSE_zeroth_mcdts_fnn, "m")
+    # scatter(t2[1:T_steps], MSE_zeroth_mcdts_fnn, color="m", marker = "<", label="MCDTS FNN")
+    # plot(t2[1:T_steps], MSE_zeroth_pec2, "y")
+    # scatter(t2[1:T_steps], MSE_zeroth_pec2, color="y", marker = "v", label="PECUZAL 2")
+    # plot(t2[1:T_steps], MSE_zeroth_pec, "y")
+    # scatter(t2[1:T_steps], MSE_zeroth_pec, color="y", marker = "1", label="PECUZAL")
+    # plot(t2[1:T_steps], MSE_zeroth_cao, "b")
+    # scatter(t2[1:T_steps], MSE_zeroth_cao, color="b", marker = "3", label="CAO")
+    plot(t2[1:T_steps], MSE_zeroth_kennel, "b")
+    scatter(t2[1:T_steps], MSE_zeroth_kennel, color="b", marker = "s", label="Kennel")
+    # plot(t2[1:T_steps], MSE_zeroth_hegger, "b")
+    # scatter(t2[1:T_steps], MSE_zeroth_hegger, color="b", marker = "p", label="Hegger")
+    # plot(t2[1:T_steps], MSE_zeroth_mcdts_PRED2, "g")
+    # scatter(t2[1:T_steps], MSE_zeroth_mcdts_PRED2, color="g", marker = "+", label="MCDTS PRED 2")
+    # plot(t2[1:T_steps], MSE_zeroth_mcdts_PRED, "g")
+    # scatter(t2[1:T_steps], MSE_zeroth_mcdts_PRED, color="g", marker = "p", label="MCDTS PRED")
+    plot(t2[1:T_steps], MSE_zeroth_mcdts_PRED2_5, "g")
+    scatter(t2[1:T_steps], MSE_zeroth_mcdts_PRED2_5, color="g", marker = ".", label="MCDTS PRED 2 5 Tw")
+    plot(t2[1:T_steps], MSE_zeroth_mcdts_PRED_5, "g")
+    scatter(t2[1:T_steps], MSE_zeroth_mcdts_PRED_5, color="g", marker = "D", label="MCDTS PRED 5 Tw")
+    legend()
+    title("Forecast Error (ZEROTH predictor)")
+    yscale("log")
+    xlim(-0, T_steps/lyap_time)
+    ylim(0.001, 1.1)
+    ylabel("MSE")
+    xlabel("Lyapunov time units")
+    grid()
 
+    subplot(122)
+    # plot(t2[1:T_steps], MSE_zeroth_mcdts2_n, "r")
+    # scatter(t2[1:T_steps], MSE_zeroth_mcdts2_n, color="r", marker = "o", label="MCDTS L 2")
+    # plot(t2[1:T_steps], MSE_zeroth_mcdts_n, "r")
+    # scatter(t2[1:T_steps], MSE_zeroth_mcdts_n, color="r", marker = "d", label="MCDTS L")
+    # plot(t2[1:T_steps], MSE_zeroth_mcdts_fnn2_n, "m")
+    # scatter(t2[1:T_steps], MSE_zeroth_mcdts_fnn2_n, color="m", marker = "*", label="MCDTS FNN 2")
+    # plot(t2[1:T_steps], MSE_zeroth_mcdts_fnn_n, "m")
+    # scatter(t2[1:T_steps], MSE_zeroth_mcdts_fnn_n, color="m", marker = "<", label="MCDTS FNN")
+    # plot(t2[1:T_steps], MSE_zeroth_pec2_n, "y")
+    # scatter(t2[1:T_steps], MSE_zeroth_pec2_n, color="y", marker = "v", label="PECUZAL 2")
+    # plot(t2[1:T_steps], MSE_zeroth_pec_n, "y")
+    # scatter(t2[1:T_steps], MSE_zeroth_pec_n, color="y", marker = "1", label="PECUZAL")
+    # plot(t2[1:T_steps], MSE_zeroth_cao_n, "b")
+    # scatter(t2[1:T_steps], MSE_zeroth_cao_n, color="b", marker = "3", label="CAO")
+    plot(t2[1:T_steps], MSE_zeroth_kennel_n, "b")
+    scatter(t2[1:T_steps], MSE_zeroth_kennel_n, color="b", marker = "s", label="Kennel")
+    # plot(t2[1:T_steps], MSE_zeroth_hegger_n, "b")
+    # scatter(t2[1:T_steps], MSE_zeroth_hegger_n, color="b", marker = "p", label="Hegger")
+    # plot(t2[1:T_steps], MSE_zeroth_mcdts_PRED2_n, "g")
+    # scatter(t2[1:T_steps], MSE_zeroth_mcdts_PRED2_n, color="g", marker = "+", label="MCDTS PRED 2")
+    # plot(t2[1:T_steps], MSE_zeroth_mcdts_PRED_n, "g")
+    # scatter(t2[1:T_steps], MSE_zeroth_mcdts_PRED_n, color="g", marker = "p", label="MCDTS PRED")
+    plot(t2[1:T_steps], MSE_zeroth_mcdts_PRED2_5_n, "g")
+    scatter(t2[1:T_steps], MSE_zeroth_mcdts_PRED2_5_n, color="g", marker = ".", label="MCDTS PRED 2 5 Tw")
+    plot(t2[1:T_steps], MSE_zeroth_mcdts_PRED_5_n, "g")
+    scatter(t2[1:T_steps], MSE_zeroth_mcdts_PRED_5_n, color="g", marker = "D", label="MCDTS PRED 5 Tw")
+    legend()
+    title("Forecast Error of noisy time series (ZEROTH predictor)")
+    yscale("log")
+    xlim(-0, T_steps/lyap_time)
+    ylim(0.001, 1.1)
+    ylabel("MSE")
+    xlabel("Lyapunov time units")
+    grid()
 end
+
+
 ##
 
 ## Plot predictions
@@ -952,196 +707,56 @@ prints = begin
     xlabel("Lyapunov times")
     subplots_adjust(hspace=.5)
 
-
-    ##
-    # figure(figsize=(20,10))
-    # subplot(5,1,1)
-    # plot(tt, true_data, ".-", label="true data")
-    # plot(t2, Cao_linear[:,1], ".-", label="Cao")
-    # title("x-component (linear - iterated one-step) ")
-    # xlim(-.5, T_steps/lyap_time)
-    # ylim(ylim1,ylim2)
-    # legend()
-    # grid()
-    #
-    # subplot(5,1,2)
-    # plot(tt, true_data, ".-", label="true data")
-    # plot(t2, Kennel_linear[:,1], ".-", label="Kennel")
-    # title("x-component (linear - iterated one-step) ")
-    # xlim(-.5, T_steps/lyap_time)
-    # ylim(ylim1,ylim2)
-    # legend()
-    # grid()
-    #
-    # subplot(5,1,3)
-    # plot(tt, true_data, ".-", label="true data")
-    # plot(t2, Hegger_linear[:,1], ".-", label="Hegger")
-    # title("x-component (linear - iterated one-step) ")
-    # xlim(-.5, T_steps/lyap_time)
-    # ylim(ylim1,ylim2)
-    # legend()
-    # grid()
-    #
-    # subplot(5,1,4)
-    # plot(tt, true_data, ".-", label="true data")
-    # plot(t2, Pec_linear[:,1], ".-", label="PECUZAL")
-    # title("x-component (linear - iterated one-step) ")
-    # xlim(-.5, T_steps/lyap_time)
-    # ylim(ylim1,ylim2)
-    # legend()
-    # grid()
-    #
-    # subplot(5,1,5)
-    # plot(tt, true_data, ".-", label="true data")
-    # plot(t2, mcdts_linear[:,1], ".-", label="MCDTS")
-    # title("x-component (linear - iterated one-step) ")
-    # xlim(-.5, T_steps/lyap_time)
-    # ylim(ylim1,ylim2)
-    # legend()
-    # grid()
-    # subplots_adjust(hspace=.8)
-    #
-    # figure(figsize=(20,10))
-    # subplot(5,1,1)
-    # plot(tt, true_data, ".-", label="true data")
-    # plot(t2, Pec_linear2[:,1], ".-", label="PECUZAL 2")
-    # title("x-component (linear - iterated one-step) ")
-    # xlim(-.5, T_steps/lyap_time)
-    # ylim(ylim1,ylim2)
-    # legend()
-    # grid()
-    #
-    # subplot(5,1,2)
-    # plot(tt, true_data, ".-", label="true data")
-    # plot(t2, mcdts_linear[:,1], ".-", label="MCDTS")
-    # title("x-component (linear - iterated one-step) ")
-    # xlim(-.5, T_steps/lyap_time)
-    # ylim(ylim1,ylim2)
-    # legend()
-    # grid()
-    #
-    # subplot(5,1,3)
-    # plot(tt, true_data, ".-", label="true data")
-    # plot(t2, mcdts_fnn_linear[:,1], ".-", label="MCDTS FNN")
-    # title("x-component (linear - iterated one-step) ")
-    # xlim(-.5, T_steps/lyap_time)
-    # ylim(ylim1,ylim2)
-    # legend()
-    # grid()
-    #
-    # subplot(5,1,4)
-    # plot(tt, true_data, ".-", label="true data")
-    # plot(t2, mcdts_fnn_linear2[:,1], ".-", label="MCDTS FNN 2")
-    # title("x-component (linear - iterated one-step) ")
-    # xlim(-.5, T_steps/lyap_time)
-    # ylim(ylim1,ylim2)
-    # legend()
-    # grid()
-    #
-    # subplot(5,1,5)
-    # plot(tt, true_data, ".-", label="true data")
-    # plot(t2, mcdts_linear2[:,1], ".-", label="MCDTS 2")
-    # title("x-component (linear - iterated one-step) ")
-    # xlim(-.5, T_steps/lyap_time)
-    # ylim(ylim1,ylim2)
-    # legend()
-    # grid()
-    # subplots_adjust(hspace=.8)
-    #
-    #
-    #
-    # figure(figsize=(20,10))
-    # subplot(5,1,1)
-    # plot(tt, true_data_n, ".-", label="true data")
-    # plot(t2, Cao_linear_n[:,1], ".-", label="Cao")
-    # title("NOISY x-component (linear - iterated one-step) ")
-    # xlim(-.5, T_steps/lyap_time)
-    # ylim(ylim1,ylim2)
-    # legend()
-    # grid()
-    #
-    # subplot(5,1,2)
-    # plot(tt, true_data_n, ".-", label="true data")
-    # plot(t2, Kennel_linear_n[:,1], ".-", label="Kennel")
-    # title("NOISY x-component (linear - iterated one-step) ")
-    # xlim(-.5, T_steps/lyap_time)
-    # ylim(ylim1,ylim2)
-    # legend()
-    # grid()
-    #
-    # subplot(5,1,3)
-    # plot(tt, true_data_n, ".-", label="true data")
-    # plot(t2, Hegger_linear_n[:,1], ".-", label="Hegger")
-    # title("NOISY x-component (linear - iterated one-step) ")
-    # xlim(-.5, T_steps/lyap_time)
-    # ylim(ylim1,ylim2)
-    # legend()
-    # grid()
-    #
-    # subplot(5,1,4)
-    # plot(tt, true_data_n, ".-", label="true data")
-    # plot(t2, Pec_linear_n[:,1], ".-", label="PECUZAL")
-    # title("NOISY x-component (linear - iterated one-step) ")
-    # xlim(-.5, T_steps/lyap_time)
-    # ylim(ylim1,ylim2)
-    # legend()
-    # grid()
-    #
-    # subplot(5,1,5)
-    # plot(tt, true_data_n, ".-", label="true data")
-    # plot(t2, mcdts_linear_n[:,1], ".-", label="MCDTS")
-    # title("NOISY x-component (linear - iterated one-step) ")
-    # xlim(-.5, T_steps/lyap_time)
-    # ylim(ylim1,ylim2)
-    # legend()
-    # grid()
-    # subplots_adjust(hspace=.8)
-    #
-    # figure(figsize=(20,10))
-    # subplot(5,1,1)
-    # plot(tt, true_data_n, ".-", label="true data")
-    # plot(t2, Pec_linear2_n[:,1], ".-", label="PECUZAL 2")
-    # title("NOISY x-component (linear - iterated one-step) ")
-    # xlim(-.5, T_steps/lyap_time)
-    # ylim(ylim1,ylim2)
-    # legend()
-    # grid()
-    #
-    # subplot(5,1,2)
-    # plot(tt, true_data_n, ".-", label="true data")
-    # plot(t2, mcdts_linear_n[:,1], ".-", label="MCDTS")
-    # title("NOISY x-component (linear - iterated one-step) ")
-    # xlim(-.5, T_steps/lyap_time)
-    # ylim(ylim1,ylim2)
-    # legend()
-    # grid()
-    #
-    # subplot(5,1,3)
-    # plot(tt, true_data_n, ".-", label="true data")
-    # plot(t2, mcdts_fnn_linear_n[:,1], ".-", label="MCDTS FNN")
-    # title("NOISY x-component (linear - iterated one-step) ")
-    # xlim(-.5, T_steps/lyap_time)
-    # ylim(ylim1,ylim2)
-    # legend()
-    # grid()
-    #
-    # subplot(5,1,4)
-    # plot(tt, true_data_n, ".-", label="true data")
-    # plot(t2, mcdts_fnn_linear2_n[:,1], ".-", label="MCDTS FNN 2")
-    # title("NOISY x-component (linear - iterated one-step) ")
-    # xlim(-.5, T_steps/lyap_time)
-    # ylim(ylim1,ylim2)
-    # legend()
-    # grid()
-    #
-    # subplot(5,1,5)
-    # plot(tt, true_data_n, ".-", label="true data")
-    # plot(t2, mcdts_linear2_n[:,1], ".-", label="MCDTS 2")
-    # title("NOISY x-component (linear - iterated one-step) ")
-    # xlim(-.5, T_steps/lyap_time)
-    # ylim(ylim1,ylim2)
-    # legend()
-    # grid()
-    # subplots_adjust(hspace=.8)
-
 end
+
+## Save variables in order to plot nicely in Matlab
+
+writedlm("./application/artificial data/Lorenz Prediction/Results for plotting/t1.csv",t1)
+writedlm("./application/artificial data/Lorenz Prediction/Results for plotting/t2.csv",t2)
+writedlm("./application/artificial data/Lorenz Prediction/Results for plotting/NN.csv",NN)
+writedlm("./application/artificial data/Lorenz Prediction/Results for plotting/tt.csv",tt)
+writedlm("./application/artificial data/Lorenz Prediction/Results for plotting/M.csv",M)
+writedlm("./application/artificial data/Lorenz Prediction/Results for plotting/true_data.csv",true_data)
+writedlm("./application/artificial data/Lorenz Prediction/Results for plotting/true_data_n.csv",true_data_n)
+writedlm("./application/artificial data/Lorenz Prediction/Results for plotting/T_steps.csv",T_steps)
+writedlm("./application/artificial data/Lorenz Prediction/Results for plotting/lyap_time.csv",lyap_time)
+
+recons = ["Cao", "Hegger", "Kennel", "MCDTS", "MCDTS mult.","MCDTS PRED","MCDTS PRED mult.",
+        "MCDTS PRED mult. 5", "MCDTS PRED 5", "MCDTS FNN", "MCDTS FNN mult.", "PECUZAL", "PECUZAL mult."]
+
+writedlm("./application/artificial data/Lorenz Prediction/Results for plotting/recons.csv",recons)
+
+# Pool all MSE values and save the matrix
+forecast_errors = zeros(13,T_steps)
+forecast_errors_n = zeros(13,T_steps)
+
+forecast_errors[1,:] = MSE_zeroth_cao
+forecast_errors[2,:] = MSE_zeroth_hegger
+forecast_errors[3,:] = MSE_zeroth_kennel
+forecast_errors[4,:] = MSE_zeroth_mcdts
+forecast_errors[5,:] = MSE_zeroth_mcdts2
+forecast_errors[6,:] = MSE_zeroth_mcdts_PRED
+forecast_errors[7,:] = MSE_zeroth_mcdts_PRED2
+forecast_errors[8,:] = MSE_zeroth_mcdts_PRED2_5
+forecast_errors[9,:] = MSE_zeroth_mcdts_PRED_5
+forecast_errors[10,:] = MSE_zeroth_mcdts_fnn
+forecast_errors[11,:] = MSE_zeroth_mcdts_fnn2
+forecast_errors[12,:] = MSE_zeroth_pec
+forecast_errors[13,:] = MSE_zeroth_pec2
+
+forecast_errors_n[1,:] = MSE_zeroth_cao_n
+forecast_errors_n[2,:] = MSE_zeroth_hegger_n
+forecast_errors_n[3,:] = MSE_zeroth_kennel_n
+forecast_errors_n[4,:] = MSE_zeroth_mcdts_n
+forecast_errors_n[5,:] = MSE_zeroth_mcdts2_n
+forecast_errors_n[6,:] = MSE_zeroth_mcdts_PRED_n
+forecast_errors_n[7,:] = MSE_zeroth_mcdts_PRED2_n
+forecast_errors_n[8,:] = MSE_zeroth_mcdts_PRED2_5_n
+forecast_errors_n[9,:] = MSE_zeroth_mcdts_PRED_5_n
+forecast_errors_n[10,:] = MSE_zeroth_mcdts_fnn_n
+forecast_errors_n[11,:] = MSE_zeroth_mcdts_fnn2_n
+forecast_errors_n[12,:] = MSE_zeroth_pec_n
+forecast_errors_n[13,:] = MSE_zeroth_pec2_n
+
+writedlm("./application/artificial data/Lorenz Prediction/Results for plotting/forecast_errors.csv",forecast_errors)
+writedlm("./application/artificial data/Lorenz Prediction/Results for plotting/forecast_errors_n.csv",forecast_errors_n)

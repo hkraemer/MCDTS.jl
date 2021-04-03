@@ -7,6 +7,10 @@ using Random
 
 ## We predict the Lorenz63-system based on different state space reconstruction methods
 
+# Here we compute the different reconstructions based on the different reconstruction
+# methods. The computationally more demanding reconstructions have been carried out
+# on the cluster (scripts in folder /Cluster scripts)
+
 Random.seed!(1234)
 lo = Systems.lorenz()
 # tr = trajectory(lo, 500; dt = 0.01, Ttr = 100) # results 2

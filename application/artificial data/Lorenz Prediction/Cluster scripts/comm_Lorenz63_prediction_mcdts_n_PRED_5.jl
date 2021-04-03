@@ -61,7 +61,7 @@ tree = MCDTS.mc_delay(Dataset(x1_n),w1_n,(L)->(MCDTS.softmaxL(L,β=2.)),
     KNN = KK, threshold = 5e-6, Tw = Tw)
 best_node = MCDTS.best_embedding(tree)
 τ_mcdts_PRED = best_node.τs
-Y_mcdts_PRED = MCDTS.genembed_for_prediction(x1, τ_mcdts_PRED)
+Y_mcdts_PRED = MCDTS.genembed_for_prediction(x1_n, τ_mcdts_PRED)
 
 # Save data
 writedlm("Y_mcdts_PRED_n_5.csv", Y_mcdts_PRED)

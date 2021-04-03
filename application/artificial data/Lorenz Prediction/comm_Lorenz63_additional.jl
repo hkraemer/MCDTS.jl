@@ -5,6 +5,11 @@ using ChaosTools
 using DelimitedFiles
 using Random
 
+# In order to extend the prediction horizon up to 1700 steps in total (former 800),
+# we need to extend the trajectory by 900 sampels. Setting random seed ensured
+# reproducibility already in the first place. So the new trajectory shares exactly
+# the same values with the "old" trajectory, where the reconstructions were based on.
+
 ## We predict the Lorenz63-system based on different state space reconstruction methods
 Random.seed!(1234)
 lo = Systems.lorenz()
