@@ -282,8 +282,8 @@ begin
     MSE_zeroth_mcdts_PRED2_5_n = zeros(T_steps)
 
     σ₂ = sqrt(var(x2_[1:T_steps]))   # rms deviation for normalization
-    # MASE_norm = MCDTS.rw_norm(x1_, T_steps)
-    # MASE_norm_n = MCDTS.rw_norm(x1_n_, T_steps)
+    σ₂_n = sqrt(var(x2_n_[1:T_steps]))
+
     for i = 1:T_steps
         # normalized MSE error
         MSE_zeroth_cao[i] = MCDTS.compute_mse(Cao_zeroth[1:i,1], x2_[1:i]) / σ₂
@@ -295,25 +295,25 @@ begin
         MSE_zeroth_mcdts2[i] = MCDTS.compute_mse(mcdts_zeroth2[1:i,2], x2_[1:i]) / σ₂
         MSE_zeroth_mcdts_fnn[i] = MCDTS.compute_mse(mcdts_fnn_zeroth[1:i,1], x2_[1:i]) / σ₂
         MSE_zeroth_mcdts_fnn2[i] = MCDTS.compute_mse(mcdts_fnn_zeroth2[1:i,1], x2_[1:i]) / σ₂
-        MSE_zeroth_cao_n[i] = MCDTS.compute_mse(Cao_zeroth_n[1:i,1], x2_n_[1:i]) / σ₂
-        MSE_zeroth_kennel_n[i] = MCDTS.compute_mse(Kennel_zeroth_n[1:i,1], x2_n_[1:i]) / σ₂
-        MSE_zeroth_hegger_n[i] = MCDTS.compute_mse(Hegger_zeroth_n[1:i,1], x2_n_[1:i]) / σ₂
-        MSE_zeroth_pec_n[i] = MCDTS.compute_mse(Pec_zeroth_n[1:i,1], x2_n_[1:i]) / σ₂
-        MSE_zeroth_pec2_n[i] = MCDTS.compute_mse(Pec_zeroth2_n[1:i,1], x2_n_[1:i]) / σ₂
-        MSE_zeroth_mcdts_n[i] = MCDTS.compute_mse(mcdts_zeroth_n[1:i,1], x2_n_[1:i]) / σ₂
-        MSE_zeroth_mcdts2_n[i] = MCDTS.compute_mse(mcdts_zeroth2_n[1:i,1], x2_n_[1:i]) / σ₂
-        MSE_zeroth_mcdts_fnn_n[i] = MCDTS.compute_mse(mcdts_fnn_zeroth_n[1:i,1], x2_n_[1:i]) / σ₂
-        MSE_zeroth_mcdts_fnn2_n[i] = MCDTS.compute_mse(mcdts_fnn_zeroth2_n[1:i,1], x2_n_[1:i]) / σ₂
+        MSE_zeroth_cao_n[i] = MCDTS.compute_mse(Cao_zeroth_n[1:i,1], x2_n_[1:i]) / σ₂_n
+        MSE_zeroth_kennel_n[i] = MCDTS.compute_mse(Kennel_zeroth_n[1:i,1], x2_n_[1:i]) / σ₂_n
+        MSE_zeroth_hegger_n[i] = MCDTS.compute_mse(Hegger_zeroth_n[1:i,1], x2_n_[1:i]) / σ₂_n
+        MSE_zeroth_pec_n[i] = MCDTS.compute_mse(Pec_zeroth_n[1:i,1], x2_n_[1:i]) / σ₂_n
+        MSE_zeroth_pec2_n[i] = MCDTS.compute_mse(Pec_zeroth2_n[1:i,1], x2_n_[1:i]) / σ₂_n
+        MSE_zeroth_mcdts_n[i] = MCDTS.compute_mse(mcdts_zeroth_n[1:i,1], x2_n_[1:i]) / σ₂_n
+        MSE_zeroth_mcdts2_n[i] = MCDTS.compute_mse(mcdts_zeroth2_n[1:i,1], x2_n_[1:i]) / σ₂_n
+        MSE_zeroth_mcdts_fnn_n[i] = MCDTS.compute_mse(mcdts_fnn_zeroth_n[1:i,1], x2_n_[1:i]) / σ₂_n
+        MSE_zeroth_mcdts_fnn2_n[i] = MCDTS.compute_mse(mcdts_fnn_zeroth2_n[1:i,1], x2_n_[1:i]) / σ₂_n
 
         MSE_zeroth_mcdts_PRED[i] = MCDTS.compute_mse(mcdts_PRED_zeroth[1:i,1], x2_[1:i]) / σ₂
         MSE_zeroth_mcdts_PRED2[i] = MCDTS.compute_mse(mcdts_PRED_zeroth2[1:i,1], x2_[1:i]) / σ₂
-        MSE_zeroth_mcdts_PRED_n[i] = MCDTS.compute_mse(mcdts_PRED_zeroth_n[1:i,1], x2_n_[1:i]) / σ₂
-        MSE_zeroth_mcdts_PRED2_n[i] = MCDTS.compute_mse(mcdts_PRED_zeroth2_n[1:i,1], x2_n_[1:i]) / σ₂
+        MSE_zeroth_mcdts_PRED_n[i] = MCDTS.compute_mse(mcdts_PRED_zeroth_n[1:i,1], x2_n_[1:i]) / σ₂_n
+        MSE_zeroth_mcdts_PRED2_n[i] = MCDTS.compute_mse(mcdts_PRED_zeroth2_n[1:i,1], x2_n_[1:i]) / σ₂_n
 
         MSE_zeroth_mcdts_PRED_5[i] = MCDTS.compute_mse(mcdts_PRED_5_zeroth[1:i,1], x2_[1:i]) / σ₂
         MSE_zeroth_mcdts_PRED2_5[i] = MCDTS.compute_mse(mcdts_PRED_5_zeroth2[1:i,1], x2_[1:i]) / σ₂
-        MSE_zeroth_mcdts_PRED_5_n[i] = MCDTS.compute_mse(mcdts_PRED_5_zeroth_n[1:i,1], x2_n_[1:i]) / σ₂
-        MSE_zeroth_mcdts_PRED2_5_n[i] = MCDTS.compute_mse(mcdts_PRED_5_zeroth2_n[1:i,1], x2_n_[1:i]) / σ₂
+        MSE_zeroth_mcdts_PRED_5_n[i] = MCDTS.compute_mse(mcdts_PRED_5_zeroth_n[1:i,1], x2_n_[1:i]) / σ₂_n
+        MSE_zeroth_mcdts_PRED2_5_n[i] = MCDTS.compute_mse(mcdts_PRED_5_zeroth2_n[1:i,1], x2_n_[1:i]) / σ₂_n
 
     end
 

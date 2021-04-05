@@ -76,6 +76,10 @@ function give_potential_delays(Yss::Dataset{D, T}, τs, w::Int, τ_vals, ts_vals
                             K, metric, α, p, KNN, τ_vals, ts_vals, FNN, tws, PRED,
                             Tw; linear = linear, PRED_mean = PRED_mean, PRED_L = PRED_L)
 
+    if isempty(τ_pots)
+        flag = true
+        return Int[],Int[],eltype(L_pots)[], flag
+    end
     # transform array of arrays to a single array
     τ_pot = reduce(vcat, τ_pots)
     ts_pot = reduce(vcat, ts_pots)
@@ -120,6 +124,10 @@ function embedding_cycle_pecuzal(Y_act, Ys, τs, w, samplesize, K, metric, α, p
                     PRED_mean::Bool=false, PRED_L::Bool=false)
     if PRED && ~PRED_L
         ε★ = zeros(length(τs), size(Ys,2))
+    elseif PRED && PRED_L
+        ε★, _ = pecora(Ys, Tuple(τ_vals.*(-1)), Tuple(ts_vals); delays = τs, w = w,
+                samplesize = samplesize, K = K, metric = metric, α = α,
+                p = p, undersampling = false)
     else
         ε★, _ = pecora(Ys, Tuple(τ_vals), Tuple(ts_vals); delays = τs, w = w,
                 samplesize = samplesize, K = K, metric = metric, α = α,

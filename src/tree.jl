@@ -333,6 +333,8 @@ function expand!(n::Root, data::Dataset{D, T}, w::Int, choose_func,
         if verbose
             println(current_node)
         end
+        println("current delays: $(current_node.τs)")
+        println("current L: $(current_node.L)")
     end
     # now backprop the values (actually we go to top to bottom, but we know were to end because we got the correct τs and ts)
     backprop!(n, current_node.τs, current_node.ts, current_node.L)
