@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#SBATCH --qos=short
+#SBATCH --qos=medium
 #SBATCH --partition=standard
 #SBATCH --job-name=m_x3
 #SBATCH --account=synet
@@ -10,4 +10,4 @@
 #SBATCH --ntasks-per-node=8
 
 module load julia/1.5.3
-julia comm_mcdts_U_multi_x_Tw_5_K_1.jl
+julia comm_mcdts_U_multi_x_Tw_5_K_1_n.jl
