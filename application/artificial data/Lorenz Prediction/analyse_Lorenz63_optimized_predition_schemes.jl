@@ -736,77 +736,93 @@ prints = begin
 
 end
 
-## Save variables in order to plot nicely in Matlab
+## Check in-sample forecast errors on the reconstructions and the fake reconstructions
 
-## TODO here updating
-
-writedlm("./application/artificial data/Lorenz Prediction/Results for plotting/t1.csv",t1)
-writedlm("./application/artificial data/Lorenz Prediction/Results for plotting/t2.csv",t2)
-writedlm("./application/artificial data/Lorenz Prediction/Results for plotting/NN.csv",NN)
-writedlm("./application/artificial data/Lorenz Prediction/Results for plotting/tt.csv",tt)
-writedlm("./application/artificial data/Lorenz Prediction/Results for plotting/M.csv",M)
-writedlm("./application/artificial data/Lorenz Prediction/Results for plotting/true_data.csv",true_data)
-writedlm("./application/artificial data/Lorenz Prediction/Results for plotting/true_data_n.csv",true_data_n)
-writedlm("./application/artificial data/Lorenz Prediction/Results for plotting/T_steps.csv",T_steps)
-writedlm("./application/artificial data/Lorenz Prediction/Results for plotting/lyap_time.csv",lyap_time)
-
-recons = ["Cao", "Hegger", "Kennel", "MCDTS", "MCDTS mult.","MCDTS PRED","MCDTS PRED mult.",
-        "MCDTS PRED mult. 5", "MCDTS PRED 5", "MCDTS FNN", "MCDTS FNN mult.", "PECUZAL", "PECUZAL mult."]
-
-writedlm("./application/artificial data/Lorenz Prediction/Results for plotting/recons.csv",recons)
-
-# Pool all MSE values and save the matrix
-forecast_errors = zeros(13,T_steps)
-forecast_errors_n = zeros(13,T_steps)
-
-forecast_errors[1,:] = MSE_zeroth_cao
-forecast_errors[2,:] = MSE_zeroth_hegger
-forecast_errors[3,:] = MSE_zeroth_kennel
-forecast_errors[4,:] = MSE_zeroth_mcdts
-forecast_errors[5,:] = MSE_zeroth_mcdts2
-forecast_errors[6,:] = MSE_zeroth_mcdts_PRED
-forecast_errors[7,:] = MSE_zeroth_mcdts_PRED2
-forecast_errors[8,:] = MSE_zeroth_mcdts_PRED2_5
-forecast_errors[9,:] = MSE_zeroth_mcdts_PRED_5
-forecast_errors[10,:] = MSE_zeroth_mcdts_fnn
-forecast_errors[11,:] = MSE_zeroth_mcdts_fnn2
-forecast_errors[12,:] = MSE_zeroth_pec
-forecast_errors[13,:] = MSE_zeroth_pec2
-
-forecast_errors_n[1,:] = MSE_zeroth_cao_n
-forecast_errors_n[2,:] = MSE_zeroth_hegger_n
-forecast_errors_n[3,:] = MSE_zeroth_kennel_n
-forecast_errors_n[4,:] = MSE_zeroth_mcdts_n
-forecast_errors_n[5,:] = MSE_zeroth_mcdts2_n
-forecast_errors_n[6,:] = MSE_zeroth_mcdts_PRED_n
-forecast_errors_n[7,:] = MSE_zeroth_mcdts_PRED2_n
-forecast_errors_n[8,:] = MSE_zeroth_mcdts_PRED2_5_n
-forecast_errors_n[9,:] = MSE_zeroth_mcdts_PRED_5_n
-forecast_errors_n[10,:] = MSE_zeroth_mcdts_fnn_n
-forecast_errors_n[11,:] = MSE_zeroth_mcdts_fnn2_n
-forecast_errors_n[12,:] = MSE_zeroth_pec_n
-forecast_errors_n[13,:] = MSE_zeroth_pec2_n
-
-writedlm("./application/artificial data/Lorenz Prediction/Results for plotting/forecast_errors.csv",forecast_errors)
-writedlm("./application/artificial data/Lorenz Prediction/Results for plotting/forecast_errors_n.csv",forecast_errors_n)
+# mean Forecast error
+Preds_mean = zeros(17)
+Preds_mean_n = zeros(17)
+Preds_x = zeros(17)
+Preds_x_n = zeros(17)
+Preds_fake = zeros(9)
+K = 1
 
 
+Preds_mean[17] = mean(MCDTS.zeroth_prediction_cost(Y_kennel; K = K, w = w1))
+Preds_mean_n[17] = mean(MCDTS.zeroth_prediction_cost(Y_kennel_n; K = K, w = w1_n))
+Preds_fake[9] = Preds_mean_n[17]
+
+Preds_mean[1] = mean(MCDTS.zeroth_prediction_cost(Y_mcdts_PRED_K_1_Tw_1_x_uni; K = K, w = w1))
+Preds_mean[2] = mean(MCDTS.zeroth_prediction_cost(Y_mcdts_PRED_K_1_Tw_1_mean_uni ; K = K, w = w1))
+Preds_mean[3] = mean(MCDTS.zeroth_prediction_cost(Y_mcdts_PRED_K_5_Tw_1_x_uni; K = K, w = w1))
+Preds_mean[4] = mean(MCDTS.zeroth_prediction_cost(Y_mcdts_PRED_K_5_Tw_1_mean_uni; K = K, w = w1))
+Preds_mean[5] = mean(MCDTS.zeroth_prediction_cost(Y_mcdts_PRED_K_1_Tw_5_x_uni; K = K, w = w1))
+Preds_mean[6] = mean(MCDTS.zeroth_prediction_cost(Y_mcdts_PRED_K_1_Tw_5_mean_uni; K = K, w = w1))
+Preds_mean[7] = mean(MCDTS.zeroth_prediction_cost(Y_mcdts_PRED_K_5_Tw_5_x_uni; K = K, w = w1))
+Preds_mean[8] = mean(MCDTS.zeroth_prediction_cost(Y_mcdts_PRED_K_5_Tw_5_mean_uni; K = K, w = w1))
+Preds_mean[9] = mean(MCDTS.zeroth_prediction_cost(Y_mcdts_PRED_K_1_Tw_1_x_multi ; K = K, w = w1))
+Preds_mean[10] = mean(MCDTS.zeroth_prediction_cost(Y_mcdts_PRED_K_1_Tw_1_mean_multi ; K = K, w = w1))
+Preds_mean[11] = mean(MCDTS.zeroth_prediction_cost(Y_mcdts_PRED_K_5_Tw_1_x_multi; K = K, w = w1))
+Preds_mean[12] = mean(MCDTS.zeroth_prediction_cost(Y_mcdts_PRED_K_5_Tw_1_mean_multi; K = K, w = w1))
+Preds_mean[13] = mean(MCDTS.zeroth_prediction_cost(Y_mcdts_PRED_K_1_Tw_5_x_multi; K = K, w = w1))
+Preds_mean[14] = mean(MCDTS.zeroth_prediction_cost(Y_mcdts_PRED_K_1_Tw_5_mean_multi; K = K, w = w1))
+Preds_mean[15] = mean(MCDTS.zeroth_prediction_cost(Y_mcdts_PRED_K_5_Tw_5_x_multi; K = K, w = w1))
+Preds_mean[16] = mean(MCDTS.zeroth_prediction_cost(Y_mcdts_PRED_K_5_Tw_5_mean_multi; K = K, w = w1))
+
+Preds_mean_n[1] = mean(MCDTS.zeroth_prediction_cost(Y_mcdts_PRED_K_1_Tw_1_x_uni_n; K = K, w = w1_n))
+Preds_mean_n[2] = mean(MCDTS.zeroth_prediction_cost(Y_mcdts_PRED_K_1_Tw_1_mean_uni_n; K = K, w = w1_n))
+Preds_mean_n[3] = mean(MCDTS.zeroth_prediction_cost(Y_mcdts_PRED_K_5_Tw_1_x_uni_n; K = K, w = w1_n))
+Preds_mean_n[4] = mean(MCDTS.zeroth_prediction_cost(Y_mcdts_PRED_K_5_Tw_1_mean_uni_n; K = K, w = w1_n))
+Preds_mean_n[5] = mean(MCDTS.zeroth_prediction_cost(Y_mcdts_PRED_K_1_Tw_5_x_uni_n; K = K, w = w1_n))
+Preds_mean_n[6] = mean(MCDTS.zeroth_prediction_cost(Y_mcdts_PRED_K_1_Tw_5_mean_uni_n; K = K, w = w1_n))
+Preds_mean_n[7] = mean(MCDTS.zeroth_prediction_cost(Y_mcdts_PRED_K_5_Tw_5_x_uni_n ; K = K, w = w1_n))
+Preds_mean_n[8] = mean(MCDTS.zeroth_prediction_cost(Y_mcdts_PRED_K_5_Tw_5_mean_uni_n ; K = K, w = w1_n))
+# Preds_mean_n[9] = mean(MCDTS.zeroth_prediction_cost(Y_mcdts_PRED_K_1_Tw_1_x_multi_n ; K = K, w = w1_n))
+Preds_mean_n[10] = mean(MCDTS.zeroth_prediction_cost(Y_mcdts_PRED_K_1_Tw_1_mean_multi_n ; K = K, w = w1_n))
+# Preds_mean_n[11] = mean(MCDTS.zeroth_prediction_cost(Y_mcdts_PRED_K_5_Tw_1_x_multi_n ; K = K, w = w1_n))
+Preds_mean_n[12] = mean(MCDTS.zeroth_prediction_cost(Y_mcdts_PRED_K_5_Tw_1_mean_multi_n; K = K, w = w1_n))
+# Preds_mean_n[13] = mean(MCDTS.zeroth_prediction_cost(Y_mcdts_PRED_K_1_Tw_5_x_multi_n; K = K, w = w1_n))
+Preds_mean_n[14] = mean(MCDTS.zeroth_prediction_cost(Y_mcdts_PRED_K_1_Tw_5_mean_multi_n; K = K, w = w1_n))
+# Preds_mean_n[15] = mean(MCDTS.zeroth_prediction_cost(Y_mcdts_PRED_K_5_Tw_5_x_multi_n; K = K, w = w1_n))
+# Preds_mean_n[16] = mean(MCDTS.zeroth_prediction_cost(Y_mcdts_PRED_K_5_Tw_5_mean_multi_n; K = K, w = w1_n))
+
+Preds_fake[1] = mean(MCDTS.zeroth_prediction_cost(Y_fake; K = K, w = w1_n))
+Preds_fake[2] = mean(MCDTS.zeroth_prediction_cost(Y_fake2; K = K, w = w1_n))
+Preds_fake[3] = mean(MCDTS.zeroth_prediction_cost(Y_fake3; K = K, w = w1_n))
+Preds_fake[4] = mean(MCDTS.zeroth_prediction_cost(Y_fake4; K = K, w = w1_n))
+Preds_fake[5] = mean(MCDTS.zeroth_prediction_cost(Y_fake5; K = K, w = w1_n))
+Preds_fake[6] = mean(MCDTS.zeroth_prediction_cost(Y_fake6; K = K, w = w1_n))
+Preds_fake[7] = mean(MCDTS.zeroth_prediction_cost(Y_fake7; K = K, w = w1_n))
+Preds_fake[8] = mean(MCDTS.zeroth_prediction_cost(Y_fake8; K = K, w = w1_n))
 
 
-### TESTING AND DEBUGGING
-using MCDTS
-using DelayEmbeddings
-Tw = 1  # time horizon
-KK = 5 # considered nearest neighbors
-PRED_L = false
-PRED_mean = false
-trials = 1
-max_depth = 30
-taus = 0:25
 
-@time tree = MCDTS.mc_delay(data_sample_n,w1_n,(L)->(MCDTS.softmaxL(L,β=2.)),
-    taus, trials; max_depth = max_depth, PRED = true, verbose = true, KNN = KK,
-    Tw = Tw, threshold = 5e-6, PRED_L = PRED_L, PRED_mean = PRED_mean)
-best_node = MCDTS.best_embedding(tree)
-τ_mcdts_PRED = best_node.τs
-Y_mcdts_PRED = MCDTS.genembed_for_prediction(x1, τ_mcdts_PRED)
+
+
+
+Preds_x[1] = MCDTS.zeroth_prediction_cost(Y_cao; K = K, w = w1)[1]
+Preds_x[2] = MCDTS.zeroth_prediction_cost(Y_hegger; K = K, w = w1)[1]
+Preds_x[3] = MCDTS.zeroth_prediction_cost(Y_kennel; K = K, w = w1)[1]
+Preds_x[4] = MCDTS.zeroth_prediction_cost(Y_mcdts; K = K, w = w1)[1]
+Preds_x[5] = MCDTS.zeroth_prediction_cost(Y_mcdts2; K = K, w = w1)[2]
+Preds_x[6] = MCDTS.zeroth_prediction_cost(Y_mcdts_PRED; K = K, w = w1)[1]
+Preds_x[7] = MCDTS.zeroth_prediction_cost(Y_mcdts_PRED2; K = K, w = w1)[1]
+Preds_x[8] = MCDTS.zeroth_prediction_cost(Y_mcdts_PRED2_5; K = K, w = w1)[1]
+Preds_x[9] = MCDTS.zeroth_prediction_cost(Y_mcdts_PRED_5; K = K, w = w1)[1]
+Preds_x[10] = MCDTS.zeroth_prediction_cost(Y_mcdts_fnn; K = K, w = w1)[1]
+Preds_x[11] = MCDTS.zeroth_prediction_cost(Y_mcdts_fnn2; K = K, w = w1)[1]
+Preds_x[12] = MCDTS.zeroth_prediction_cost(Y_pec; K = K, w = w1)[1]
+Preds_x[13] = MCDTS.zeroth_prediction_cost(Y_pec2; K = K, w = w1)[2]
+
+Preds_x_n[1] = MCDTS.zeroth_prediction_cost(Y_cao_n; K = K, w = w1_n)[1]
+Preds_x_n[2] = MCDTS.zeroth_prediction_cost(Y_hegger_n; K = K, w = w1_n)[1]
+Preds_x_n[3] = MCDTS.zeroth_prediction_cost(Y_kennel_n; K = K, w = w1_n)[1]
+Preds_x_n[4] = MCDTS.zeroth_prediction_cost(Y_mcdts_n; K = K, w = w1_n)[1]
+Preds_x_n[5] = MCDTS.zeroth_prediction_cost(Y_mcdts2_n; K = K, w = w1_n)[1]
+Preds_x_n[6] = MCDTS.zeroth_prediction_cost(Y_mcdts_PRED_n; K = K, w = w1_n)[1]
+Preds_x_n[7] = MCDTS.zeroth_prediction_cost(Y_mcdts_PRED2_n; K = K, w = w1_n)[1]
+Preds_x_n[8] = MCDTS.zeroth_prediction_cost(Y_mcdts_PRED2_5_n; K = K, w = w1_n)[1]
+Preds_x_n[9] = MCDTS.zeroth_prediction_cost(Y_mcdts_PRED_5_n; K = K, w = w1_n)[1]
+Preds_x_n[10] = MCDTS.zeroth_prediction_cost(Y_mcdts_fnn_n; K = K, w = w1_n)[1]
+Preds_x_n[11] = MCDTS.zeroth_prediction_cost(Y_mcdts_fnn2_n; K = K, w = w1_n)[1]
+Preds_x_n[12] = MCDTS.zeroth_prediction_cost(Y_pec_n; K = K, w = w1_n)[1]
+Preds_x_n[13] = MCDTS.zeroth_prediction_cost(Y_pec2_n; K = K, w = w1_n)[1]

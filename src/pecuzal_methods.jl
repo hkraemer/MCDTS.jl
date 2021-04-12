@@ -41,6 +41,9 @@ of multivariate time series input choose `w` as the maximum of all `wᵢ's`.
 * `PRED_L::Bool=false`: If `PRED = true`, this determines whether the prediction shall
   be optimized on possible delay values gained from the continuity statistic or on
   delays = 0:25 (Default)
+* `PRED_KL::Bool=false`: If `PRED = true`, this determines whether the prediction shall
+  be optimized on the Kullback-Leibler-divergence of the in-sample prediction and
+  the true in-sample values, or if the optimization shall be made on the MSE of them (Default)
 * `threshold::Real = 0`: The algorithm does not pick a peak from the continuity
   statistic, when its corresponding `ΔL`/FNN-value exceeds this threshold. Please
   provide a positive number for both, `L` and `FNN`-statistic option (since the
@@ -54,8 +57,8 @@ function give_potential_delays(Yss::Dataset{D, T}, τs, w::Int, τ_vals, ts_vals
                 samplesize::Real=1, K::Int = 13, α::Real = 0.05, p::Real = 0.5,
                 KNN::Int = 3, FNN::Bool = false, PRED::Bool = false, Tw::Int = 1,
                 threshold::Real = 0, tws::AbstractRange{Int} = 2:τs[end],
-                linear::Bool=false, PRED_mean::Bool=false, PRED_L::Bool=false
-                ) where {D, T}
+                linear::Bool=false, PRED_mean::Bool=false, PRED_L::Bool=false,
+                PRED_KL::Bool=false) where {D, T}
 
     @assert (FNN || PRED) || (~FNN && ~PRED) "Select either FNN or PRED keyword (or none)."
     @assert 0 < samplesize ≤ 1 "Please select a valid `samplesize`, which denotes a fraction of considered fiducial points, i.e. `samplesize` ∈ (0 1]"
@@ -74,7 +77,8 @@ function give_potential_delays(Yss::Dataset{D, T}, τs, w::Int, τ_vals, ts_vals
     # these will be binded in `L_pots` for simplicity, anyway)
     τ_pots, ts_pots, L_pots = embedding_cycle_pecuzal(Y_act, Ys, τs, w, samplesize,
                             K, metric, α, p, KNN, τ_vals, ts_vals, FNN, tws, PRED,
-                            Tw; linear = linear, PRED_mean = PRED_mean, PRED_L = PRED_L)
+                            Tw; linear = linear, PRED_mean = PRED_mean, PRED_L = PRED_L,
+                            PRED_KL = PRED_KL)
 
     if isempty(τ_pots)
         flag = true
@@ -121,7 +125,7 @@ fnn-statistic-values.
 """
 function embedding_cycle_pecuzal(Y_act, Ys, τs, w, samplesize, K, metric, α, p,
                     KNN, τ_vals, ts_vals, FNN, tws, PRED, Tw; linear::Bool=false,
-                    PRED_mean::Bool=false, PRED_L::Bool=false)
+                    PRED_mean::Bool=false, PRED_L::Bool=false, PRED_KL::Bool=false)
     if PRED && ~PRED_L
         ε★ = zeros(length(τs), size(Ys,2))
     elseif PRED && PRED_L
@@ -138,7 +142,8 @@ function embedding_cycle_pecuzal(Y_act, Ys, τs, w, samplesize, K, metric, α, p
                                             KNN, w, samplesize, metric, FNN,
                                             tws, PRED, Tw; τ_vals = τ_vals,
                                             ts_vals = ts_vals, linear = linear,
-                                            PRED_mean = PRED_mean, PRED_L = PRED_L)
+                                            PRED_mean = PRED_mean, PRED_L = PRED_L,
+                                            PRED_KL = PRED_KL)
     return τ_pot, ts_pot, L_pot
 end
 
@@ -150,7 +155,9 @@ corresponding L-statistics (or FNN-statistics, if `FNN=true`, or MSE, if
 """
 function pick_possible_embedding_params(ε★, Y_act, Ys, τs, KNN, w, samplesize,
             metric, FNN, tws, PRED, Tw; τ_vals = [0], ts_vals = [1],
-            linear::Bool=false, PRED_mean::Bool=false, PRED_L::Bool=false)
+            linear::Bool=false, PRED_mean::Bool=false, PRED_L::Bool=false,
+            PRED_KL::Bool=false)
+
     L_pots = []
     τ_pots = []
     ts_pots = []
@@ -165,7 +172,8 @@ function pick_possible_embedding_params(ε★, Y_act, Ys, τs, KNN, w, samplesiz
             L_trials, max_idx = local_PRED_statistics(vec([0; ε★[:,ts]]), Y_act,
                                    Ys, τs, w, metric, Tw; τ_vals = τ_vals,
                                    ts_vals = ts_vals, ts = ts, linear = linear,
-                                   K = KNN, PRED_mean = PRED_mean, PRED_L = PRED_L)
+                                   K = KNN, PRED_mean = PRED_mean,
+                                   PRED_L = PRED_L, PRED_KL = PRED_KL)
         else
             L_trials, max_idx = MCDTS.local_L_statistics(vec([0; ε★[:,ts]]), Y_act,
                             Ys[:,ts], τs, KNN, w, samplesize, metric; tws = tws)
@@ -232,8 +240,9 @@ end
 Return costs (MSE) of a `Tw`-step-ahead local-prediction.
 """
 function local_PRED_statistics(ε★, Y_act, Ys, τs, w, metric, Tw; τ_vals = [0],
-                        ts_vals = [1], ts = 1, K::Int = 1,linear::Bool=false,
-                        PRED_mean::Bool=false, PRED_L::Bool=false)
+                        ts_vals = [1], ts = 1, K::Int = 1, linear::Bool=false,
+                        PRED_mean::Bool=false, PRED_L::Bool=false,
+                        PRED_KL::Bool=false)
     s = Ys[:,ts]
     if PRED_L
         _, max_idx = get_maxima(ε★) # determine local maxima in ⟨ε★⟩
@@ -259,11 +268,21 @@ function local_PRED_statistics(ε★, Y_act, Ys, τs, w, metric, Tw; τ_vals = [
             end
         else
             if PRED_mean
-                PRED_mse[i] = mean(MCDTS.zeroth_prediction_cost(Y_trial; w = w,
-                        K = K, Tw = Tw,  metric = metric))
+                if PRED_KL
+                    PRED_mse[i] = mean(MCDTS.zeroth_prediction_cost_KL(Y_trial; w = w,
+                            K = K, Tw = Tw,  metric = metric))
+                else
+                    PRED_mse[i] = mean(MCDTS.zeroth_prediction_cost(Y_trial; w = w,
+                            K = K, Tw = Tw,  metric = metric))
+                end
             else
-                PRED_mse[i] = MCDTS.zeroth_prediction_cost(Y_trial; w = w,
-                                K = K, Tw = Tw,  metric = metric)[1]
+                if PRED_KL
+                    PRED_mse[i] = MCDTS.zeroth_prediction_cost_KL(Y_trial; w = w,
+                                    K = K, Tw = Tw,  metric = metric)[1]
+                else
+                    PRED_mse[i] = MCDTS.zeroth_prediction_cost(Y_trial; w = w,
+                                    K = K, Tw = Tw,  metric = metric)[1]
+                end
             end
         end
     end

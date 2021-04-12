@@ -673,7 +673,7 @@ function zeroth_prediction_cost(Y::AbstractDataset{D, ET};
 
     vtree = KDTree(Y[1:end-Tw], metric)
     allNNidxs, _ = DelayEmbeddings.all_neighbors(vtree, vs, ns, K, w)
- 
+
     error = zeros(ET, NN, D)
     # loop over each fiducial point
     for (i,v) in enumerate(vs)
@@ -694,6 +694,69 @@ function zeroth_prediction_cost(Y::AbstractDataset{D, ET};
     end
     return sqrt.(mean(error; dims=1))
 end
+
+
+"""
+    zeroth_prediction_cost_KL(Y::Dataset; kwargs...) → Cost
+Compute the KL-divergence `Cost` of the Dataset `Y`.
+The prediction is based on [`local_zeroth_prediction`](@ref).
+
+## Keyword arguments
+
+* `samplesize = 1.0`: Number of considered fiducial points v as a fraction of
+  input state space trajectory `Y`'s length, in order to average the conditional
+  variances and neighborhood sizes (read algorithm description) to produce `L`.
+* `K = 3`: the amount of nearest neighbors considered, in order to compute the
+  mean squared prediction error (read algorithm description).
+* `metric = Euclidean()`: metric used for finding nearest neigbhors in the input
+  state space trajectory `Y.
+* `w = 1`: Theiler window (neighbors in time with index `w` close to the point,
+  that are excluded from being true neighbors). `w=0` means to exclude only the
+  point itself, and no temporal neighbors.
+* `Tw = 1`: The time horizon for predictions. The `Cost` is the average error
+  over these timesteps.
+
+"""
+function zeroth_prediction_cost_KL(Y::AbstractDataset{D, ET};
+        K::Int = 3, w::Int = 1, Tw::Int = 1,samplesize::Real = 1.0,
+        metric = Euclidean()) where {D, ET}
+
+    # select a random state space vector sample according to input samplesize
+    NN = length(Y)-Tw;
+    NNN = floor(Int, samplesize*NN)
+    ns = sample(1:NN, NNN; replace=false) # the fiducial point indices
+
+    vs = Y[ns] # the fiducial points in the data set
+
+    vtree = KDTree(Y[1:end-Tw], metric)
+    allNNidxs, _ = DelayEmbeddings.all_neighbors(vtree, vs, ns, K, w)
+
+    KL_distances = zeros(ET, Tw, D)
+
+    for T = 1:Tw
+        predictions = zeros(ET, NN, D)
+        # loop over each fiducial point
+        for (i,v) in enumerate(vs)
+            NNidxs = allNNidxs[i] # indices of k nearest neighbors to v
+
+            ϵ_ball = zeros(ET, K, D) # preallocation
+            # determine neighborhood one time step ahead
+            @inbounds for (k, j) in enumerate(NNidxs)
+                ϵ_ball[k, :] .= Y[j + T]
+            end
+            # take the average as a prediction
+            predictions[i,:] = mean(ϵ_ball; dims=1)
+
+        end
+        # compute KL-divergence for each component of the prediction
+        for j = 1:D
+            KL_distances[T,j] = compute_KL_divergence(Vector(predictions[:,j]), Vector(view(Y, ns .+ T)[j]))
+        end
+    end
+    return mean(KL_distances; dims=1)
+end
+
+
 
 
 """
@@ -771,4 +834,22 @@ function linear_prediction_cost(Y::AbstractDataset{D, ET};
         error[i,:] = mean(errors; dims=1)
     end
     return vec(sqrt.(mean(error; dims=1)))
+end
+
+"""
+    Compute the Kullback-Leibler-Divergence of the two Vectors `a` and `b`.
+"""
+function compute_KL_divergence(a::Vector{T}, b::Vector{T}) where {T}
+    # normalization
+    a /= maximum(a)
+    b /= maximum(b)
+    # make histograms
+    h1 = fit(Histogram, a)
+    edges = h1.edges
+    h2 = fit(Histogram, b, edges...)
+    # get the probabilities
+    pdf1 = h1.weights / sum(h1.weights)
+    pdf2 = h2.weights / sum(h2.weights)
+    # compute KL-divergence
+    return sum(pdf1 .* (log.(pdf1) .- log.(pdf2)))
 end
