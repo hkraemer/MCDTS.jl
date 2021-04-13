@@ -71,12 +71,12 @@ begin
 
     τ_mcdts_PRED = Int.(vec(readdlm("./application/artificial data/Lorenz Prediction/2nd Trial/Results 1/tau_mcdts_PRED.csv")))
     Y_mcdts_PRED = genembed(x1, τ_mcdts_PRED .* (-1))
-    # τ_mcdts_PRED2 = Int.(vec(readdlm("./application/artificial data/Lorenz Prediction/2nd Trial/Results 1/tau_mcdts_PRED_multi.csv")))
-    # ts_mcdts_PRED2 = Int.(vec(readdlm("./application/artificial data/Lorenz Prediction/2nd Trial/Results 1/ts_mcdts_PRED_multi.csv")))
-    # Y_mcdts_PRED2 = genembed(data_sample, τ_mcdts_PRED2 .* (-1), ts_mcdts_PRED2)
+    τ_mcdts_PRED2 = Int.(vec(readdlm("./application/artificial data/Lorenz Prediction/2nd Trial/Results 1/tau_mcdts_PRED_multi.csv")))
+    ts_mcdts_PRED2 = Int.(vec(readdlm("./application/artificial data/Lorenz Prediction/2nd Trial/Results 1/ts_mcdts_PRED_multi.csv")))
+    Y_mcdts_PRED2 = genembed(data_sample, τ_mcdts_PRED2 .* (-1), ts_mcdts_PRED2)
 
-    # τ_mcdts_PRED_n = Int.(vec(readdlm("./application/artificial data/Lorenz Prediction/2nd Trial/Results 1/tau_mcdts_PRED_n.csv")))
-    # Y_mcdts_PRED_n = genembed(x1_n, τ_mcdts_PRED_n .* (-1))
+    τ_mcdts_PRED_n = Int.(vec(readdlm("./application/artificial data/Lorenz Prediction/2nd Trial/Results 1/tau_mcdts_PRED_n.csv")))
+    Y_mcdts_PRED_n = genembed(x1_n, τ_mcdts_PRED_n .* (-1))
     # τ_mcdts_PRED2_n = Int.(vec(readdlm("./application/artificial data/Lorenz Prediction/2nd Trial/Results 1/tau_mcdts_PRED_multi_n.csv")))
     # ts_mcdts_PRED2_n = Int.(vec(readdlm("./application/artificial data/Lorenz Prediction/2nd Trial/Results 1/ts_mcdts_PRED_multi_n.csv")))
     # Y_mcdts_PRED2_n = genembed(data_sample_n, τ_mcdts_PRED2_n .* (-1), ts_mcdts_PRED2_n)
@@ -150,10 +150,10 @@ begin
     println("*****")
     ## mcdts_PRED_zeroth = MCDTS.iterated_local_zeroth_prediction(Y_mcdts_PRED, KK, T_steps; theiler = w1, verbose=true)
     ## writedlm("./application/artificial data/Lorenz Prediction/2nd Trial/Prediction Results/mcdts_PRED_zeroth.csv",mcdts_PRED_zeroth)
-    # mcdts_PRED_zeroth2 = MCDTS.iterated_local_zeroth_prediction(Y_mcdts_PRED2, KK, T_steps; theiler = w1, verbose=true)
-    # writedlm("./application/artificial data/Lorenz Prediction/2nd Trial/Prediction Results/mcdts_PRED_zeroth2.csv",mcdts_PRED_zeroth2)
-    # mcdts_PRED_zeroth_n = MCDTS.iterated_local_zeroth_prediction(Y_mcdts_PRED_n,  KK, T_steps; theiler = w1_n, verbose=true)
-    # writedlm("./application/artificial data/Lorenz Prediction/2nd Trial/Prediction Results/mcdts_PRED_zeroth_n.csv",mcdts_PRED_zeroth_n)
+    mcdts_PRED_zeroth2 = MCDTS.iterated_local_zeroth_prediction(Y_mcdts_PRED2, KK, T_steps; theiler = w1, verbose=true)
+    writedlm("./application/artificial data/Lorenz Prediction/2nd Trial/Prediction Results/mcdts_PRED_zeroth2.csv",mcdts_PRED_zeroth2)
+    mcdts_PRED_zeroth_n = MCDTS.iterated_local_zeroth_prediction(Y_mcdts_PRED_n,  KK, T_steps; theiler = w1_n, verbose=true)
+    writedlm("./application/artificial data/Lorenz Prediction/2nd Trial/Prediction Results/mcdts_PRED_zeroth_n.csv",mcdts_PRED_zeroth_n)
     # mcdts_PRED_zeroth2_n = MCDTS.iterated_local_zeroth_prediction(Y_mcdts_PRED2_n, KK, T_steps; theiler = w1_n, verbose=true)
     # writedlm("./application/artificial data/Lorenz Prediction/2nd Trial/Prediction Results/mcdts_PRED_zeroth2_n.csv",mcdts_PRED_zeroth2_n)
 
@@ -187,8 +187,8 @@ load = begin
     PREDICTIONS_n[8,:] = Dataset(readdlm("./application/artificial data/Lorenz Prediction/2nd Trial/Prediction Results/mcdts_fnn_zeroth_n.csv"))[:,1]
     PREDICTIONS_n[9,:] = Dataset(readdlm("./application/artificial data/Lorenz Prediction/2nd Trial/Prediction Results/mcdts_fnn_zeroth.csv"))[:,1]
     PREDICTIONS[10,:] = Dataset(readdlm("./application/artificial data/Lorenz Prediction/2nd Trial/Prediction Results/mcdts_PRED_zeroth.csv"))[:,1]
-    #PREDICTIONS[11,:] = Dataset(readdlm("./application/artificial data/Lorenz Prediction/2nd Trial/Prediction Results/mcdts_PRED_zeroth2.csv"))[:,1]
-    #PREDICTIONS_n[10,:] = Dataset(readdlm("./application/artificial data/Lorenz Prediction/2nd Trial/Prediction Results/mcdts_PRED_zeroth_n.csv"))[:,1]
+    PREDICTIONS[11,:] = Dataset(readdlm("./application/artificial data/Lorenz Prediction/2nd Trial/Prediction Results/mcdts_PRED_zeroth2.csv"))[:,1]
+    PREDICTIONS_n[10,:] = Dataset(readdlm("./application/artificial data/Lorenz Prediction/2nd Trial/Prediction Results/mcdts_PRED_zeroth_n.csv"))[:,1]
     #PREDICTIONS_n[11,:] = Dataset(readdlm("./application/artificial data/Lorenz Prediction/2nd Trial/Prediction Results/mcdts_PRED_zeroth2_n.csv"))[:,1]
 end
 
