@@ -163,20 +163,16 @@ function next_embedding(n::Root, Ys::Dataset{D, T}, w::Int, τs; KNN::Int = 3,
     @assert (FNN || PRED) || (~FNN && ~PRED) "Select either FNN or PRED keyword (or none)."
 
     if FNN
-        #τ_pot = zeros(Int, size(Ys,2))
-        #ts_pot = Array(1:size(Ys,2))
-        τ_pot = [0]
-        ts_pot = [1]
+        τ_pot = zeros(Int, size(Ys,2))
+        ts_pot = Array(1:size(Ys,2))
         L_pot = ones(size(Ys,2))
     elseif PRED
         τ_pot = [0]
         ts_pot = [1]                # force 1st component to be 1st time series
         L_pot = 99999*ones(size(Ys,2))
     else
-        #τ_pot = zeros(Int, size(Ys,2))
-        #ts_pot = Array(1:size(Ys,2))
-        τ_pot = [0]
-        ts_pot = [1]
+        τ_pot = zeros(Int, size(Ys,2))
+        ts_pot = Array(1:size(Ys,2))
         L_pot = zeros(size(Ys,2))
     end
 
