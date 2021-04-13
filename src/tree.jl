@@ -161,13 +161,18 @@ function next_embedding(n::Root, Ys::Dataset{D, T}, w::Int, τs; KNN::Int = 3,
                             PRED_KL::Bool = false) where {D, T<:Real}
 
     @assert (FNN || PRED) || (~FNN && ~PRED) "Select either FNN or PRED keyword (or none)."
-    τ_pot = zeros(Int, size(Ys,2))
-    ts_pot = Array(1:size(Ys,2))
+
     if FNN
+        τ_pot = zeros(Int, size(Ys,2))
+        ts_pot = Array(1:size(Ys,2))
         L_pot = ones(size(Ys,2))
     elseif PRED
+        τ_pot = [0]
+        ts_pot = [1]                # force 1st component to be 1st time series
         L_pot = 99999*ones(size(Ys,2))
     else
+        τ_pot = zeros(Int, size(Ys,2))
+        ts_pot = Array(1:size(Ys,2))
         L_pot = zeros(size(Ys,2))
     end
 
@@ -304,7 +309,6 @@ function expand!(n::Root, data::Dataset{D, T}, w::Int, choose_func,
 
     for i=1:max_depth # loops until converged or max_depth is reached
         # next embedding step
-
         # only if it was not already computed
         if current_node.children == nothing
             τs, ts, Ls, converged = next_embedding(current_node, data, w, delays;

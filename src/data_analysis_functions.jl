@@ -10,7 +10,6 @@ using StatsBase
 using GLM
 using Revise
 
-
 """
 Perform the RecurrenceAnalysis of some reconstruction trajectories `Y₁`, `Y₂`,
 `Y₃`. Specifically, compute the fraction of recurrence rates from the
@@ -724,10 +723,12 @@ function zeroth_prediction_cost_KL(Y::AbstractDataset{D, ET};
     # select a random state space vector sample according to input samplesize
     NN = length(Y)-Tw;
     NNN = floor(Int, samplesize*NN)
-    ns = sample(1:NN, NNN; replace=false) # the fiducial point indices
-
+    if samplesize < 1
+        ns = sample(1:NN, NNN; replace=false) # the fiducial point indices
+    else
+        ns = 1:NN  # the fiducial point indices
+    end
     vs = Y[ns] # the fiducial points in the data set
-
     vtree = KDTree(Y[1:end-Tw], metric)
     allNNidxs, _ = DelayEmbeddings.all_neighbors(vtree, vs, ns, K, w)
 
@@ -750,13 +751,95 @@ function zeroth_prediction_cost_KL(Y::AbstractDataset{D, ET};
         end
         # compute KL-divergence for each component of the prediction
         for j = 1:D
-            KL_distances[T,j] = compute_KL_divergence(Vector(predictions[:,j]), Vector(view(Y, ns .+ T)[j]))
+            KL_distances[T,j] = compute_KL_divergence(Vector(predictions[:,j]),Y[ns .+ T,j])
         end
     end
     return mean(KL_distances; dims=1)
 end
 
+"""
+    linear_prediction_cost_KL(Y::Dataset; kwargs...) → Cost
+Compute the KL-divergence `Cost` of the Dataset `Y`.
+The prediction is based on [`local_linear_prediction`](@ref).
 
+## Keyword arguments
+
+* `samplesize = 1.0`: Number of considered fiducial points v as a fraction of
+  input state space trajectory `Y`'s length, in order to average the conditional
+  variances and neighborhood sizes (read algorithm description) to produce `L`.
+* `K = 3`: the amount of nearest neighbors considered, in order to compute the
+  mean squared prediction error (read algorithm description).
+* `metric = Euclidean()`: metric used for finding nearest neigbhors in the input
+  state space trajectory `Y.
+* `w = 1`: Theiler window (neighbors in time with index `w` close to the point,
+  that are excluded from being true neighbors). `w=0` means to exclude only the
+  point itself, and no temporal neighbors.
+* `Tw = 1`: The time horizon for predictions. The `Cost` is the average error
+  over these timesteps.
+
+"""
+function linear_prediction_cost_KL(Y::AbstractDataset{D, ET};
+        K::Int = 3, w::Int = 1, Tw::Int = 1, samplesize::Real = 1.0,
+        metric = Euclidean()) where {D, ET}
+
+    # select a random state space vector sample according to input samplesize
+    NN = length(Y)-Tw;
+    NNN = floor(Int, samplesize*NN)
+    if samplesize < 1
+        ns = sample(1:NN, NNN; replace=false) # the fiducial point indices
+    else
+        ns = 1:NN  # the fiducial point indices
+    end
+    vs = Y[ns] # the fiducial points in the data set
+
+    vtree = KDTree(Y[1:end-Tw], metric)
+    allNNidxs, _ = DelayEmbeddings.all_neighbors(vtree, vs, ns, K, w)
+
+    KL_distances = zeros(ET, Tw, D)
+
+    for T = 1:Tw
+        predictions = zeros(ET, NN, D)
+        # loop over each fiducial point
+        for (i,v) in enumerate(vs)
+            NNidxs = allNNidxs[i] # indices of k nearest neighbors to v
+            A = ones(K,D) # datamatrix for later linear equation to solve for AR-process
+            ϵ_ball = zeros(ET, K, D) # preallocation
+            # determine neighborhood one time step ahead
+            @inbounds for (k, j) in enumerate(NNidxs)
+                ϵ_ball[k, :] .= Y[j + T]
+                A[k,:] = Y[j]
+            end
+
+            b  = zeros(D)
+            ar_coeffs = zeros(D, D)
+            namess = ["X"*string(z) for z = 1:D]
+            ee = Meta.parse.(namess)
+            formula_expression = Term(:Y) ~ sum(term.(ee))
+
+            for j = 1:D
+                data = DataFrame()
+                for (cnt,var) in enumerate(namess)
+                    data[!, var] = A[:,cnt]
+                end
+                data.Y = ϵ_ball[:,j]
+
+                ols = lm(formula_expression, data)
+                b[j] = coef(ols)[1]
+                for k = 1:D
+                    ar_coeffs[j,k] = coef(ols)[k+1]
+                end
+                predictions[i,j] = Y[ns[i],:]'*ar_coeffs[j,:] + b[j]
+            end
+
+        end
+        # compute KL-divergence for each component of the prediction
+        for j = 1:D
+            KL_distances[T,j] = compute_KL_divergence(Vector(predictions[:,j]),Y[ns .+ T,j])
+        end
+    end
+    return mean(KL_distances; dims=1)
+
+end
 
 
 """
@@ -851,5 +934,5 @@ function compute_KL_divergence(a::Vector{T}, b::Vector{T}) where {T}
     pdf1 = h1.weights / sum(h1.weights)
     pdf2 = h2.weights / sum(h2.weights)
     # compute KL-divergence
-    return sum(pdf1 .* (log.(pdf1) .- log.(pdf2)))
+    return kl_divergence(pdf2, pdf1)
 end
