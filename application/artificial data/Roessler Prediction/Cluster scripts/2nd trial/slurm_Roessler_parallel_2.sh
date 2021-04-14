@@ -1,8 +1,8 @@
 #!/bin/bash
 
-#SBATCH --qos=short
+#SBATCH --qos=medium
 #SBATCH --partition=standard
-#SBATCH --job-name=trial
+#SBATCH --job-name=ro_2
 #SBATCH --account=synet
 #SBATCH --output=name-%j.out
 #SBATCH --error=name-%j.err
@@ -17,4 +17,5 @@ echo "------------------------------------------------------------"
 
 module load julia/1.5.3
 module load hpc
-julia trial.jl $SLURM_NTASKS
+
+julia comm_Roessler_parallel_2.jl $SLURM_NTASKS

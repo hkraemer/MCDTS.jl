@@ -1,7 +1,7 @@
 #!/bin/bash
 
-#SBATCH --qos=priority
-#SBATCH --partition=priority
+#SBATCH --qos=medium
+#SBATCH --partition=standard
 #SBATCH --job-name=63_2
 #SBATCH --account=synet
 #SBATCH --output=name-%j.out
@@ -18,4 +18,4 @@ echo "------------------------------------------------------------"
 module load julia/1.5.3
 module load hpc
 
-julia comm_Lorenz63_parallel_2.jl
+julia comm_Lorenz63_parallel_2.jl $SLURM_NTASKS

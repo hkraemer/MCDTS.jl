@@ -150,10 +150,10 @@ begin
     println("*****")
     ## mcdts_PRED_zeroth = MCDTS.iterated_local_zeroth_prediction(Y_mcdts_PRED, KK, T_steps; theiler = w1, verbose=true)
     ## writedlm("./application/artificial data/Lorenz Prediction/2nd Trial/Prediction Results/mcdts_PRED_zeroth.csv",mcdts_PRED_zeroth)
-    mcdts_PRED_zeroth2 = MCDTS.iterated_local_zeroth_prediction(Y_mcdts_PRED2, KK, T_steps; theiler = w1, verbose=true)
-    writedlm("./application/artificial data/Lorenz Prediction/2nd Trial/Prediction Results/mcdts_PRED_zeroth2.csv",mcdts_PRED_zeroth2)
-    mcdts_PRED_zeroth_n = MCDTS.iterated_local_zeroth_prediction(Y_mcdts_PRED_n,  KK, T_steps; theiler = w1_n, verbose=true)
-    writedlm("./application/artificial data/Lorenz Prediction/2nd Trial/Prediction Results/mcdts_PRED_zeroth_n.csv",mcdts_PRED_zeroth_n)
+    ## mcdts_PRED_zeroth2 = MCDTS.iterated_local_zeroth_prediction(Y_mcdts_PRED2, KK, T_steps; theiler = w1, verbose=true)
+    ## writedlm("./application/artificial data/Lorenz Prediction/2nd Trial/Prediction Results/mcdts_PRED_zeroth2.csv",mcdts_PRED_zeroth2)
+    ## mcdts_PRED_zeroth_n = MCDTS.iterated_local_zeroth_prediction(Y_mcdts_PRED_n,  KK, T_steps; theiler = w1_n, verbose=true)
+    ## writedlm("./application/artificial data/Lorenz Prediction/2nd Trial/Prediction Results/mcdts_PRED_zeroth_n.csv",mcdts_PRED_zeroth_n)
     # mcdts_PRED_zeroth2_n = MCDTS.iterated_local_zeroth_prediction(Y_mcdts_PRED2_n, KK, T_steps; theiler = w1_n, verbose=true)
     # writedlm("./application/artificial data/Lorenz Prediction/2nd Trial/Prediction Results/mcdts_PRED_zeroth2_n.csv",mcdts_PRED_zeroth2_n)
 
@@ -218,16 +218,73 @@ begin
         end
     end
 
-    markers = ["s", "P", "*", "+", "X", "D"]
+    markers = ["s", "P", "*", "+", "X", "D", "o", "v", "1", "<", "|"]
 
-    colorss = ["b", "m", "g", "k", "r", "y"]
+    colorss = ["b", "m", "g", "k", "r", "y", "c", "darkgreen", "navy", "brown", "pink"]
 
     sc = 10 # markersize
 
+    # # Plot MSEs
+    # figure(figsize=(20,10))
+    # subplot(221)
+    # for i = 1:5
+    #     plot(t2[1:T_steps], MSEs[i,:], colorss[i])
+    #     scatter(t2[1:T_steps], MSEs[i,:], s = sc, color=colorss[i], marker = markers[i], label=methods[i])
+    # end
+    # legend()
+    # title("Forecast Error")
+    # yscale("log")
+    # xlim(-0, T_steps/lyap_time)
+    # ylim(0.001, 1.5)
+    # ylabel("MSE")
+    # xlabel("Lyapunov time units")
+    # grid()
+    #
+    # subplot(222)
+    # for i = 1:5
+    #     plot(t2[1:T_steps], MSEs_n[i,:], colorss[i])
+    #     scatter(t2[1:T_steps], MSEs_n[i,:], s = sc, color=colorss[i], marker = markers[i], label=methods[i])
+    # end
+    # legend()
+    # title("Forecast Error (noisy)")
+    # yscale("log")
+    # xlim(-0, T_steps/lyap_time)
+    # ylim(0.001, 1.5)
+    # ylabel("MSE")
+    # xlabel("Lyapunov time units")
+    # grid()
+    #
+    # subplot(223)
+    # for i = 6:11
+    #     plot(t2[1:T_steps], MSEs[i,:], colorss[i-5])
+    #     scatter(t2[1:T_steps], MSEs[i,:], s = sc, color=colorss[i-5], marker = markers[i-5], label=methods[i])
+    # end
+    # legend()
+    # title("Forecast Error")
+    # yscale("log")
+    # xlim(-0, T_steps/lyap_time)
+    # ylim(0.001, 1.5)
+    # ylabel("MSE")
+    # xlabel("Lyapunov time units")
+    # grid()
+    #
+    # subplot(224)
+    # for i = 6:11
+    #     plot(t2[1:T_steps], MSEs_n[i,:], colorss[i-5])
+    #     scatter(t2[1:T_steps], MSEs_n[i,:], s = sc, color=colorss[i-5], marker = markers[i-5], label=methods[i])
+    # end
+    # legend()
+    # title("Forecast Error (noisy)")
+    # yscale("log")
+    # xlim(-0, T_steps/lyap_time)
+    # ylim(0.001, 1.5)
+    # ylabel("MSE")
+    # xlabel("Lyapunov time units")
+    # grid()
+
     # Plot MSEs
     figure(figsize=(20,10))
-    subplot(221)
-    for i = 1:5
+    for i = 1:11
         plot(t2[1:T_steps], MSEs[i,:], colorss[i])
         scatter(t2[1:T_steps], MSEs[i,:], s = sc, color=colorss[i], marker = markers[i], label=methods[i])
     end
@@ -240,38 +297,10 @@ begin
     xlabel("Lyapunov time units")
     grid()
 
-    subplot(222)
-    for i = 1:5
+    figure(figsize=(20,10))
+    for i = 1:11
         plot(t2[1:T_steps], MSEs_n[i,:], colorss[i])
         scatter(t2[1:T_steps], MSEs_n[i,:], s = sc, color=colorss[i], marker = markers[i], label=methods[i])
-    end
-    legend()
-    title("Forecast Error (noisy)")
-    yscale("log")
-    xlim(-0, T_steps/lyap_time)
-    ylim(0.001, 1.5)
-    ylabel("MSE")
-    xlabel("Lyapunov time units")
-    grid()
-
-    subplot(223)
-    for i = 6:11
-        plot(t2[1:T_steps], MSEs[i,:], colorss[i-5])
-        scatter(t2[1:T_steps], MSEs[i,:], s = sc, color=colorss[i-5], marker = markers[i-5], label=methods[i])
-    end
-    legend()
-    title("Forecast Error")
-    yscale("log")
-    xlim(-0, T_steps/lyap_time)
-    ylim(0.001, 1.5)
-    ylabel("MSE")
-    xlabel("Lyapunov time units")
-    grid()
-
-    subplot(224)
-    for i = 6:11
-        plot(t2[1:T_steps], MSEs_n[i,:], colorss[i-5])
-        scatter(t2[1:T_steps], MSEs_n[i,:], s = sc, color=colorss[i-5], marker = markers[i-5], label=methods[i])
     end
     legend()
     title("Forecast Error (noisy)")

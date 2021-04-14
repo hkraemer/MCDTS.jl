@@ -43,7 +43,7 @@ addprocs(SlurmManager(N_worker))
 
     # initial conditions
     Random.seed!(234)
-    number_of_ics = 10 # number of different initial conditions
+    number_of_ics = 100 # number of different initial conditions
     ics = [rand(3) for i in 1:number_of_ics]
 
 end
@@ -55,7 +55,7 @@ results = @distributed (vcat) for i in eachindex(ics)
     # set different initial condition and get trajectory
     ic = ics[i]
     lo = Systems.lorenz(ic)
-    tr = trajectory(lo, 58.8; dt = dt, Ttr = 10)
+    tr = trajectory(lo, 108.8; dt = dt, Ttr = 10)
 
     # normalize time series
     data = regularize(tr)
@@ -72,8 +72,8 @@ results = @distributed (vcat) for i in eachindex(ics)
     x1_n = x_n[1:end-T_steps]
     x2_n = x_n[end-T_steps+1:end]
 
-    z1 = data[1:5000,t_idx_2[2]]
-    z1_n = data[1:5000,t_idx_2[2]] .+ σ*randn(length(data[1:5000]))
+    z1 = data[1:10000,t_idx_2[2]]
+    z1_n = data[1:10000,t_idx_2[2]] .+ σ*randn(length(data[1:10000]))
 
     data_sample = Dataset(x1,z1)
     data_sample_n = Dataset(x1_n,z1_n)
@@ -168,7 +168,11 @@ results = @distributed (vcat) for i in eachindex(ics)
     MSEs_pec2 = zeros(T_steps)
     𝒟, τ_pec2, ts_pec2, L, _ = pecuzal_embedding(data_sample; τs = taus1, w = w1)
     Y = genembed(data_sample, τ_pec2 .* (-1), ts_pec2)
-    tts = findall(x -> x==1, ts_pec2)[1]
+    if sum(ts_pec2 .== 1)>0
+        tts = findall(x -> x==1, ts_pec2)[1]
+    else
+        tts = ts_pec2[1]
+    end
     prediction = MCDTS.iterated_local_zeroth_prediction(Y, KK, T_steps; theiler = w1)
     for j = 1:T_steps
         MSEs_pec2[j] = MCDTS.compute_mse(prediction[1:j,tts], x2[1:j]) / σ₂
@@ -177,7 +181,11 @@ results = @distributed (vcat) for i in eachindex(ics)
     MSEs_pec2_n = zeros(T_steps)
     𝒟, τ_pec2_n, ts_pec2_n, L, _ = pecuzal_embedding(data_sample_n; τs = taus1, w = w1_n)
     Y = genembed(data_sample_n, τ_pec2_n .* (-1), ts_pec2_n)
-    tts = findall(x -> x==1, ts_pec2_n)[1]
+    if sum(ts_pec2_n .== 1)>0
+        tts = findall(x -> x==1, ts_pec2_n)[1]
+    else
+        tts = ts_pec2_n[1]
+    end
     prediction = MCDTS.iterated_local_zeroth_prediction(Y, KK, T_steps; theiler = w1_n)
     for j = 1:T_steps
         MSEs_pec2_n[j] = MCDTS.compute_mse(prediction[1:j,tts], x2_n[1:j]) / σ₂_n

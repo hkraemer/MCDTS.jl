@@ -23,7 +23,6 @@ addprocs(SlurmManager(N_worker))
 
     # System integration time step:
     dt = 0.01
-
     # noise level
     σ = .05
 
@@ -43,7 +42,7 @@ addprocs(SlurmManager(N_worker))
 
     # initial conditions
     Random.seed!(234)
-    number_of_ics = 10 # number of different initial conditions
+    number_of_ics = 100 # number of different initial conditions
     ics = [rand(3) for i in 1:number_of_ics]
 
 end
@@ -55,7 +54,7 @@ results = @distributed (vcat) for i in eachindex(ics)
     # set different initial condition and get trajectory
     ic = ics[i]
     lo = Systems.lorenz(ic)
-    tr = trajectory(lo, 58.8; dt = dt, Ttr = 10)
+    tr = trajectory(lo, 108.8; dt = dt, Ttr = 10)
 
     # normalize time series
     data = regularize(tr)
@@ -72,8 +71,8 @@ results = @distributed (vcat) for i in eachindex(ics)
     x1_n = x_n[1:end-T_steps]
     x2_n = x_n[end-T_steps+1:end]
 
-    z1 = data[1:5000,t_idx_2[2]]
-    z1_n = data[1:5000,t_idx_2[2]] .+ σ*randn(length(data[1:5000]))
+    z1 = data[1:10000,t_idx_2[2]]
+    z1_n = data[1:10000,t_idx_2[2]] .+ σ*randn(length(data[1:10000]))
 
     data_sample = Dataset(x1,z1)
     data_sample_n = Dataset(x1_n,z1_n)
@@ -100,28 +99,15 @@ results = @distributed (vcat) for i in eachindex(ics)
         MSEs_mcdts2_L[j] = MCDTS.compute_mse(prediction[1:j,tts], x2[1:j]) / σ₂
     end
 
-    MSEs_mcdts2_L_n = zeros(T_steps)
-    tree = MCDTS.mc_delay(data_sample_n, w1_n, (L)->(MCDTS.softmaxL(L,β=2.)), taus1, trials2; tws = 2:taus1[end], verbose=true)
-    best_node = MCDTS.best_embedding(tree)
-    τ_mcdts2_n = best_node.τs
-    ts_mcdts2_n = best_node.ts
-    Y = genembed(data_sample_n, τ_mcdts2_n .* (-1), ts_mcdts2_n)
-    tts = findall(x -> x==1, ts_mcdts2_n)[1]
-    prediction = MCDTS.iterated_local_zeroth_prediction(Y, KK, T_steps; theiler = w1_n)
-    for j = 1:T_steps
-        MSEs_mcdts2_L_n[j] = MCDTS.compute_mse(prediction[1:j,tts], x2_n[1:j]) / σ₂_n
-    end
-
-
     # Output
-    tuple(MSEs_mcdts2_L, MSEs_mcdts2_L_n)
+    tuple(MSEs_mcdts2_L)
 
 end
 
 end
 
 
-varnames = ["MSEs_mcdts2_L", "MSEs_mcdts2_L_n"]
+varnames = ["MSEs_mcdts2_L"]
 
 for i = 1:length(varnames)
     writestr = "results_Lorenz63_"*varnames[i]*".csv"

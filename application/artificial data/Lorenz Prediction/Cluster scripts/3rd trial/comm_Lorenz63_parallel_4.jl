@@ -43,7 +43,7 @@ addprocs(SlurmManager(N_worker))
 
     # initial conditions
     Random.seed!(234)
-    number_of_ics = 10 # number of different initial conditions
+    number_of_ics = 100 # number of different initial conditions
     ics = [rand(3) for i in 1:number_of_ics]
 
 end
@@ -55,7 +55,7 @@ results = @distributed (vcat) for i in eachindex(ics)
     # set different initial condition and get trajectory
     ic = ics[i]
     lo = Systems.lorenz(ic)
-    tr = trajectory(lo, 58.8; dt = dt, Ttr = 10)
+    tr = trajectory(lo, 108.8; dt = dt, Ttr = 10)
 
     # normalize time series
     data = regularize(tr)
@@ -72,8 +72,8 @@ results = @distributed (vcat) for i in eachindex(ics)
     x1_n = x_n[1:end-T_steps]
     x2_n = x_n[end-T_steps+1:end]
 
-    z1 = data[1:5000,t_idx_2[2]]
-    z1_n = data[1:5000,t_idx_2[2]] .+ σ*randn(length(data[1:5000]))
+    z1 = data[1:10000,t_idx_2[2]]
+    z1_n = data[1:10000,t_idx_2[2]] .+ σ*randn(length(data[1:10000]))
 
     data_sample = Dataset(x1,z1)
     data_sample_n = Dataset(x1_n,z1_n)
