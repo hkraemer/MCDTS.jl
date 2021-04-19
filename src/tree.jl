@@ -316,6 +316,7 @@ function expand!(n::Root, data::Dataset{D, T}, w::Int, choose_func,
                                                 Tw = Tw, tws = tws, threshold = threshold,
                                                 linear = linear, PRED_mean = PRED_mean,
                                                 PRED_L = PRED_L, PRED_KL = PRED_KL)
+
             if converged
                 break
             else

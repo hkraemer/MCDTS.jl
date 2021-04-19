@@ -70,7 +70,11 @@ function give_potential_delays(Yss::Dataset{D, T}, τs, w::Int, τ_vals, ts_vals
     metric = Euclidean()
     Ys = regularize(Yss)
     # compute Y_act
-    Y_act = genembed(Ys, τ_vals, ts_vals)
+    if PRED
+        Y_act = genembed(Ys, τ_vals .* (-1), ts_vals)
+    else
+        Y_act = genembed(Ys, τ_vals, ts_vals)
+    end
 
     # compute potential delay values with corresponding time series values and
     # L-statistic-values (or FNN-statistic-values or PRED-statistic-values,
@@ -79,6 +83,7 @@ function give_potential_delays(Yss::Dataset{D, T}, τs, w::Int, τ_vals, ts_vals
                             K, metric, α, p, KNN, τ_vals, ts_vals, FNN, tws, PRED,
                             Tw; linear = linear, PRED_mean = PRED_mean, PRED_L = PRED_L,
                             PRED_KL = PRED_KL)
+
     if isempty(τ_pots)
         flag = true
         return Int[],Int[],eltype(L_pots)[], flag
@@ -128,9 +133,9 @@ function embedding_cycle_pecuzal(Y_act, Ys, τs, w, samplesize, K, metric, α, p
     if PRED && ~PRED_L
         ε★ = zeros(length(τs), size(Ys,2))
     elseif PRED && PRED_L
-        ε★, _ = pecora(Ys, Tuple(τ_vals.*(-1)), Tuple(ts_vals); delays = τs, w = w,
+        ε★, _ = pecora(Ys, Tuple(τ_vals .*(-1)), Tuple(ts_vals); delays = τs.*(-1), w = w,
                 samplesize = samplesize, K = K, metric = metric, α = α,
-                p = p, undersampling = false)
+                p = p, undersampling = false, PRED = PRED)
     else
         ε★, _ = pecora(Ys, Tuple(τ_vals), Tuple(ts_vals); delays = τs, w = w,
                 samplesize = samplesize, K = K, metric = metric, α = α,
@@ -247,9 +252,13 @@ function local_PRED_statistics(ε★, Y_act, Ys, τs, w, metric, Tw; τ_vals = [
         _, max_idx = get_maxima(ε★) # determine local maxima in ⟨ε★⟩
     else
         max_idx = Vector(τs.+2)
-        ts_idx = findall(e->e==ts, ts_vals) # do not consider already taken delays
-        filter!(e->e∉(τ_vals[ts_idx] .+ 2), max_idx) # do not consider already taken delays
     end
+    ts_idx = findall(e->e==ts, ts_vals) # do not consider already taken delays
+    filter!(e->e∉(τ_vals[ts_idx] .+ 2), max_idx) # do not consider already taken delays
+
+    # println("The actual ts: $ts_vals")
+    # println("The actual taus: $τ_vals")
+    # println("The possible maxima: $(τs[max_idx.-1].*(-1)))")
     PRED_mse = zeros(Float64, length(max_idx))
     for (i,τ_idx) in enumerate(max_idx)
         # create candidate phase space vector for this peak/τ-value

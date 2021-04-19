@@ -37,7 +37,7 @@ MSEs_n(3,:,:) = load("./Results 2/results_Roessler_MSEs_hegger_n.csv");
 MSEs_n(4,:,:) = load("./Results 2/results_Roessler_MSEs_pec_n.csv");
 MSEs_n(5,:,:) = load("./Results 2/results_Roessler_MSEs_pec2_n.csv");
 MSEs_n(6,:,:) = load("./Results 2/results_Roessler_MSEs_mcdts_L_n.csv");
-%MSEs_n(7,:,:) = load("./Results 2/results_Roessler_MSEs_mcdts2_L_n.csv");
+MSEs_n(7,:,:) = load("./Results 2/results_Roessler_MSEs_mcdts2_L_n.csv");
 MSEs_n(8,:,:) = load("./Results 2/results_Roessler_MSEs_mcdts_FNN_n.csv");
 MSEs_n(9,:,:) = load("./Results 2/results_Roessler_MSEs_mcdts2_FNN_n.csv");
 MSEs_n(10,:,:) = load("./Results 2/results_Roessler_MSEs_mcdts_PRED_n.csv");
@@ -49,7 +49,7 @@ MSEs_n(13,:,:) = load("./Results 2/results_Roessler_MSEs_mcdts2_PRED_KL_n.csv");
 
 % compute distribution of prediction times lower than a given threshold (aacuracy)
 % for each method
-threshold = 0.01;
+threshold = 0.05;
 times = zeros(13,number_of_ics);
 times_n = zeros(13,number_of_ics);
 
