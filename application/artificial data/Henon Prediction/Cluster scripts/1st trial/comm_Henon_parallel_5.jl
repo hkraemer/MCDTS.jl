@@ -41,7 +41,7 @@ addprocs(SlurmManager(N_worker))
     # initial conditions
     Random.seed!(234)
     number_of_ics = 100 # number of different initial conditions
-    ics = [rand(2) for i in 1:number_of_ics]
+    ics = [rand(1) for i in 1:number_of_ics]
 
 end
 
@@ -50,7 +50,7 @@ end
 results = @distributed (vcat) for i in eachindex(ics)
 
     # set different initial condition and get trajectory
-    ic = ics[i]
+    ic = fill(ics[i]...,2)
     hen = Systems.henon(ic)
     tr = trajectory(hen, 10030; Ttr = 1000)
 
