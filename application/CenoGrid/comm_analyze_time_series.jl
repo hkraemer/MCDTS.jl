@@ -46,8 +46,11 @@ predictions_zeroth = zeros(length(method_strings),(T_steps-T_steps2),T_steps2)
 predictions_linear = zeros(length(method_strings),(T_steps-T_steps2),T_steps2)
 
 
-for i = 1:length(method_strings)
+for i = 7:length(method_strings)
     println(i)
+    if i == 7 || i == 8
+        continue
+    end
     aa = readdlm("./application/CenoGrid/Prediction results/results_CENOGRID_taus_"*method_strings[i]*".csv")
     τs = [Int(aa[g]) for g = 1:length(aa)]
     if i == 5 || i == 7 || i == 9 || i == 11 || i == 13 || i == 15

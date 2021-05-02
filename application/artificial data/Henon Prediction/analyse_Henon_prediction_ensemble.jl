@@ -57,7 +57,7 @@ begin
     MSEs_n[4,:,:] = readdlm("./application/artificial data/Henon Prediction/Results 2/results_Henon_MSEs_pec_n.csv")
     MSEs_n[5,:,:] = readdlm("./application/artificial data/Henon Prediction/Results 2/results_Henon_MSEs_pec2_n.csv")
     MSEs_n[6,:,:] = readdlm("./application/artificial data/Henon Prediction/Results 2/results_Henon_MSEs_mcdts_L_n.csv")
-    MSEs_n[7,:,:] = readdlm("./application/artificial data/Henon Prediction/Results 2/results_Henon_MSEs_mcdts2_L_n.csv")
+    #MSEs_n[7,:,:] = readdlm("./application/artificial data/Henon Prediction/Results 2/results_Henon_MSEs_mcdts2_L_n.csv")
     MSEs_n[8,:,:] = readdlm("./application/artificial data/Henon Prediction/Results 2/results_Henon_MSEs_mcdts_FNN_n.csv")
     MSEs_n[9,:,:] = readdlm("./application/artificial data/Henon Prediction/Results 2/results_Henon_MSEs_mcdts2_FNN_n.csv")
     MSEs_n[10,:,:] = readdlm("./application/artificial data/Henon Prediction/Results 2/results_Henon_MSEs_mcdts_PRED_n.csv")
@@ -104,7 +104,7 @@ begin
         end
     end
     yscale("log")
-    title("5% additive noise")
+    title("3% additive noise")
     grid()
     legend()
     ylim([0.0005, 2])

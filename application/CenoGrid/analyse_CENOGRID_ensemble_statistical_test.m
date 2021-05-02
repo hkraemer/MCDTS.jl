@@ -55,6 +55,7 @@ end
 %% Statistical Test of better prediction performance
 
 thres = 1;  % time step of the prediction
+alpha = 0.05;
 
 hs = zeros(length(methods),length(methods));
 ps = ones(length(methods),length(methods));
@@ -62,11 +63,15 @@ hs_n = zeros(length(methods),length(methods));
 ps_n = ones(length(methods),length(methods));
 for i = 1:length(methods)
     for j = 1:length(methods)
-        if median(MSEs_zeroth(i,:,thres))>median(MSEs_zeroth(j,:,thres))
-            [ps(i,j),hs(i,j)] = ranksum(MSEs_zeroth(i,:,thres),MSEs_zeroth(j,:,thres));
+        d1 = squeeze(MSEs_zeroth(i,:,thres));
+        d2 = squeeze(MSEs_zeroth(j,:,thres));
+        if median(d1)<median(d2)
+            [ps(i,j),hs(i,j)] = ranksum(d1,d2,'alpha',alpha);
         end
-        if median(MSEs_linear(i,:,thres))>median(MSEs_linear(j,:,thres))
-            [ps_n(i,j),hs_n(i,j)] = ranksum(MSEs_linear(i,:,thres),MSEs_linear(j,:,thres));
+        d1 = squeeze(MSEs_linear(i,:,thres));
+        d2 = squeeze(MSEs_linear(j,:,thres));
+        if median(d1)<median(d2)
+            [ps_n(i,j),hs_n(i,j)] = ranksum(d1,d2,'alpha',alpha);
         end
     end
 end
@@ -77,18 +82,22 @@ hs_n
 ps_n
 
 %% Plot selected histograms of MSEs
-
-thres = 1;  % time step of the prediction
-
-figure('Units','normalized','Position',[.01 .01 .99 .99])
-for i = 1:length(methods)
-    subplot(5,3,i)
-    histogram(MSEs_zeroth(i,:,thres))
-    title(strcat("MSE of prediction step: ",num2str(thres)," (",methods(i),")"))
-    ylabel("frequency")
-    ylim([0, 50])
-    xlim([0, 1.5])
-    xlabel("MSE")
-    grid on
-end
+% 
+% i=11;
+% figure
+% subplot(121)
+% for j = 1:100
+%     plot(1:T_steps2, squeeze(MSEs_zeroth(2,j,:))),hold on
+% end
+% set(gca, 'YScale', 'log')
+% grid on
+% ylim([0.001 2])
+% 
+% subplot(122)
+% for j = 1:100
+%     plot(1:T_steps2,squeeze(MSEs_zeroth(i,j,:))),hold on
+% end
+% set(gca, 'YScale', 'log')
+% grid on
+% ylim([0.001 2])
 

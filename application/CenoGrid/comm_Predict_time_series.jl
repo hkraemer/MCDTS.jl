@@ -9,6 +9,14 @@ using DelimitedFiles
 # using PyPlot
 # pygui(true)
 
+
+
+#####################  THE RECONSTRUCTIONS and PREDICTION ARE MADE ON THE CLUSTER ############
+############# -------> ./Cluster ########################################
+
+
+
+
 #data = readdlm("./application/CENOGRID/data/detrended.txt")
 data = readdlm("detrended.txt")
 
