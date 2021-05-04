@@ -136,7 +136,7 @@ i = 3
 ic = ics[i]
 lo = Systems.lorenz(ic)
 log = Systems.logistic()
-hen = Systems.henon(rand(2))
+hen = Systems.henon()
 tr = trajectory(lo, 11.1; dt = dt, Ttr = 10)
 tr = trajectory(log, 10110)
 tr = trajectory(hen, 10030; Ttr = 1000)

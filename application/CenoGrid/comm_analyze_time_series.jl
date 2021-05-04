@@ -46,9 +46,9 @@ predictions_zeroth = zeros(length(method_strings),(T_steps-T_steps2),T_steps2)
 predictions_linear = zeros(length(method_strings),(T_steps-T_steps2),T_steps2)
 
 
-for i = 7:length(method_strings)
+for i = 1:length(methods)
     println(i)
-    if i == 7 || i == 8
+    if i == 6 || i == 7
         continue
     end
     aa = readdlm("./application/CenoGrid/Prediction results/results_CENOGRID_taus_"*method_strings[i]*".csv")
@@ -130,6 +130,22 @@ for i = 1:length(methods)
 end
 
 
+
+##
+begin
+    i=11
+    figure()
+    plot(1:T_steps2, MEANs_zeroth[1,:], label = methods[1])
+    plot(1:T_steps2, MEANs_zeroth[i,:], label = methods[i])
+    yscale("log")
+    grid()
+    legend()
+    ylim([0.001, 2])
+end
+
+##
+
+
 ## plot all results at once
 begin
     figure(figsize=(20,10))
@@ -161,7 +177,7 @@ end
 
 
 # only plot the traditional ones and one additional
-num = [8,9]
+num = [8,15]
 begin
     figure(figsize=(20,10))
     for i = 1:3
@@ -180,7 +196,7 @@ end
 
 
 # Plot all 100 trials for two selected methods
-num = [2,4]
+num = [2,10]
 begin
     figure(figsize=(20,10))
     subplot(121)
@@ -210,28 +226,28 @@ begin
 end
 
 
-# Plot predictions for two selected methods and a selected trial
-trial = 3
-num = [2,4]
-
-begin
-    figure(figsize=(20,10))
-    subplot(211)
-    plot(t2[trial:trial+T_steps2-1], x2[trial:trial+T_steps2-1], label="true")
-    plot(t2[trial:trial+T_steps2-1], predictions_zeroth[num[1],trial,1:T_steps2], label=methods[num[1]])
-    legend()
-    #ylim([0.001, 2])
-    #xlabel("Lyapunov time")
-    grid()
-    title("Predictions for run $trial")
-
-    subplot(212)
-    plot(t2[trial:trial+T_steps2-1], x2[trial:trial+T_steps2-1], label="true")
-    plot(t2[trial:trial+T_steps2-1], predictions_zeroth[num[2],trial,1:T_steps2], label=methods[num[2]])
-    legend()
-    #ylim([0.001, 2])
-    #xlabel("Lyapunov time")
-    grid()
-    title("Predictions for run $trial")
-
-end
+# # Plot predictions for two selected methods and a selected trial
+# trial = 3
+# num = [2,5]
+#
+# begin
+#     figure(figsize=(20,10))
+#     subplot(211)
+#     plot(t2[trial:trial+T_steps2-1], x2[trial:trial+T_steps2-1], label="true")
+#     plot(t2[trial:trial+T_steps2-1], predictions_zeroth[num[1],trial,1:T_steps2], label=methods[num[1]])
+#     legend()
+#     #ylim([0.001, 2])
+#     #xlabel("Lyapunov time")
+#     grid()
+#     title("Predictions for run $trial")
+#
+#     subplot(212)
+#     plot(t2[trial:trial+T_steps2-1], x2[trial:trial+T_steps2-1], label="true")
+#     plot(t2[trial:trial+T_steps2-1], predictions_zeroth[num[2],trial,1:T_steps2], label=methods[num[2]])
+#     legend()
+#     #ylim([0.001, 2])
+#     #xlabel("Lyapunov time")
+#     grid()
+#     title("Predictions for run $trial")
+#
+# end
