@@ -150,6 +150,8 @@ ylim([0.001, 4])
 
 %% Appendix
 
+%%% CAUTION ! C13 AND O18 SWAPPED %%%%
+
 lw = 2;
 fs = 20;
 
@@ -158,9 +160,8 @@ subplot(211)
 plot(t,O18, 'Color', [142,144,143]/255, 'LineWidth',lw)
 title('detrended Cenozoic Global Reference benthic foraminifer carbon and oxygen Isotope Dataset (CENOGRID)')
 xlim([0 t(end)])
-ylabel('\delta^{18}O [‰]')
+ylabel('\delta^{13}C [‰]')
 set(gca, 'Xdir','reverse')
-set(gca, 'Ydir','reverse')
 set(gca, 'LineWidth',2)
 set(gca, 'FontSize',fs)
 grid on
@@ -168,9 +169,10 @@ grid on
 subplot(212)
 plot(t,O13, 'Color',  [142,144,143]/255, 'LineWidth',lw)
 xlim([0 t(end)])
-ylabel('\delta^{13}C [‰]')
+ylabel('\delta^{18}O [‰]')
 xlabel('time [Mio yrs BP]')
 set(gca, 'Xdir','reverse')
+set(gca, 'Ydir','reverse')
 set(gca, 'LineWidth',2)
 set(gca, 'FontSize',fs)
 grid on

@@ -936,3 +936,61 @@ function compute_KL_divergence(a::Vector{T}, b::Vector{T}) where {T}
     # compute KL-divergence
     return kl_divergence(pdf2, pdf1)
 end
+
+
+"""
+    ccm(X, Y) → Y_hat, idx
+
+    Compute the convergent crossmapping (CCM) (Sugihara et al. 2012) of two
+vector time series `X` and `Y` (must have the same length and dimensionality).
+Return the predicted values for `Y`, `Y_hat`, based on the nearest neighbour
+structure of `X`. Additionaly the indices of the chosen points, `idx`, are
+returned.
+"""
+function ccm(X::Dataset{D,T},Y::Dataset{D,T}; metric = Euclidean(),
+        samplesize::Real = 1.0, w::Int = 1) where {D,T<:Real}
+
+    K = D+1
+    @assert length(X)==length(Y)
+
+    # X = regularize(X) # normalization
+    # Y = regularize(Y) # normalization
+    XX = Matrix(X)
+
+    N = length(X)
+    NN = floor(Int, samplesize*N)
+    if samplesize == 1
+        ns = 1:N # the fiducial point indices
+    else
+        ns = sample(1:N, NN; replace=false) # the fiducial point indices
+    end
+
+    vxs = X[ns] # the fiducial points in the data set
+    vys = Y[ns]
+
+    vtree = KDTree(X, metric)
+    allNNidxs, allNNdist = DelayEmbeddings.all_neighbors(vtree, vxs, ns, K, w)
+
+    Y_hat = zeros(T, N, D) # preallocation
+
+    # loop over each fiducial point
+    for (i,v) in enumerate(vxs)
+        NNidxs = allNNidxs[i] # indices of k nearest neighbors to v
+        NNdist = allNNdist[i] # indices of k nearest neighbors to v
+
+        # determine weights
+        u = zeros(K)
+        ws = zeros(K)
+        @inbounds for (k, j) in enumerate(NNdist)
+            u[k] = exp(-(j/NNdist[1]))
+        end
+        ws = u ./ sum(u)
+
+        # compute Y_hat as a wheighted mean
+        for j = 1:D
+            Y_hat[i,j] = sum(ws .* XX[NNidxs,j])
+        end
+    end
+
+    return Dataset(Y_hat), ns
+end
