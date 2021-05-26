@@ -939,16 +939,14 @@ end
 
 
 """
-    ccm(X, Y) → Y_hat, idx
+    ccm(X, Y) → ρ, Y_hat
 
     Compute the convergent crossmapping (CCM) (Sugihara et al. 2012) of two
-vector time series `X` and `Y` (must have the same length and dimensionality).
-Return the predicted values for `Y`, `Y_hat`, based on the nearest neighbour
-structure of `X`. Additionaly the indices of the chosen points, `idx`, are
-returned.
+    vector time series `X` and `Y` (must have the same length and dimensionality).
+    Return the correlation coefficient of `Y` and its predicted values for `Y_hat`,
+    based on the nearest neighbour structure of `X`.
 """
-function ccm(X::Dataset{D,T},Y::Dataset{D,T}; metric = Euclidean(),
-        samplesize::Real = 1.0, w::Int = 1) where {D,T<:Real}
+function ccm(X::Dataset{D,T},Y::Dataset{D,T}; metric = Euclidean(), w::Int = 1) where {D,T<:Real}
 
     K = D+1
     @assert length(X)==length(Y)
@@ -956,8 +954,11 @@ function ccm(X::Dataset{D,T},Y::Dataset{D,T}; metric = Euclidean(),
     # X = regularize(X) # normalization
     # Y = regularize(Y) # normalization
     XX = Matrix(X)
+    YY = Matrix(Y)
 
     N = length(X)
+    # for potential later extension to sampled batches of fraction samplesize
+    samplesize = 1
     NN = floor(Int, samplesize*N)
     if samplesize == 1
         ns = 1:N # the fiducial point indices
@@ -966,12 +967,11 @@ function ccm(X::Dataset{D,T},Y::Dataset{D,T}; metric = Euclidean(),
     end
 
     vxs = X[ns] # the fiducial points in the data set
-    vys = Y[ns]
 
     vtree = KDTree(X, metric)
     allNNidxs, allNNdist = DelayEmbeddings.all_neighbors(vtree, vxs, ns, K, w)
 
-    Y_hat = zeros(T, N, D) # preallocation
+    Y_hat = zeros(T, NN, D) # preallocation
 
     # loop over each fiducial point
     for (i,v) in enumerate(vxs)
@@ -988,9 +988,12 @@ function ccm(X::Dataset{D,T},Y::Dataset{D,T}; metric = Euclidean(),
 
         # compute Y_hat as a wheighted mean
         for j = 1:D
-            Y_hat[i,j] = sum(ws .* XX[NNidxs,j])
+            Y_hat[i,j] = sum(ws .* YY[NNidxs,j])
         end
     end
 
-    return Dataset(Y_hat), ns
+    # compute correlation coefficient between Y_hat and YY
+    ρ = Statistics.cor(Y_hat[:,1], YY[ns,1])
+
+    return ρ, Dataset(Y_hat)
 end
