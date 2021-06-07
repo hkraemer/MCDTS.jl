@@ -44,6 +44,8 @@ of multivariate time series input choose `w` as the maximum of all `wᵢ's`.
 * `PRED_KL::Bool=false`: If `PRED = true`, this determines whether the prediction shall
   be optimized on the Kullback-Leibler-divergence of the in-sample prediction and
   the true in-sample values, or if the optimization shall be made on the MSE of them (Default)
+* `CCM:Bool=false`: TBD
+* `Y_CCM`: TBD
 * `threshold::Real = 0`: The algorithm does not pick a peak from the continuity
   statistic, when its corresponding `ΔL`/FNN-value exceeds this threshold. Please
   provide a positive number for both, `L` and `FNN`-statistic option (since the
@@ -58,17 +60,21 @@ function give_potential_delays(Yss::Dataset{D, T}, τs, w::Int, τ_vals, ts_vals
                 KNN::Int = 3, FNN::Bool = false, PRED::Bool = false, Tw::Int = 1,
                 threshold::Real = 0, tws::AbstractRange{Int} = 2:τs[end],
                 linear::Bool=false, PRED_mean::Bool=false, PRED_L::Bool=false,
-                PRED_KL::Bool=false) where {D, T}
+                PRED_KL::Bool=false, CCM::Bool=false, Y_CCM = Dataset(zeros(size(Yss)))) where {D, T}
 
-    @assert (FNN || PRED) || (~FNN && ~PRED) "Select either FNN or PRED keyword (or none)."
+    @assert (FNN || PRED) || (~FNN && ~PRED) || (~FNN && ~PRED && CCM) "Select either FNN or PRED or CCM keyword (or none)."
     @assert 0 < samplesize ≤ 1 "Please select a valid `samplesize`, which denotes a fraction of considered fiducial points, i.e. `samplesize` ∈ (0 1]"
     @assert all(x -> x ≥ 0, τs)
     @assert threshold ≥ 0
-    if ~FNN && ~PRED
+    if ~FNN && ~PRED && ~CCM
         threshold = -threshold # due to the negativity of L-decrease
+    elseif CCM
+        threshold = -0.99999999999
     end
     metric = Euclidean()
     Ys = regularize(Yss)
+    Y_other = regularize(Y_CCM)
+
     # compute Y_act
     if PRED
         Y_act = genembed(Ys, τ_vals .* (-1), ts_vals)
@@ -77,23 +83,25 @@ function give_potential_delays(Yss::Dataset{D, T}, τs, w::Int, τ_vals, ts_vals
     end
 
     # compute potential delay values with corresponding time series values and
-    # L-statistic-values (or FNN-statistic-values or PRED-statistic-values,
-    # these will be binded in `L_pots` for simplicity, anyway)
+    # L-statistic-values (or FNN-statistic-values or PRED-statistic-values, or
+    # correlation coefficient of the CCM-method; these will be binded in `L_pots`
+    # for simplicity, anyway)
     τ_pots, ts_pots, L_pots = embedding_cycle_pecuzal(Y_act, Ys, τs, w, samplesize,
                             K, metric, α, p, KNN, τ_vals, ts_vals, FNN, tws, PRED,
                             Tw; linear = linear, PRED_mean = PRED_mean, PRED_L = PRED_L,
-                            PRED_KL = PRED_KL)
+                            PRED_KL = PRED_KL, CCM = CCM, Y_other = Y_other)
 
-    if isempty(τ_pots)
+    if isempty(τ_pots...)
         flag = true
         return Int[],Int[],eltype(L_pots)[], flag
     end
+
     # transform array of arrays to a single array
     τ_pot = reduce(vcat, τ_pots)
     ts_pot = reduce(vcat, ts_pots)
     L_pot = reduce(vcat, L_pots)
 
-    if FNN || PRED
+    if FNN || PRED || CCM
         if (minimum(L_pot) ≥ L_old)
             flag = true
             return Int[],Int[],eltype(L_pot)[], flag
@@ -129,8 +137,10 @@ fnn-statistic-values.
 """
 function embedding_cycle_pecuzal(Y_act, Ys, τs, w, samplesize, K, metric, α, p,
                     KNN, τ_vals, ts_vals, FNN, tws, PRED, Tw; linear::Bool=false,
-                    PRED_mean::Bool=false, PRED_L::Bool=false, PRED_KL::Bool=false)
-    if PRED && ~PRED_L
+                    PRED_mean::Bool=false, PRED_L::Bool=false, PRED_KL::Bool=false,
+                    CCM::Bool=false, Y_other = zeros(size(Ys)))
+
+    if (PRED && ~PRED_L) || CCM
         ε★ = zeros(length(τs), size(Ys,2))
     elseif PRED && PRED_L
         ε★, _ = pecora(Ys, Tuple(τ_vals .*(-1)), Tuple(ts_vals); delays = τs.*(-1), w = w,
@@ -147,7 +157,8 @@ function embedding_cycle_pecuzal(Y_act, Ys, τs, w, samplesize, K, metric, α, p
                                             tws, PRED, Tw; τ_vals = τ_vals,
                                             ts_vals = ts_vals, linear = linear,
                                             PRED_mean = PRED_mean, PRED_L = PRED_L,
-                                            PRED_KL = PRED_KL)
+                                            PRED_KL = PRED_KL, CCM = CCM,
+                                            Y_other = Y_other)
     return τ_pot, ts_pot, L_pot
 end
 
@@ -160,7 +171,7 @@ corresponding L-statistics (or FNN-statistics, if `FNN=true`, or MSE, if
 function pick_possible_embedding_params(ε★, Y_act, Ys, τs, KNN, w, samplesize,
             metric, FNN, tws, PRED, Tw; τ_vals = [0], ts_vals = [1],
             linear::Bool=false, PRED_mean::Bool=false, PRED_L::Bool=false,
-            PRED_KL::Bool=false)
+            PRED_KL::Bool=false, CCM::Bool=false, Y_other = zeros(size(Y_act)))
 
     L_pots = []
     τ_pots = []
@@ -178,6 +189,10 @@ function pick_possible_embedding_params(ε★, Y_act, Ys, τs, KNN, w, samplesiz
                                    ts_vals = ts_vals, ts = ts, linear = linear,
                                    K = KNN, PRED_mean = PRED_mean,
                                    PRED_L = PRED_L, PRED_KL = PRED_KL)
+        elseif CCM
+            L_trials, max_idx = local_CCM_statistics(vec([0; ε★[:,ts]]), Y_act,
+                                   Ys, Y_other, τs, w, metric, Tw; τ_vals = τ_vals,
+                                   ts_vals = ts_vals, ts = ts)
         else
             L_trials, max_idx = MCDTS.local_L_statistics(vec([0; ε★[:,ts]]), Y_act,
                             Ys[:,ts], τs, KNN, w, samplesize, metric; tws = tws)
@@ -256,9 +271,6 @@ function local_PRED_statistics(ε★, Y_act, Ys, τs, w, metric, Tw; τ_vals = [
     ts_idx = findall(e->e==ts, ts_vals) # do not consider already taken delays
     filter!(e->e∉(τ_vals[ts_idx] .+ 2), max_idx) # do not consider already taken delays
 
-    # println("The actual ts: $ts_vals")
-    # println("The actual taus: $τ_vals")
-    # println("The possible maxima: $(τs[max_idx.-1].*(-1)))")
     PRED_mse = zeros(Float64, length(max_idx))
     for (i,τ_idx) in enumerate(max_idx)
         # create candidate phase space vector for this peak/τ-value
@@ -306,6 +318,35 @@ function local_PRED_statistics(ε★, Y_act, Ys, τs, w, metric, Tw; τ_vals = [
         end
     end
     return PRED_mse, max_idx
+end
+
+
+
+"""
+Return negative correlation coefficient for CCM.
+"""
+function local_CCM_statistics(ε★, Y_act, Ys, Y_other, τs, w, metric, Tw; τ_vals = [0],
+                        ts_vals = [1], ts = 1, K::Int = 1)
+    s = Ys[:,ts]
+    max_idx = Vector(τs.+2)
+
+
+    ts_idx = findall(e->e==ts, ts_vals) # do not consider already taken delays
+    filter!(e->e∉(τ_vals[ts_idx] .+ 2), max_idx) # do not consider already taken delays
+
+    ρ_CCM = zeros(Float64, length(max_idx))
+
+    for (i,τ_idx) in enumerate(max_idx)
+        # create candidate phase space vector for this peak/τ-value
+        tau_trials = ((τ_vals.*(-1))...,(τs[τ_idx-1]*(-1)),)
+        ts_trials = (ts_vals...,ts,)
+        Y_trial = genembed(Ys, tau_trials, ts_trials)
+        Ys_other = genembed(Y_other, tau_trials, ts_trials)
+        # compute ρ_CCM for Y_trial and Y_other
+        ρ_CCM[i], _ = MCDTS.ccm(Y_trial, Ys_other; w = w)
+
+    end
+    return -ρ_CCM, max_idx
 end
 
 

@@ -33,6 +33,24 @@ plot3D(Yx[:,1], Yx[:,2], Yx[:,3])
 figure()
 plot3D(Yy[:,1], Yy[:,2], Yy[:,3])
 
+
+lengths = 1000:1000:length(Yx)
+ρ_xy = zeros(length(lengths))
+ρ_yx = zeros(length(lengths))
+for (i,l) in enumerate(lengths)
+    println(i)
+    ρ_xy[i], _ = MCDTS.ccm(Yx[1:l,:], Yy[1:l,:])
+    ρ_yx[i], _ = MCDTS.ccm(Yy[1:l,:], Yx[1:l,:])
+end
+
+figure()
+plot(lengths,ρ_xy, label="X→Y")
+plot(lengths,ρ_xy, label="Y→X")
+grid()
+legend()
+
+
+
 ## coupled Logistic
 L = 3500
 x = zeros(L)
@@ -58,15 +76,15 @@ Yx = embed(x,2,1)
 Yy = embed(y,2,1)
 
 w1 = DelayEmbeddings.estimate_delay(x, "mi_min")
-ρ, Y_hat = MCDTS.ccm(Yx; w = w1)
+ρ, Y_hat = MCDTS.ccm(Yx, Yy; w = w1)
 
 yyy, _ = optimal_traditional_de(x, "fnn"; w = w1)
 
 ##
-d1 = 5
-d2 = 5
-τ1 = 15
-τ2 = 15
+d1 = 2
+d2 = 2
+τ1 = 1
+τ2 = 1
 cnt = 1
 rho_x = zeros(length(100:100:3500))
 rho_y = zeros(length(100:100:3500))
@@ -96,74 +114,20 @@ plot(100:100:3500,rho_x)
 plot(100:100:3500,rho_y)
 grid()
 
+using MCDTS
 
-lag = 1
-figure()
-scatter(Yy[1+lag:end,3], Y_hat[1:end-lag,3])
-
-figure()
-plot(Yy[1:end-lag,1],"ro",linewidth=2)
-plot(Y_hat[1+lag:end,1],"kx", linewidth=2)
-grid()
-
-lags = 0:500
-corrs = zeros(length(lags))
-corrs2 = zeros(length(lags)-1)
-for (i,l) in enumerate(lags)
-    corrs[i] = Statistics.cor(Yy[1+l:end,1], Y_hat[1:end-l,1])
-    if i>1
-        corrs2[i-1] = Statistics.cor(Yy[1:end-l,1], Y_hat[1+l:end,1])
-    end
-end
-coss = vcat(corrs,corrs2)
-
-figure()
-plot(-500:500,coss)
-
-N = 4000
-x = zeros(N)
-y = zeros(N)
-x[1] = 0.2
-y[1] = 0.12
-for n = 1:N-1
-    x[n+1]= x[n]*(3.8 - 3.8*x[n] - 0.02*y[n])
-    y[n+1]= y[n]*(3.5 - 3.5*y[n] - 0.1*x[n])
-end
-
-figure()
-plot(x)
-plot(y)
-grid()
+test1 = regularize(Dataset(x))
+test2 = regularize(Dataset(y))
+# try MCDTS with CCM
+taus1 = 0:10 # the possible delay vals
+trials = 20 # the sampling of the tree
+tree = MCDTS.mc_delay(test1, w1, (L)->(MCDTS.softmaxL(L,β=2.)), taus1, trials;
+    verbose=false, CCM = true, Y_CCM = test2)
+best_node = MCDTS.best_embedding(tree)
+τ_mcdts2_n = best_node.τs
+ts_mcdts2_n = best_node.ts
 
 
-w = DelayEmbeddings.estimate_delay(x, "mi_min")
-Yx, taus, _, _, _ = pecuzal_embedding(x; w=w)
+test = Dataset(x)
 
-Yx = embed(x,3,1)
-Yy = embed(y,3,1)
-
-Y_hat, idx = MCDTS.ccm(Yx,Yy; w = w)
-
-lag = 0
-
-figure()
-plot(Yy[1:end-lag,1],"r",linewidth=2)
-plot(Y_hat[1+lag:end,1],"k", linewidth=2)
-grid()
-
-corrs = Statistics.cor(Yy[1+l:end,1], Y_hat[1:end-l,1])
-
-x = zeros(10000)
-x[1]=0.2
-for i = 2:10000
-    x[i]=4*x[i-1] * (1-x[i-1])
-end
-
-figure()
-plot(x)
-
-#x = 0.0000000001 .* randn(10000)
-
-Y_,tau,_,_,_ = pecuzal_embedding(x)
-
-Y = optimal_traditional_de(x)
+println(test[1:5])

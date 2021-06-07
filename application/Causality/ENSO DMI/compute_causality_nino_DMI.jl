@@ -55,7 +55,7 @@ for i in lengths
     Yx, tau = optimal_traditional_de(xx,"fnn"; w = w1)
     taus = zeros(Int,size(Yx,2))
     for j = 2:size(Yx,2)
-        taus[j] = -(j-1)*tau
+        taus[j] = (j-1)*tau
     end
     println(taus)
     Yy = genembed(yy,taus)
@@ -64,7 +64,7 @@ for i in lengths
     Yx, tau = optimal_traditional_de(yy,"fnn"; w = w2)
     taus = zeros(Int,size(Yx,2))
     for j = 2:size(Yx,2)
-        taus[j] = -(j-1)*tau
+        taus[j] = (j-1)*tau
     end
     Yy = genembed(xx,taus)
 
@@ -73,14 +73,14 @@ for i in lengths
     # PECUZAL embedding
     # Yx, taus, _, _, _ = pecuzal_embedding(xx; w=w1)
     # Yy = genembed(yy,-taus)
-    Yx = genembed(xx,[0,-1])
-    Yy = genembed(yy,[0,-1])
+    Yx = genembed(xx,[0,1])
+    Yy = genembed(yy,[0,1])
     ρ_nino_DMI_pecuzal[cnt], _ = MCDTS.ccm(Dataset(Yx),Dataset(Yy); w = w1)
 
     # Yx, taus, _, _, _ = pecuzal_embedding(yy; w=w2)
     # Yy = genembed(xx,-taus)
-    Yx = genembed(yy,[0,-1])
-    Yy = genembed(xx,[0,-1])
+    Yx = genembed(yy,[0,1])
+    Yy = genembed(xx,[0,1])
     ρ_DMI_nino_pecuzal[cnt], _ = MCDTS.ccm(Dataset(Yx),Dataset(Yy); w = w2)
 
 

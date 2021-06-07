@@ -137,9 +137,10 @@ function next_embedding(n::Node, Ys::Dataset{D, T}, w::Int, τs; KNN::Int = 3,
                             tws::AbstractRange{Int} = 2:τs[end],
                             threshold::Real = 0, linear::Bool = false,
                             PRED_L::Bool = false, PRED_mean::Bool = false,
-                            PRED_KL::Bool = false) where {D, T<:Real}
+                            PRED_KL::Bool = false, CCM::Bool = false,
+                            Y_CCM = Dataset(zeros(size(Yss))) ) where {D, T<:Real}
 
-    @assert (FNN || PRED) || (~FNN && ~PRED) "Select either FNN or PRED keyword (or none)."
+    @assert (FNN || PRED) || (~FNN && ~PRED) || (~FNN && ~PRED && CCM) "Select either FNN or PRED or CCM keyword (or none)."
     τs_old = get_τs(n)
     ts_old = get_ts(n)
     L_old = n.L
@@ -148,7 +149,8 @@ function next_embedding(n::Node, Ys::Dataset{D, T}, w::Int, τs; KNN::Int = 3,
                             Tuple(ts_old), L_old; KNN = KNN, FNN = FNN,
                             PRED = PRED, Tw = Tw, linear = linear, tws = tws,
                             threshold = threshold, PRED_L = PRED_L,
-                            PRED_mean = PRED_mean, PRED_KL = PRED_KL)
+                            PRED_mean = PRED_mean, PRED_KL = PRED_KL, CCM = CCM,
+                            Y_CCM = Y_CCM)
 
     return τ_pot, ts_pot, L_pot, flag
 end
@@ -158,9 +160,11 @@ function next_embedding(n::Root, Ys::Dataset{D, T}, w::Int, τs; KNN::Int = 3,
                             tws::AbstractRange{Int} = 2:τs[end],
                             threshold::Real = 0, linear::Bool = false,
                             PRED_L::Bool = false, PRED_mean::Bool = false,
-                            PRED_KL::Bool = false) where {D, T<:Real}
+                            PRED_KL::Bool = false,
+                            CCM::Bool = false,
+                            Y_CCM = Dataset(zeros(size(Yss)))) where {D, T<:Real}
 
-    @assert (FNN || PRED) || (~FNN && ~PRED) "Select either FNN or PRED keyword (or none)."
+    @assert (FNN || PRED) || (~FNN && ~PRED) || (~FNN && ~PRED && CCM) "Select either FNN or PRED or CCM keyword (or none)."
 
     if FNN
         # τ_pot = zeros(Int, size(Ys,2))
@@ -168,7 +172,7 @@ function next_embedding(n::Root, Ys::Dataset{D, T}, w::Int, τs; KNN::Int = 3,
         τ_pot = [0]
         ts_pot = [1]                # force 1st component to be 1st time series
         L_pot = ones(size(Ys,2))
-    elseif PRED
+    elseif PRED || CCM
         τ_pot = [0]
         ts_pot = [1]                # force 1st component to be 1st time series
         L_pot = 99999*ones(size(Ys,2))
@@ -287,6 +291,8 @@ This is one single rollout and backprop of the tree.
 * `PRED_KL::Bool=false`: If `PRED = true`, this determines whether the prediction shall
   be optimized on the Kullback-Leibler-divergence of the in-sample prediction and
   the true in-sample values, or if the optimization shall be made on the MSE of them (Default)
+* `CCM:Bool=false`: TBD
+* `Y_CCM`: TBD
 * `threshold::Real = 0`: The algorithm does not pick a peak from the continuity
   statistic, when its corresponding `ΔL`/FNN-value exceeds this threshold. Please
   provide a positive number for both, `L` and `FNN`-statistic option (since the
@@ -303,9 +309,10 @@ function expand!(n::Root, data::Dataset{D, T}, w::Int, choose_func,
             verbose=false, FNN::Bool = false, PRED::Bool = false, Tw::Int = 1,
             tws::AbstractRange{DT} = 2:delays[end], threshold::Real = 0,
             choose_mode::Int=0, linear::Bool = false, PRED_mean::Bool=false,
-            PRED_L::Bool=false, PRED_KL::Bool=false) where {D, DT, T<:Real}
+            PRED_L::Bool=false, PRED_KL::Bool=false, CCM::Bool=false,
+            Y_CCM = Dataset(zeros(size(Yss)))) where {D, DT, T<:Real}
 
-    @assert (FNN || PRED) || (~FNN && ~PRED) "Select either FNN or PRED keyword (or none)."
+    @assert (FNN || PRED) || (~FNN && ~PRED) || (~FNN && ~PRED && CCM) "Select either FNN or PRED or CCM keyword (or none)."
     @assert threshold ≥ 0
     @assert tws[1] == 2
     @assert w > 0
@@ -319,7 +326,8 @@ function expand!(n::Root, data::Dataset{D, T}, w::Int, choose_func,
                                                 KNN = KNN, FNN = FNN, PRED = PRED,
                                                 Tw = Tw, tws = tws, threshold = threshold,
                                                 linear = linear, PRED_mean = PRED_mean,
-                                                PRED_L = PRED_L, PRED_KL = PRED_KL)
+                                                PRED_L = PRED_L, PRED_KL = PRED_KL,
+                                                CCM = CCM, Y_CCM = Y_CCM)
 
             if converged
                 break
@@ -327,7 +335,7 @@ function expand!(n::Root, data::Dataset{D, T}, w::Int, choose_func,
                 # spawn children
                 children = []
                 for j = 1:length(τs)
-                    if FNN || PRED
+                    if FNN || PRED || CCM
                         push!(children, Node(τs[j],ts[j],Ls[j],[get_τs(current_node); τs[j]], [get_ts(current_node); ts[j]], nothing))
                     else
                         if typeof(current_node) == MCDTS.Root
@@ -382,7 +390,8 @@ function mc_delay(data, w::Int, choose_func, delays::AbstractRange{D}, N::Int=40
             max_depth::Int=20, KNN::Int = 3, FNN::Bool = false, PRED::Bool=false,
             Tw::Int = 1, verbose::Bool=false, tws::AbstractRange{D} = 2:delays[end],
             threshold::Real = 0, linear::Bool = false, PRED_mean::Bool=false,
-            PRED_L::Bool=false, PRED_KL::Bool=false) where {D}
+            PRED_L::Bool=false, PRED_KL::Bool=false, CCM::Bool=false,
+            Y_CCM = Dataset(zeros(size(data)))) where {D}
 
     # initialize tree
     tree = Root()
@@ -393,7 +402,8 @@ function mc_delay(data, w::Int, choose_func, delays::AbstractRange{D}, N::Int=40
                     PRED = PRED, Tw = Tw, max_depth = max_depth, tws = tws,
                     linear = linear, PRED_mean = PRED_mean, PRED_L = PRED_L,
                     PRED_KL = PRED_KL, threshold = threshold,
-                    choose_mode=i<(N/2) ? 0 : 1)
+                    choose_mode=i<(N/2) ? 0 : 1, CCM = CCM,
+                    Y_CCM = Y_CCM)
 
         if verbose
             if (i%1)==0
