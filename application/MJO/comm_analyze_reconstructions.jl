@@ -158,7 +158,7 @@ begin
     title("Iterated 1-step prediction based on zeroth predictor")
     grid()
     legend()
-    ylim([0.001, 2])
+    ylim([0.001, 3])
     subplot(122)
     for i = 1:length(methodss)
         plot(1:T_steps2, MEANs_linear[i,:], label = methodss[i])
@@ -170,7 +170,7 @@ begin
     title("Iterated 1-step prediction based on linear predictor")
     grid()
     legend()
-    ylim([0.001, 2])
+    ylim([0.001, 3])
 end
 
 
@@ -194,32 +194,32 @@ end
 
 
 # Plot all 200 trials for two selected methods
-num = [2,10]
+num = [1,10]
 begin
     figure(figsize=(20,10))
     subplot(121)
-    for i = 1:200
+    for i = 1:190
         plot(1:T_steps2, MSEs_zeroth[num[1],i,:])
     end
     plot(1:T_steps2,MEANs_zeroth[num[1],:], "k--", linewidth=2.5, label="mean")
     legend()
     yscale("log")
-    ylim([0.001, 2])
+    ylim([0.001, 4])
     #xlabel("Lyapunov time")
     grid()
-    title("MSE (100 runs), $(methods[num[1]])")
+    title("MSE (200 runs), $(methodss[num[1]])")
 
     subplot(122)
-    for i = 1:100
+    for i = 1:190
         plot(1:T_steps2, MSEs_zeroth[num[2],i,:])
     end
     plot(1:T_steps2,MEANs_zeroth[num[2],:], "k--", linewidth=2.5, label="mean")
     legend()
     yscale("log")
-    ylim([0.001, 2])
+    ylim([0.001, 4])
     #xlabel("Lyapunov time")
     grid()
-    title("MSE (100 runs), $(methods[num[2]])")
+    title("MSE (200 runs), $(methodss[num[2]])")
 
 end
 

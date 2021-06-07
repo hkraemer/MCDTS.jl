@@ -60,11 +60,13 @@ Yy = embed(y,2,1)
 w1 = DelayEmbeddings.estimate_delay(x, "mi_min")
 ρ, Y_hat = MCDTS.ccm(Yx; w = w1)
 
+yyy, _ = optimal_traditional_de(x, "fnn"; w = w1)
+
 ##
-d1 = 2
-d2 = 2
-τ1 = 1
-τ2 = 1
+d1 = 5
+d2 = 5
+τ1 = 15
+τ2 = 15
 cnt = 1
 rho_x = zeros(length(100:100:3500))
 rho_y = zeros(length(100:100:3500))
