@@ -72,8 +72,8 @@ function give_potential_delays(Yss::Dataset{D, T}, τs, w::Int, τ_vals, ts_vals
         threshold = -0.99999999999
     end
     metric = Euclidean()
-    Ys = regularize(Yss)
-    Y_other = regularize(Y_CCM)
+    Ys = DynamicalSystems.standardize(Yss)
+    Y_other = DynamicalSystems.standardize(Y_CCM)
 
     # compute Y_act
     if PRED

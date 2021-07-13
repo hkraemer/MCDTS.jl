@@ -23,21 +23,45 @@ end
 # subplot(212)
 # plot(DMIs)
 
+## make computations for only one time series length
 
-w1 = DelayEmbeddings.estimate_delay(ninos, "mi_min")
-w2 = DelayEmbeddings.estimate_delay(DMIs, "mi_min")
+xx = ninos[1:100]
+yy = DMIs[1:100]
+taus1 = 0:50
+trials = 30
+# compute decorrelation time
+w1 = DelayEmbeddings.estimate_delay(xx, "mi_min")
+w2 = DelayEmbeddings.estimate_delay(yy, "mi_min")
 
-yyy, _ = optimal_traditional_de(ninos,"fnn"; w = w1)
-yyy2, _ = optimal_traditional_de(DMIs; w = w2)
+tree = MCDTS.mc_delay(Dataset(xx), w1, (L)->(MCDTS.softmaxL(L,β=2.)), taus1, trials;
+    verbose=true, CCM = false, PRED = true, PRED_KL = true, Y_CCM = Dataset(yy))
+best_node = MCDTS.best_embedding(tree)
+τ_mcdts = best_node.τs
+L = best_node.L
+println("MCDTS taus: $τ_mcdts")
+println("MCDTS ρ: $L")
+Yx = genembed(xx, τ_mcdts)
+Yy = genembed(yy, τ_mcdts)
+ρ_nino_DMI_pecuzal[cnt], _ = MCDTS.ccm(Dataset(Yx),Dataset(Yy); w = w1)
 
-Yx, taus, _, _, _ = pecuzal_embedding(ninos; w=w1)
-Yy, taus, _, _, _ = pecuzal_embedding(DMIs; w=w2)
+tree = MCDTS.mc_delay(Dataset(yy), w2, (L)->(MCDTS.softmaxL(L,β=2.)), taus1, trials;
+    verbose=true, CCM = true, Y_CCM = Dataset(xx))
+best_node = MCDTS.best_embedding(tree)
+τ_mcdts = best_node.τs
+L = best_node.L
+
+
+
+## vary time series length for showing convergence properties
+
 
 
 # define the different length scales
 lengths = 200:100:length(nino)
 
 cnt = 1
+taus1 = 0:40 # possible delay for MCDTS
+trials = 40 # sampling trials for MCDTS
 ρ_DMI_nino_kennel = zeros(length(lengths))
 ρ_nino_DMI_kennel = zeros(length(lengths))
 ρ_DMI_nino_pecuzal = zeros(length(lengths))
@@ -57,7 +81,6 @@ for i in lengths
     for j = 2:size(Yx,2)
         taus[j] = (j-1)*tau
     end
-    println(taus)
     Yy = genembed(yy,taus)
     ρ_nino_DMI_kennel[cnt], _ = MCDTS.ccm(Yx,Yy; w = w1)
 
@@ -70,17 +93,27 @@ for i in lengths
 
     ρ_DMI_nino_kennel[cnt], _ = MCDTS.ccm(Yx,Yy; w = w2)
 
-    # PECUZAL embedding
-    # Yx, taus, _, _, _ = pecuzal_embedding(xx; w=w1)
-    # Yy = genembed(yy,-taus)
-    Yx = genembed(xx,[0,1])
-    Yy = genembed(yy,[0,1])
+    # MCDTS embedding
+    tree = MCDTS.mc_delay(Dataset(xx), w1, (L)->(MCDTS.softmaxL(L,β=2.)), taus1, trials;
+        verbose=false, CCM = true, Y_CCM = Dataset(yy))
+    best_node = MCDTS.best_embedding(tree)
+    τ_mcdts = best_node.τs
+    L = best_node.L
+    println("MCDTS taus: $τ_mcdts")
+    println("MCDTS ρ: $L")
+    Yx = genembed(xx, τ_mcdts)
+    Yy = genembed(yy, τ_mcdts)
     ρ_nino_DMI_pecuzal[cnt], _ = MCDTS.ccm(Dataset(Yx),Dataset(Yy); w = w1)
 
-    # Yx, taus, _, _, _ = pecuzal_embedding(yy; w=w2)
-    # Yy = genembed(xx,-taus)
-    Yx = genembed(yy,[0,1])
-    Yy = genembed(xx,[0,1])
+    tree = MCDTS.mc_delay(Dataset(yy), w2, (L)->(MCDTS.softmaxL(L,β=2.)), taus1, trials;
+        verbose=false, CCM = true, Y_CCM = Dataset(xx))
+    best_node = MCDTS.best_embedding(tree)
+    τ_mcdts = best_node.τs
+    L = best_node.L
+    println("MCDTS taus: $τ_mcdts")
+    println("MCDTS ρ: $L")
+    Yx = genembed(xx, τ_mcdts)
+    Yy = genembed(yy, τ_mcdts)
     ρ_DMI_nino_pecuzal[cnt], _ = MCDTS.ccm(Dataset(Yx),Dataset(Yy); w = w2)
 
 

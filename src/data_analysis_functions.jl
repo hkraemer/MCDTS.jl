@@ -939,14 +939,24 @@ end
 
 
 """
-    ccm(X, Y) → ρ, Y_hat
+    ccm(X, Y; kwargs...) → ρ, Y_hat
 
     Compute the convergent crossmapping (CCM) (Sugihara et al. 2012) of two
     vector time series `X` and `Y` (must have the same length and dimensionality).
     Return the correlation coefficient of `Y` and its predicted values for `Y_hat`,
     based on the nearest neighbour structure of `X`.
+
+    Keyword arguments:
+    *`metric = Euclidean()`: The metric for vector distance computation.
+    *`w::Int = 1`: The Theiler window in sampling units.
+    *`lags::Array = [0]`: The lag for the cross mapping, in order to detect time lagged
+                          causal relationships. The output ρ is an array of size
+                          `length(lags)`, the output Y_hat is the one corresponding
+                          to a lag of zero.
+
 """
-function ccm(X::Dataset{D,T},Y::Dataset{D,T}; metric = Euclidean(), w::Int = 1) where {D,T<:Real}
+function ccm(X::Dataset{D,T},Y::Dataset{D,T}; metric = Euclidean(), w::Int = 1,
+    lags::AbstractArray = [0]) where {D,T<:Real}
 
     K = D+1
     @assert length(X)==length(Y)
@@ -993,7 +1003,19 @@ function ccm(X::Dataset{D,T},Y::Dataset{D,T}; metric = Euclidean(), w::Int = 1) 
     end
 
     # compute correlation coefficient between Y_hat and YY
-    ρ = Statistics.cor(Y_hat[:,1], YY[ns,1])
-
+    # ρ = zeros(length(lags))
+    # for (i,l) in enumerate(lags)
+    #     # shift vals for lagged ccm
+    #     if l < 0
+    #         Y_hats = Y_hat[-l+1:end,1]
+    #         Yy = YY[1:end+l,1]
+    #     else
+    #         Y_hats = Y_hat[1:end-l,1]
+    #         Yy = YY[l+1:end,1]
+    #     end
+    #     dd = Statistics.cor(Y_hats, Yy)
+    #     ρ[i] = Statistics.cor(Y_hats, Yy)
+    # end
+    ρ = Statistics.cor(Y_hat[:,1], YY[:,1])
     return ρ, Dataset(Y_hat)
 end
