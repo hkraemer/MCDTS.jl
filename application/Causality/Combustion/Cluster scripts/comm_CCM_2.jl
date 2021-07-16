@@ -26,6 +26,8 @@ addprocs(SlurmManager(N_worker))
     ## Generate subset
     Random.seed!(111)
     N = 5000
+    N_min = 500
+    step = 100
     s = rand(1:length(data1)-N)
     s1 = data1[s:s+N]
     s2 = data2[s:s+N]
@@ -40,7 +42,7 @@ addprocs(SlurmManager(N_worker))
     trials = 50
 
     # starts and step
-    starts = [i for i in 100:100:N]
+    starts = [i for i in N_min:step:700]
 
 end
 
@@ -59,20 +61,16 @@ results = @distributed (hcat) for i in eachindex(starts)
     # standard Pearson
     ρp = Statistics.cor(xx,yy)
 
-    if i == 100
-        w = 5
-    else
-        w1 = DelayEmbeddings.estimate_delay(xx, "mi_min")
-        w2 = DelayEmbeddings.estimate_delay(yy, "mi_min")
-        w = maximum([w1,w2])
-    end
+    w1 = DelayEmbeddings.estimate_delay(xx, "mi_min")
+    w2 = DelayEmbeddings.estimate_delay(yy, "mi_min")
+    w = maximum([w1,w2])
 
     # embedding
     #classic
     Y, delay, _ = optimal_traditional_de(xx, "afnn"; w = w1)
-    taus_cao1 = [i*delay for i = 0:size(Y,2)-1]
+    taus_cao1 = [j*delay for j = 0:size(Y,2)-1]
     Y, delay, _ = optimal_traditional_de(yy, "afnn"; w = w2)
-    taus_cao2 = [i*delay for i = 0:size(Y,2)-1]
+    taus_cao2 = [j*delay for j = 0:size(Y,2)-1]
 
     # pecuzal
     _, taus_pec1,_,_,_ = pecuzal_embedding(xx; τs = τs, w = w1, econ = true)
