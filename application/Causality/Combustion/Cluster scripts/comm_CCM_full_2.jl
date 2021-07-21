@@ -125,6 +125,7 @@ for i = N_min:step:N
     rho_ccm[11,cnt], _ = MCDTS.ccm(Yx_mcdts2, Yy_mcdts2; w = w)
     rho_ccm[12,cnt], _ = MCDTS.ccm(Yy_mcdts2, Yx_mcdts2; w = w)
 
+    cnt += 1
 end
 
 
