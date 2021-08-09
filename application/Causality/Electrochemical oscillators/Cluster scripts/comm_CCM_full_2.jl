@@ -1,7 +1,8 @@
 # Cluster script for computing the CCM for different time series length and
-# different embeddings. Here the second sample
+# different embeddings. Here the first sample
 
-# One single embedding is computed for the full time series with N=5000
+# One single embedding is computed for the full time series. Here both oscillators
+# are not synchronized
 
 using MCDTS
 using DelayEmbeddings
@@ -12,17 +13,22 @@ using LinearAlgebra
 using DelimitedFiles
 
 ## Combustion data
-data1 = readdlm("pressure_downsampled_same_sampling.txt")
-data2 = readdlm("heat_release_downsampled_same_sampling.txt")
+#data = readdlm("./application/Causality/Electrochemical oscillators/data/Izero.txt")
+data = readdlm("Izero.txt")
 
-## Generate subset
-Random.seed!(111)
-N = 5000
+# downsampling
+data = data[1:5:end,:]
+
+data1 = data[:,2]
+data2 = data[:,3]
+
+
+N = length(data1)
 N_min = 500
 step = 100
-s = rand(1:length(data1)-N)
-s1 = data1[s:s+N]
-s2 = data2[s:s+N]
+
+s1 = data1[:]
+s2 = data2[:]
 s1 = s1 .+ 0.0000000001.*randn(length(s1))
 s2 = s2 .+ 0.0000000001.*randn(length(s2))
 
@@ -30,13 +36,13 @@ s1 = (s1 .- mean(s1)) ./ std(s1)
 s2 = (s2 .- mean(s2)) ./ std(s2)
 
 # Parameters analysis:
-τs = 0:60
+τs = 0:100
 trials = 100
-
 
 # bind time series window
 xx = s1
 yy = s2
+
 
 # standard Pearson
 ρp = Statistics.cor(xx,yy)
@@ -72,15 +78,13 @@ best_node = MCDTS.best_embedding(tree)
 τ_mcdts2 = best_node.τs
 L = best_node.L
 
-τs = 0:60
-trials = 50
-
 cnt = 0
 rho_ccm = zeros(12,length(N_min:step:N))
 
 for i = N_min:step:N
 
     global cnt += 1
+
     println(i)
     xx = s1[1:i]
     yy = s2[1:i]
@@ -134,7 +138,7 @@ varnames = ["y1_cao", "x1_cao", "y1_pec", "x1_pec", "y1_mecdts", "x1_mcdts",
  "y2_cao", "x2_cao", "y2_pec", "x2_pec", "y2_mecdts", "x2_mcdts", "Pearson"]
 
 for i = 1:length(varnames)
-    writestr = "results_analysis_CCM_full_combustion_2_"*varnames[i]*".csv"
+    writestr = "results_analysis_CCM_full_chemosc_no_ps_"*varnames[i]*".csv"
     if i == 13
         data = ρp
     else

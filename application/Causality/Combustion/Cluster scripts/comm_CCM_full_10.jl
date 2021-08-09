@@ -1,5 +1,5 @@
 # Cluster script for computing the CCM for different time series length and
-# different embeddings. Here the second sample
+# different embeddings. Here the first sample
 
 # One single embedding is computed for the full time series with N=5000
 
@@ -16,7 +16,7 @@ data1 = readdlm("pressure_downsampled_same_sampling.txt")
 data2 = readdlm("heat_release_downsampled_same_sampling.txt")
 
 ## Generate subset
-Random.seed!(111)
+Random.seed!(122)
 N = 5000
 N_min = 500
 step = 100
@@ -37,6 +37,7 @@ trials = 100
 # bind time series window
 xx = s1
 yy = s2
+
 
 # standard Pearson
 ρp = Statistics.cor(xx,yy)
@@ -81,6 +82,7 @@ rho_ccm = zeros(12,length(N_min:step:N))
 for i = N_min:step:N
 
     global cnt += 1
+
     println(i)
     xx = s1[1:i]
     yy = s2[1:i]
@@ -134,7 +136,7 @@ varnames = ["y1_cao", "x1_cao", "y1_pec", "x1_pec", "y1_mecdts", "x1_mcdts",
  "y2_cao", "x2_cao", "y2_pec", "x2_pec", "y2_mecdts", "x2_mcdts", "Pearson"]
 
 for i = 1:length(varnames)
-    writestr = "results_analysis_CCM_full_combustion_2_"*varnames[i]*".csv"
+    writestr = "results_analysis_CCM_full_combustion_10_"*varnames[i]*".csv"
     if i == 13
         data = ρp
     else

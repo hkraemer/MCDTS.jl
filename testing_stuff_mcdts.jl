@@ -260,7 +260,7 @@ data2 = readdlm("application/Causality/Combustion/data/heat_release_downsampled_
 
 ## Generate subset
 
-Random.seed!(123)
+Random.seed!(111)
 N = 5000
 s = rand(1:length(data1)-N)
 s1 = data1[s:s+N]
@@ -326,30 +326,38 @@ for i = 100:100:5000
     xx = s1[1:i]
     yy = s2[1:i]
 
+    if i == 100
+        w = 5
+    else
+        w1 = DelayEmbeddings.estimate_delay(xx, "mi_min")
+        w2 = DelayEmbeddings.estimate_delay(yy, "mi_min")
+        w = maximum([w1,w2])
+    end
+
     # embedding
     #classic
-    Y, delay, _ = optimal_traditional_de(s1, "afnn"; w = w1)
-    taus_cao1 = [i*delay for i = 0:size(Y,2)-1]
-    Y, delay, _ = optimal_traditional_de(s2, "afnn"; w = w2)
-    taus_cao2 = [i*delay for i = 0:size(Y,2)-1]
-
-    # pecuzal
-    _, taus_pec1,_,_,_ = pecuzal_embedding(s1; w = w1, econ = true)
-    _, taus_pec2,_,_,_ = pecuzal_embedding(s2; w = w2, KNN=2, econ = true)
-
-    # mcdts
-    Random.seed!(1234)
-    tree = MCDTS.mc_delay(Dataset(s1), w1, (L)->(MCDTS.softmaxL(L,β=2.)), τs, trials;
-        verbose=true, CCM = true, Y_CCM = s2)
-    best_node = MCDTS.best_embedding(tree)
-    τ_mcdts1 = best_node.τs
-    L = best_node.L
-
-    tree = MCDTS.mc_delay(Dataset(s2), w2, (L)->(MCDTS.softmaxL(L,β=2.)), τs, trials;
-        verbose=true, CCM = true, Y_CCM = s1)
-    best_node = MCDTS.best_embedding(tree)
-    τ_mcdts2 = best_node.τs
-    L = best_node.L
+    # Y, delay, _ = optimal_traditional_de(s1, "afnn"; w = w1)
+    # taus_cao1 = [i*delay for i = 0:size(Y,2)-1]
+    # Y, delay, _ = optimal_traditional_de(s2, "afnn"; w = w2)
+    # taus_cao2 = [i*delay for i = 0:size(Y,2)-1]
+    #
+    # # pecuzal
+    # _, taus_pec1,_,_,_ = pecuzal_embedding(s1; w = w1, econ = true)
+    # _, taus_pec2,_,_,_ = pecuzal_embedding(s2; w = w2, KNN=2, econ = true)
+    #
+    # # mcdts
+    # Random.seed!(1234)
+    # tree = MCDTS.mc_delay(Dataset(s1), w, (L)->(MCDTS.softmaxL(L,β=2.)), τs, trials;
+    #     verbose=true, CCM = true, Y_CCM = s2)
+    # best_node = MCDTS.best_embedding(tree)
+    # τ_mcdts1 = best_node.τs
+    # L = best_node.L
+    #
+    # tree = MCDTS.mc_delay(Dataset(s2), w, (L)->(MCDTS.softmaxL(L,β=2.)), τs, trials;
+    #     verbose=true, CCM = true, Y_CCM = s1)
+    # best_node = MCDTS.best_embedding(tree)
+    # τ_mcdts2 = best_node.τs
+    # L = best_node.L
 
 
     Yx_cao = genembed(xx,-taus_cao1)
@@ -370,14 +378,7 @@ for i = 100:100:5000
     Yx_mcdts2 = genembed(xx,-τ_mcdts2)
     Yy_mcdts2 = genembed(yy,-τ_mcdts2)
 
-    if i == 100
-        w = 5
-    else
-        w1 = DelayEmbeddings.estimate_delay(xx, "mi_min")
-        w2 = DelayEmbeddings.estimate_delay(yy, "mi_min")
-        w = maximum([w1,w2])
-    end
-
+    # compute CCM
     rho_y[cnt], _ = MCDTS.ccm(Yx_cao, Yy_cao; w = w)
     rho_x[cnt], _ = MCDTS.ccm(Yy_cao, Yx_cao; w = w)
 
@@ -401,42 +402,66 @@ end
 
 tt = Vector(100:100:5000)
 
-figure()
+figure(figsize=(10,5))
 subplot(121)
 plot(tt, rho_y, label="ρ_y")
 plot(tt, rho_x, label="ρ_x")
+title("x → y & y → x (based on x-Cao-embedding)")
+ylabel("CCM-correlation")
+xlabel("time series length")
+ylim([0, 0.9])
 legend()
 grid()
 
 subplot(122)
 plot(tt, rho_y2, label="ρ_y2")
 plot(tt, rho_x2, label="ρ_x2")
+title("x → y & y → x (based on y-Cao-embedding)")
+ylabel("CCM-correlation")
+xlabel("time series length")
+ylim([0, 0.9])
 legend()
 grid()
 
-figure()
+figure(figsize=(10,5))
 subplot(121)
 plot(tt, rho_pec_y, label="ρ_y PEC")
 plot(tt, rho_pec_x, label="ρ_x PEC")
+title("x → y & y → x (based on x-PECUZAL-embedding)")
+ylabel("CCM-correlation")
+xlabel("time series length")
+ylim([0, 0.9])
 legend()
 grid()
 
 subplot(122)
 plot(tt, rho_pec_y2, label="ρ_y2 PEC")
 plot(tt, rho_pec_x2, label="ρ_x2 PEC")
+title("x → y & y → x (based on y-PECUZAL-embedding)")
+ylabel("CCM-correlation")
+xlabel("time series length")
+ylim([0, 0.9])
 legend()
 grid()
 
-figure()
+figure(figsize=(10,5))
 subplot(121)
 plot(tt, rho_mcdts_y, label="ρ_y MCDTS")
 plot(tt, rho_mcdts_x, label="ρ_x MCDTS")
+title("x → y & y → x (based on x-MCDTS-embedding)")
+ylabel("CCM-correlation")
+xlabel("time series length")
+ylim([0, 0.9])
 legend()
 grid()
 
 subplot(122)
 plot(tt, rho_mcdts_y2, label="ρ_y2 MCDTS")
 plot(tt, rho_mcdts_x2, label="ρ_x2 MCDTS")
+title("x → y & y → x (based on y-MCDTS-embedding)")
+ylabel("CCM-correlation")
+xlabel("time series length")
+ylim([0, 0.9])
 legend()
 grid()
 

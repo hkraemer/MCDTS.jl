@@ -76,10 +76,13 @@ L = best_node.L
 τs = 0:60
 trials = 50
 
-cnt = 1
+cnt = 0
 rho_ccm = zeros(12,length(N_min:step:N))
 
 for i = N_min:step:N
+
+    global cnt += 1
+
     println(i)
     xx = s1[1:i]
     yy = s2[1:i]
@@ -126,7 +129,6 @@ for i = N_min:step:N
     rho_ccm[11,cnt], _ = MCDTS.ccm(Yx_mcdts2, Yy_mcdts2; w = w)
     rho_ccm[12,cnt], _ = MCDTS.ccm(Yy_mcdts2, Yx_mcdts2; w = w)
 
-    cnt += 1
 end
 
 
