@@ -7,7 +7,7 @@ clear, clc
 method1 = 1; % set 1: full (one embedding for all time series), 
              % set 0: for each time series a new embedding
              
-sample = 10;  % set 1: sample 1, set 2: sample 2 ... until sample 10.
+sample = 7;  % set 1: sample 1, set 2: sample 2 ... until sample 10.
 
 
 % load the results
@@ -71,7 +71,7 @@ legend('CCM Cao', 'CCM PECUZAL', 'CCM MCDTS', 'Pearson corr.coeff.')
 grid on
 xlabel('time series length')
 ylabel('correlation')
-title(strcat('CCM for sample ',num2str(sample),'{ }','{ }','{ }','{ }','{ }','Heat -> Pressure (pressure embedding)'))
+title(strcat('CCM for sample ',num2str(sample),'{ }','Pressure \to '))
 set(gca, 'LineWidth',2, 'Fontsize',fs)
 ylim([-0.3 1])
 
@@ -84,7 +84,7 @@ legend('CCM Cao', 'CCM PECUZAL', 'CCM MCDTS', 'Pearson corr.coeff.')
 grid on
 xlabel('time series length')
 ylabel('correlation')
-title(strcat('CCM for sample ',num2str(sample),'{ }','{ }','{ }','{ }','{ }','Heat -> Pressure (heat embedding)'))
+title(strcat('CCM for sample ',num2str(sample),'{ }','x2'))
 set(gca, 'LineWidth',2, 'Fontsize',fs)
 ylim([-0.3 1])
 
@@ -97,7 +97,7 @@ legend('CCM Cao', 'CCM PECUZAL', 'CCM MCDTS', 'Pearson corr.coeff.')
 grid on
 xlabel('time series length')
 ylabel('correlation')
-title(strcat('CCM for sample ',num2str(sample),'{ }','{ }','{ }','{ }','{ }','Pressure -> Heat (pressure embedding)'))
+title(strcat('CCM for sample ',num2str(sample),'{ }','y1'))
 set(gca, 'LineWidth',2, 'Fontsize',fs)
 ylim([-0.3 1])
 
@@ -110,6 +110,6 @@ legend('CCM Cao', 'CCM PECUZAL', 'CCM MCDTS', 'Pearson corr.coeff.')
 grid on
 xlabel('time series length')
 ylabel('correlation')
-title(strcat('CCM for sample ',num2str(sample),'{ }','{ }','{ }','{ }','{ }','Pressure -> Heat (heat embedding)'))
+title(strcat('CCM for sample ',num2str(sample),'{ }','y2'))
 set(gca, 'LineWidth',2, 'Fontsize',fs)
 ylim([-0.3 1])

@@ -945,6 +945,8 @@ end
     vector time series `X` and `Y` (must have the same length and dimensionality).
     Return the correlation coefficient of `Y` and its predicted values for `Y_hat`,
     based on the nearest neighbour structure of `X`.
+    It is said that 'Y' causes 'X', if ρ increases with increasing  vector time
+    series length AND ρ is "quite high".
 
     Keyword arguments:
     *`metric = Euclidean()`: The metric for vector distance computation.

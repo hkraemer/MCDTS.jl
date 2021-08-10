@@ -1,20 +1,17 @@
-% We plot the results for the CCM-estimation on two random sampels from 
-% the combustion data (pressure & heat release), computed in the scripts 
-% in the folder `./Cluster scripts/`
+% We plot the results for the CCM-estimation on the chemical oscillators 
+% (with & without coupling), computed in the scripts in the folder 
+% `./Cluster scripts/`
 
 clear, clc
 
-method1 = 1; % set 1: full (one embedding for all time series), 
-             % set 0: for each time series a new embedding
+method1 = 1; % 0: no synchronization, 1: synchronization
              
-sample = 10;  % set 1: sample 1, set 2: sample 2 ... until sample 10.
-
 
 % load the results
 if method1 == 0
-    lstr1 = strcat('./results/results_analysis_CCM_combustion_',num2str(sample),'_');
+    lstr1 = strcat('./results/results_analysis_CCM_full_chemosc_no_ps_');
 else
-    lstr1 = strcat('./results/results_analysis_CCM_full_combustion_',num2str(sample),'_');
+    lstr1 = strcat('./results/results_analysis_CCM_full_chemosc_ps_');
 end
 
 x1(1,:) = load(strcat(lstr1,'x1_cao.csv'));
@@ -57,7 +54,7 @@ x1(3,:) = xx2(2,:);
 
 %% Visualization
 
-ts_lengths = 500:100:5000;
+ts_lengths = 500:100:6605;
 
 fs = 16;
 lw = 3;
@@ -71,7 +68,7 @@ legend('CCM Cao', 'CCM PECUZAL', 'CCM MCDTS', 'Pearson corr.coeff.')
 grid on
 xlabel('time series length')
 ylabel('correlation')
-title(strcat('CCM for sample ',num2str(sample),'{ }','{ }','{ }','{ }','{ }','Heat -> Pressure (pressure embedding)'))
+title(strcat('CCM for Electr. chem. Osc.,','{ }','{ }','{ }','{ }','{ }','osc2 -> osc1 (osc1 embedding)'))
 set(gca, 'LineWidth',2, 'Fontsize',fs)
 ylim([-0.3 1])
 
@@ -84,7 +81,7 @@ legend('CCM Cao', 'CCM PECUZAL', 'CCM MCDTS', 'Pearson corr.coeff.')
 grid on
 xlabel('time series length')
 ylabel('correlation')
-title(strcat('CCM for sample ',num2str(sample),'{ }','{ }','{ }','{ }','{ }','Heat -> Pressure (heat embedding)'))
+title(strcat('CCM for Electr. chem. Osc.,','{ }','{ }','{ }','{ }','{ }','osc2 -> osc1 (osc2 embedding)'))
 set(gca, 'LineWidth',2, 'Fontsize',fs)
 ylim([-0.3 1])
 
@@ -97,7 +94,7 @@ legend('CCM Cao', 'CCM PECUZAL', 'CCM MCDTS', 'Pearson corr.coeff.')
 grid on
 xlabel('time series length')
 ylabel('correlation')
-title(strcat('CCM for sample ',num2str(sample),'{ }','{ }','{ }','{ }','{ }','Pressure -> Heat (pressure embedding)'))
+title(strcat('CCM for Electr. chem. Osc.,','{ }','{ }','{ }','{ }','{ }','osc1 -> osc2 (osc1 embedding)'))
 set(gca, 'LineWidth',2, 'Fontsize',fs)
 ylim([-0.3 1])
 
@@ -110,6 +107,6 @@ legend('CCM Cao', 'CCM PECUZAL', 'CCM MCDTS', 'Pearson corr.coeff.')
 grid on
 xlabel('time series length')
 ylabel('correlation')
-title(strcat('CCM for sample ',num2str(sample),'{ }','{ }','{ }','{ }','{ }','Pressure -> Heat (heat embedding)'))
+title(strcat('CCM for Electr. chem. Osc.,','{ }','{ }','{ }','{ }','{ }','osc2 -> osc1 (osc2 embedding)'))
 set(gca, 'LineWidth',2, 'Fontsize',fs)
 ylim([-0.3 1])
