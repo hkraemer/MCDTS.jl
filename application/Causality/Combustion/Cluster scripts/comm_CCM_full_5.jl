@@ -15,8 +15,12 @@ using DelimitedFiles
 data1 = readdlm("pressure_downsampled_same_sampling.txt")
 data2 = readdlm("heat_release_downsampled_same_sampling.txt")
 
+M = 20000
+data1 = data1[1:M]
+data2 = data2[1:M]
+
 ## Generate subset
-Random.seed!(126)
+Random.seed!(125)
 N = 5000
 N_min = 500
 step = 100
@@ -30,23 +34,16 @@ s1 = (s1 .- mean(s1)) ./ std(s1)
 s2 = (s2 .- mean(s2)) ./ std(s2)
 
 # Parameters analysis:
-τs = 0:60
+τs = 0:80
 trials = 100
-
 
 # bind time series window
 xx = s1
 yy = s2
 
-
-# standard Pearson
-ρp = Statistics.cor(xx,yy)
-
-
 w1 = DelayEmbeddings.estimate_delay(xx, "mi_min")
 w2 = DelayEmbeddings.estimate_delay(yy, "mi_min")
 w = maximum([w1,w2])
-
 
 # embedding
 #classic
@@ -73,11 +70,10 @@ best_node = MCDTS.best_embedding(tree)
 τ_mcdts2 = best_node.τs
 L = best_node.L
 
-τs = 0:60
-trials = 50
 
 cnt = 0
 rho_ccm = zeros(12,length(N_min:step:N))
+ρp = zeros(length(N_min:step:N))
 
 for i = N_min:step:N
 
@@ -91,6 +87,8 @@ for i = N_min:step:N
     w2 = DelayEmbeddings.estimate_delay(yy, "mi_min")
     w = maximum([w1,w2])
 
+    # standard Pearson
+    ρp[cnt] = Statistics.cor(xx,yy)
 
     Yx_cao = genembed(xx,-taus_cao1)
     Yy_cao = genembed(yy,-taus_cao1)
@@ -132,8 +130,8 @@ for i = N_min:step:N
 end
 
 
-varnames = ["y1_cao", "x1_cao", "y1_pec", "x1_pec", "y1_mecdts", "x1_mcdts",
- "y2_cao", "x2_cao", "y2_pec", "x2_pec", "y2_mecdts", "x2_mcdts", "Pearson"]
+varnames = ["y1_cao", "x1_cao", "y2_cao", "x2_cao", "y1_pec", "x1_pec",
+ "y2_pec", "x2_pec", "y1_mcdts", "x1_mcdts", "y2_mcdts", "x2_mcdts", "Pearson"]
 
 for i = 1:length(varnames)
     writestr = "results_analysis_CCM_full_combustion_5_"*varnames[i]*".csv"

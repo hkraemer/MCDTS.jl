@@ -2,7 +2,7 @@
 
 #SBATCH --qos=short
 #SBATCH --partition=standard
-#SBATCH --job-name=CCM_f_2
+#SBATCH --job-name=CCM_2
 #SBATCH --account=synet
 #SBATCH --output=name-%j.out
 #SBATCH --error=name-%j.err

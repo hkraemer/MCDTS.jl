@@ -2,7 +2,7 @@
 
 #SBATCH --qos=short
 #SBATCH --partition=standard
-#SBATCH --job-name=CCM_1
+#SBATCH --job-name=CCM_11
 #SBATCH --account=synet
 #SBATCH --output=name-%j.out
 #SBATCH --error=name-%j.err
@@ -11,4 +11,4 @@
 
 module load julia/1.5.3
 
-julia comm_CCM_full_1.jl
+julia comm_CCM_full_11.jl

@@ -20,7 +20,7 @@ data1 = data1[1:M]
 data2 = data2[1:M]
 
 ## Generate subset
-Random.seed!(121)
+Random.seed!(131)
 N = 5000
 N_min = 500
 step = 100
@@ -134,7 +134,7 @@ varnames = ["y1_cao", "x1_cao", "y2_cao", "x2_cao", "y1_pec", "x1_pec",
  "y2_pec", "x2_pec", "y1_mcdts", "x1_mcdts", "y2_mcdts", "x2_mcdts", "Pearson"]
 
 for i = 1:length(varnames)
-    writestr = "results_analysis_CCM_full_combustion_1_"*varnames[i]*".csv"
+    writestr = "results_analysis_CCM_full_combustion_11_"*varnames[i]*".csv"
     if i == 13
         data = ρp
     else

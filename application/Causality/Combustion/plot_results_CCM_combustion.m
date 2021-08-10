@@ -7,7 +7,7 @@ clear, clc
 method1 = 1; % set 1: full (one embedding for all time series), 
              % set 0: for each time series a new embedding
              
-sample = 10;  % set 1: sample 1, set 2: sample 2 ... until sample 10.
+sample = 7;  % set 1: sample 1, set 2: sample 2 ... until sample 10.
 
 
 % load the results
