@@ -12,12 +12,10 @@ using LinearAlgebra
 using DelimitedFiles
 
 ## Combustion data
-data1 = readdlm("pressure_downsampled_same_sampling.txt")
-data2 = readdlm("heat_release_downsampled_same_sampling.txt")
-
-M = 20000
-data1 = data1[1:M]
-data2 = data2[1:M]
+# data1 = readdlm("./application/Causality/Combustion/Cluster scripts/pressure_downsampled.txt")
+# data2 = readdlm("./application/Causality/Combustion/Cluster scripts/heat_release_downsampled.txt")
+data1 = readdlm("pressure_downsampled.txt")
+data2 = readdlm("heat_release_downsampled.txt")
 
 ## Generate subset
 Random.seed!(136)
@@ -52,9 +50,15 @@ taus_cao1 = [j*delay for j = 0:size(Y,2)-1]
 Y, delay, _ = optimal_traditional_de(yy, "afnn"; w = w2)
 taus_cao2 = [j*delay for j = 0:size(Y,2)-1]
 
+println("taus_Cao 1: $taus_cao1")
+println("taus_Cao 2: $taus_cao2")
+
 # pecuzal
 _, taus_pec1,_,_,_ = pecuzal_embedding(xx; τs = τs, w = w1, econ = true)
-_, taus_pec2,_,_,_ = pecuzal_embedding(yy; τs = τs, w = w2, KNN=2, econ = true)
+_, taus_pec2,_,_,_ = pecuzal_embedding(yy; τs = τs, w = w2, econ = true)
+
+println("taus_pec 1: $taus_pec1")
+println("taus_pec 2: $taus_pec2")
 
 # mcdts
 Random.seed!(1234)
@@ -69,6 +73,9 @@ tree = MCDTS.mc_delay(Dataset(yy), w, (L)->(MCDTS.softmaxL(L,β=2.)), τs, trial
 best_node = MCDTS.best_embedding(tree)
 τ_mcdts2 = best_node.τs
 L = best_node.L
+
+println("taus_mcdts 1: $τ_mcdts1")
+println("taus_mcdts 2: $τ_mcdts2")
 
 
 cnt = 0
