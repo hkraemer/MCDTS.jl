@@ -380,11 +380,11 @@ function backprop!(n::Root,τs,ts,L_min)
 end
 
 """
-    mc_delay(N::Int=100)
+    mcdts_embedding(N::Int=100)
 
-Do the monte carlo run with `N` trials, returns the tree.
+Do the MCDTS embedding with `N` trials, returns the tree.
 """
-function mc_delay(data, w::Int, choose_func, delays::AbstractRange{D}, N::Int=40;
+function mcdts_embedding(data, w::Int, choose_func, delays::AbstractRange{D}, N::Int=40;
             max_depth::Int=20, KNN::Int = 3, FNN::Bool = false, PRED::Bool=false,
             Tw::Int = 1, verbose::Bool=false, tws::AbstractRange{D} = 2:delays[end],
             threshold::Real = 0, linear::Bool = false, PRED_mean::Bool=false,
@@ -414,6 +414,10 @@ function mc_delay(data, w::Int, choose_func, delays::AbstractRange{D}, N::Int=40
 
     return tree
 end
+
+# legacy name
+mc_delay(varargs...; kwargs...) = mcdts_embedding(varargs...; kwargs...)
+
 
 """
     best_embedding(r::Root)
