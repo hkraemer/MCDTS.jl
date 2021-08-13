@@ -3,6 +3,9 @@ using DelayEmbeddings
 using Revise
 import Base.show
 
+"""
+The MCDTS algorithm is implemented as a tree with different kind types encoding the leafs and the root of the tree. AbstractTreeElement is the abstract type of these types.
+"""
 abstract type AbstractTreeElement end
 
 """
@@ -26,6 +29,7 @@ end
 Root()=Root(nothing,0)
 get_τs(n::Root) = Int[]
 get_ts(n::Root) = Int[]
+
 function Base.show(io::IO,n::Root)
 
     if n.children == nothing
@@ -40,7 +44,7 @@ end
 """
     mutable struct Node{T}
 
-A node of the tree. Each node contains its children.
+A node of the tree. Each node contains its children and information about the current embedding.
 
 # Fields:
 
@@ -70,8 +74,7 @@ Base.show(io::IO,n::Node) = print(io,string("Node with τ=",n.τ,", i_t=",n.t," 
 """
     choose_children(n::AbstractTreeElement, τ::Int, t:Int)
 
-Pick one of the children of `n` with values `τ` and `t`. If there is none,
-return `nothing`.
+Pick one of the children of `n` with values `τ` and `t`. If there is none, return `nothing`.
 """
 function choose_children(n::AbstractTreeElement, τ::Int, t::Int)
     τs=get_children_τs(n)
@@ -87,11 +90,10 @@ function choose_children(n::AbstractTreeElement, τ::Int, t::Int)
     end
 end
 
-
 """
     next_embedding(n::Node, Ys::Dataset{D, T}, w::Int, τs; kwars...) → τ_pot, ts_pot, L_pot, flag
 
-Performs the next embedding step. For the actual embedding contained in `n`
+Performs the next embedding step. For the actual embedding contained in tree leaf `n`
 compute as many conitnuity statistics as there are time series in the Dataset
 `Ys` for a range of possible delays `τs`. Return the values for the best delay
 `τ_pot`, its corresponding time series index `ts_pot` the according L-value
@@ -216,11 +218,6 @@ function choose_next_node(n::Node,func, Lmin_global=-Inf,choose_mode=1)
     end
 end
 
-"""
-    choose_next_node(n::Union{Node,Root}, func, Lmin_global, choose_mode)
-
-Returns one of the children of based on the function `func(Ls)->i_node`
-"""
 function choose_next_node(n::Root,func,Lmin_global=-Inf, i_trial::Int=1, choose_mode=0)
     N = N_children(n)
     if N == 0
@@ -262,7 +259,7 @@ end
 """
     expand!(n::Union{Node,Root}, data::Dataset, w::Int, choose_func, delays; kwargs...)
 
-This is one single rollout and backprop of the tree.
+This is one single rollout and backprop of the tree. For details please see the accompanying paper.
 
 * `n`: Starting node
 * `data`: data
@@ -361,8 +358,10 @@ function expand!(n::Root, data::Dataset{D, T}, w::Int, choose_func,
 end
 
 """
-    Backpropagation of the tree spanned by all children in `n` (for this run).
-All children-nodes L-values get set to the final value achieved in this run.
+    backprop!(n::Root,τs,ts,L_min)
+
+Backpropagation of the tree spanned by all children in `n` (for this run).
+All children-nodes L-values get set to the final value achieved in this run. This function is ususally called be [`expand!`](@ref).
 """
 function backprop!(n::Root,τs,ts,L_min)
 
@@ -379,7 +378,6 @@ function backprop!(n::Root,τs,ts,L_min)
         end
     end
 end
-
 
 """
     mc_delay(N::Int=100)
