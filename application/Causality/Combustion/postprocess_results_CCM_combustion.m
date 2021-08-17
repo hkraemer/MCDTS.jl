@@ -33,10 +33,12 @@
 % x2: Heat release causally affects Pressure (based on an embedding of heat release time series)
 % y1: Pressure causally affects Heat release (based on an embedding of pressure time series)
 % y2: Pressure causally affects Heat release (based on an embedding of heat release time series)
+%
+% We also plot the results for further grafical postprocessing in AI
 
 clear, clc
 
-sample_size = 20;  % considered batch size
+sample_size = 50;  % considered batch size
 
 
 sample = 1;
@@ -155,7 +157,7 @@ y2_causal_cao = false(1,sample_size);
 y2_causal_pec = false(1,sample_size);
 y2_causal_mcdts = false(1,sample_size);
 
-for sample = 1:20
+for sample = 1:sample_size
     
     if p_x1_cao(sample) > 0 && x1_cao(sample,end) > .3, x1_causal_cao(sample) = true; end
     if p_x1_pec(sample) > 0 && x1_pec(sample,end) > .3, x1_causal_pec(sample) = true; end
@@ -181,33 +183,103 @@ display("Heat causally affects pressure (Pressure embedding):")
 x1_cao_true = sum(x1_causal_cao);
 x1_pec_true = sum(x1_causal_pec);
 x1_mcdts_true = sum(x1_causal_mcdts);
-display(strcat("Cao: ",num2str(x1_cao_true),"/20"))
-display(strcat("Pecuzal: ",num2str(x1_pec_true),"/20"))
-display(strcat("MCDTS: ",num2str(x1_mcdts_true),"/20"))
+display(strcat("Cao: ",num2str(x1_cao_true),"/50 = ",num2str(x1_cao_true/sample_size)))
+display(strcat("Pecuzal: ",num2str(x1_pec_true),"/50 = ",num2str(x1_cao_true/sample_size)))
+display(strcat("MCDTS: ",num2str(x1_mcdts_true),"/50 = ",num2str(x2_cao_true/sample_size)))
 display("%%%%%%%%%%%%%%%%")
 display("Heat causally affects pressure (Heat embedding):")
 x2_cao_true = sum(x2_causal_cao);
 x2_pec_true = sum(x2_causal_pec);
 x2_mcdts_true = sum(x2_causal_mcdts);
-display(strcat("Cao: ",num2str(x2_cao_true),"/20"))
-display(strcat("Pecuzal: ",num2str(x2_pec_true),"/20"))
-display(strcat("MCDTS: ",num2str(x2_mcdts_true),"/20"))
+display(strcat("Cao: ",num2str(x2_cao_true),"/50 = ",num2str(x2_cao_true/sample_size)))
+display(strcat("Pecuzal: ",num2str(x2_pec_true),"/50 = ",num2str(x2_pec_true/sample_size)))
+display(strcat("MCDTS: ",num2str(x2_mcdts_true),"/50 = ",num2str(x2_mcdts_true/sample_size)))
 display("%%%%%%%%%%%%%%%%")
 display("Pressure causally affects heat (Pressure embedding):")
 y1_cao_true = sum(y1_causal_cao);
 y1_pec_true = sum(y1_causal_pec);
 y1_mcdts_true = sum(y1_causal_mcdts);
-display(strcat("Cao: ",num2str(y1_cao_true),"/20"))
-display(strcat("Pecuzal: ",num2str(y1_pec_true),"/20"))
-display(strcat("MCDTS: ",num2str(y1_mcdts_true),"/20"))
+display(strcat("Cao: ",num2str(y1_cao_true),"/50 = ",num2str(y1_cao_true/sample_size)))
+display(strcat("Pecuzal: ",num2str(y1_pec_true),"/50 = ",num2str(y1_pec_true/sample_size)))
+display(strcat("MCDTS: ",num2str(y1_mcdts_true),"/50 = ",num2str(y1_mcdts_true/sample_size)))
 display("%%%%%%%%%%%%%%%%")
 display("Pressure causally affects heat (Heat embedding):")
 y2_cao_true = sum(y2_causal_cao);
 y2_pec_true = sum(y2_causal_pec);
 y2_mcdts_true = sum(y2_causal_mcdts);
-display(strcat("Cao: ",num2str(y2_cao_true),"/20"))
-display(strcat("Pecuzal: ",num2str(y2_pec_true),"/20"))
-display(strcat("MCDTS: ",num2str(y2_mcdts_true),"/20"))
+display(strcat("Cao: ",num2str(y2_cao_true),"/50 = ",num2str(y2_cao_true/sample_size)))
+display(strcat("Pecuzal: ",num2str(y2_pec_true),"/50 = ",num2str(y2_pec_true/sample_size)))
+display(strcat("MCDTS: ",num2str(y2_mcdts_true),"/50 = ",num2str(y2_mcdts_true/sample_size)))
+
+%% Plot simple bar chart, which will get postprocessed in AI
+clc
+yy(1,1) = x1_cao_true/sample_size
+yy(1,2) = 1 - x1_cao_true/sample_size;
+
+yy(2,1) = x1_mcdts_true/sample_size
+yy(2,2) = 1 - x1_mcdts_true/sample_size;
+
+figure('Units','normalized','Position',[.001 .001 .99 .99])
+subplot(221)
+h = barh(1:2,yy,'stacked'); hold on
+set(h(1),'FaceColor',c1);
+set(h(2),'FaceColor',c2);
+set(gca,'LineWidth',2)
+grid on
+box off
+yticklabels(["CAO", "MCDTS-CCM"])
+title("Heat causally affects pressure (Pressure embedding):")
+
+yy(1,1) = x2_cao_true/sample_size
+yy(1,2) = 1 - x2_cao_true/sample_size;
+
+yy(2,1) = x2_mcdts_true/sample_size
+yy(2,2) = 1 - x2_mcdts_true/sample_size;
+
+subplot(222)
+h = barh(1:2,yy,'stacked'); hold on
+set(h(1),'FaceColor',c1);
+set(h(2),'FaceColor',c2);
+set(gca,'LineWidth',2)
+grid on
+box off
+yticklabels(["CAO", "MCDTS-CCM"])
+title("Heat causally affects pressure (Heat embedding):")
+
+
+yy(1,1) = y1_cao_true/sample_size
+yy(1,2) = 1 - y1_cao_true/sample_size;
+
+yy(2,1) = y1_mcdts_true/sample_size
+yy(2,2) = 1 - y1_mcdts_true/sample_size;
+
+subplot(223)
+h = barh(1:2,yy,'stacked'); hold on
+set(h(1),'FaceColor',c1);
+set(h(2),'FaceColor',c2);
+set(gca,'LineWidth',2)
+grid on
+yticklabels(["CAO", "MCDTS-CCM"])
+set(gca, 'XDir', 'reverse')
+box off
+title("Pressure causally affects heat (Pressure embedding):")
+
+yy(1,1) = y2_cao_true/sample_size
+yy(1,2) = 1 - y2_cao_true/sample_size;
+
+yy(2,1) = y2_mcdts_true/sample_size
+yy(2,2) = 1 - y2_mcdts_true/sample_size;
+
+subplot(224)
+h = barh(1:2,yy,'stacked'); hold on
+set(h(1),'FaceColor',c1);
+set(h(2),'FaceColor',c2);
+set(gca,'LineWidth',2)
+grid on
+yticklabels(["CAO", "MCDTS-CCM"])
+set(gca, 'XDir', 'reverse')
+box off
+title("Pressure causally affects heat (Heat embedding):")
 
 %% 4) Check the strength of the interaction
 clc
@@ -220,7 +292,7 @@ diff_pec_2 = NaN*ones(1,sample_size);
 diff_mcdts_1 = NaN*ones(1,sample_size);
 diff_mcdts_2 = NaN*ones(1,sample_size);
 
-for sample = 1:20
+for sample = 1:sample_size
     
     if x1_causal_cao(sample) && y1_causal_cao(sample), diff_cao_1(sample) = mean(x1_cao(sample,:) - y1_cao(sample,:)); end
     if x2_causal_cao(sample) && y2_causal_cao(sample), diff_cao_2(sample) = mean(x2_cao(sample,:) - y2_cao(sample,:)); end
@@ -233,47 +305,72 @@ for sample = 1:20
 
 end
 
-%% Plot results
+%% Plot results (will become a figure in the paper)
+clc
 
-yy = vertcat(diff_cao_1,diff_pec_1,diff_mcdts_1);
+fs = 35;
+
+
+yy = vertcat(diff_cao_1,diff_mcdts_1);
 xx = isnan(yy);
-c = 120;
+yy(xx) = -9999999;
+yy = sort(yy,2,'descend');
+xxx = find(yy == -9999999);
+yy(xxx) = nan;
+xx = false(2,50);
+xx(xxx) = true;
+c = 200;
+
+% set colors for bars
+c1 = [142/256 144/256 143/256]; % PIK gray
+% c2 = [227/256 114/256 34/256]; % PIK orange
+c2 = [0/256 159/256 218/256]; % PIK blue
 
 figure('Units','normalized','Position',[.001 .001 .99 .99])
 h = bar(1:sample_size,yy); hold on
+set(h(1),'FaceColor',c1);
+set(h(2),'FaceColor',c2);
 % Get x centers; XOffset is undocumented
 xCnt = (get(h(1),'XData') + cell2mat(get(h,'XOffset'))).';
 xx1 = xCnt(xx(1,:),1);
-scatter(xx1, zeros(1,length(xx1)), c, 'rx'), hold on
+scatter(xx1, zeros(1,length(xx1)), c, c1, 'd', 'filled'), hold on
 xx1 = xCnt(xx(2,:),2);
-scatter(xx1, zeros(1,length(xx1)), c, 'rx'), hold on
-xx1 = xCnt(xx(3,:),3);
-scatter(xx1, zeros(1,length(xx1)), c, 'rx'), hold on
+scatter(xx1, zeros(1,length(xx1)), c, c2, 'd', 'filled'), hold on
 grid on
 title("CCM based on embedding of the pressure time series")
-legend("Cao", "Pecuzal", "MCDTS")
+legend("Cao", "MCDTS-C-CCM")
 ylabel("avrg. residuals")
-xlabel("sample no.")
+xlabel("samples")
+set(gca, 'FontSize',fs, 'LineWidth',2);
 xticks(1:sample_size)
+xticklabels([])
 
 
-yy = vertcat(diff_cao_2,diff_pec_2,diff_mcdts_2);
+yy = vertcat(diff_cao_2,diff_mcdts_2);
 xx = isnan(yy);
+yy(xx) = -9999999;
+yy = sort(yy,2,'descend');
+xxx = find(yy == -9999999);
+yy(xxx) = nan;
+xx = false(2,50);
+xx(xxx) = true;
 
 figure('Units','normalized','Position',[.001 .001 .99 .99])
 h = bar(1:sample_size,yy); hold on
+set(h(1),'FaceColor',c1);
+set(h(2),'FaceColor',c2);
 % Get x centers; XOffset is undocumented
 xCnt = (get(h(1),'XData') + cell2mat(get(h,'XOffset'))).';
 xx1 = xCnt(xx(1,:),1);
-scatter(xx1, zeros(1,length(xx1)), c, 'rx'), hold on
+scatter(xx1, zeros(1,length(xx1)), c, c1, 'd', 'filled'), hold on
 xx1 = xCnt(xx(2,:),2);
-scatter(xx1, zeros(1,length(xx1)), c, 'rx'), hold on
-xx1 = xCnt(xx(3,:),3);
-scatter(xx1, zeros(1,length(xx1)), c, 'rx'), hold on
+scatter(xx1, zeros(1,length(xx1)), c, c2, 'd', 'filled'), hold on
 grid on
-title("CCM based on embedding of the Heat time series")
-legend("Cao", "Pecuzal", "MCDTS")
+title("CCM based on embedding of the Heat release time series")
+legend("Cao", "MCDTS-C-CCM")
 ylabel("avrg. residuals")
-xlabel("sample no.")
+xlabel("samples")
+set(gca, 'FontSize',fs, 'LineWidth',2);
 xticks(1:sample_size)
+xticklabels([])
 

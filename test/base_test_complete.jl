@@ -15,7 +15,7 @@ w2 = DelayEmbeddings.estimate_delay(data[:,2],"mi_min")
 w3 = DelayEmbeddings.estimate_delay(data[:,3],"mi_min")
 w = maximum(hcat(w1,w2,w3))
 delays = 0:100
-runs = 5
+runs = 10
 runs2 = 10
 
 
@@ -42,7 +42,7 @@ println("\nTesting MCDTS complete tree, Lorenz63 univariate:")
     best_node3 = MCDTS.best_embedding(tree3)
     println(best_node3)
     @test length(best_node3.τs) < length(best_node2.τs)
-    @test best_node3.τs == [0, 18]
+    @test best_node3.τs == [0, 61, 14]
     @test best_node3.L > best_node2.L
 
     # FNN with threshold
@@ -53,7 +53,7 @@ println("\nTesting MCDTS complete tree, Lorenz63 univariate:")
     L_YY = MCDTS.compute_delta_L(data[:,1], best_node.τs, delays[end];  w = w1)
     @test L_YY > best_node2.L
     @test length(best_node.τs) == 4
-    @test best_node.τs == [0, 57, 71,13]
+    @test best_node.τs == [0, 61, 14, 51]
 
 end
 
@@ -98,8 +98,8 @@ println("\nTesting MCDTS complete tree, coupled Logistic, CCM:")
     w1 = DelayEmbeddings.estimate_delay(x, "mi_min")
     w2 = DelayEmbeddings.estimate_delay(y, "mi_min")
 
-    test1 = regularize(Dataset(x))
-    test2 = regularize(Dataset(y))
+    test1 = DelayEmbeddings.standardize(Dataset(x))
+    test2 = DelayEmbeddings.standardize(Dataset(y))
     # try MCDTS with CCM
     taus1 = 0:10 # the possible delay vals
     trials = 20 # the sampling of the tree

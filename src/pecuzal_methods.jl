@@ -72,8 +72,8 @@ function give_potential_delays(Yss::Dataset{D, T}, τs, w::Int, τ_vals, ts_vals
         threshold = -0.99999999999
     end
     metric = Euclidean()
-    Ys = DynamicalSystems.standardize(Yss)
-    Y_other = DynamicalSystems.standardize(Y_CCM)
+    Ys = DelayEmbeddings.standardize(Yss)
+    Y_other = DelayEmbeddings.standardize(Y_CCM)
 
     # compute Y_act
     if PRED
@@ -91,15 +91,15 @@ function give_potential_delays(Yss::Dataset{D, T}, τs, w::Int, τ_vals, ts_vals
                             Tw; linear = linear, PRED_mean = PRED_mean, PRED_L = PRED_L,
                             PRED_KL = PRED_KL, CCM = CCM, Y_other = Y_other)
 
-    if isempty(τ_pots...)
-        flag = true
-        return Int[],Int[],eltype(L_pots)[], flag
-    end
-
     # transform array of arrays to a single array
     τ_pot = reduce(vcat, τ_pots)
     ts_pot = reduce(vcat, ts_pots)
     L_pot = reduce(vcat, L_pots)
+
+    if isempty(τ_pot)
+        flag = true
+        return Int[],Int[],eltype(L_pots)[], flag
+    end
 
     if FNN || PRED || CCM
         if (minimum(L_pot) ≥ L_old)
@@ -237,14 +237,14 @@ function local_fnn_statistics(ε★, Y_act, s, τs, w, metric; r=2)
 
     # compute nearest-neighbor-distances for actual trajectory
     Y_act2 = Y_act[1:end-τs[maximum(max_idx)-1],:]
-    Y_act2 = regularize(Y_act2)
+    Y_act2 = DelayEmbeddings.standardize(Y_act2)
     vtree = KDTree(Y_act2, metric)
     _, NNdist_old = DelayEmbeddings.all_neighbors(vtree, Y_act2, 1:length(Y_act2), 1, w)
 
     for (i,τ_idx) in enumerate(max_idx)
         # create candidate phase space vector for this peak/τ-value
         Y_trial = DelayEmbeddings.hcat_lagged_values(Y_act,s,τs[τ_idx-1])
-        Y_trial = regularize(Y_trial)
+        Y_trial = DelayEmbeddings.standardize(Y_trial)
         vtree = KDTree(Y_trial, metric)
         _, NNdist_new = DelayEmbeddings.all_neighbors(vtree, Y_trial, 1:length(Y_trial), 1, w)
         # compute FNN-statistic

@@ -151,7 +151,7 @@ on z-standardized input for ensuring comparability.
 function compute_delta_L(s::Vector{T}, τs::Vector{Int}, T_max::Int;
         KNN::Int = 3, w::Int = 1, metric = Euclidean(), tws::AbstractRange{Int} = 2:T_max
     ) where {T}
-    ts = regularize(Dataset(s))
+    ts = DelayEmbeddings.standardize(Dataset(s))
     tss = vec(Matrix(Dataset(ts)))
     ΔL = 0
     Y_act = ts
@@ -171,7 +171,7 @@ function compute_delta_L(Y::Dataset{D, T}, τs::Vector{Int}, js::Vector{Int},
         T_max::Int; KNN::Int = 3, w::Int = 1, metric = Euclidean(),
         tws::AbstractRange{Int} = 2:T_max) where {D, T}
     @assert length(τs) == length(js)
-    ts = regularize(Y)
+    ts = DelayEmbeddings.standardize(Y)
     ΔL = 0
     Y_act = Dataset(ts[:,js[1]])
     for i = 1: (length(τs)-1)
@@ -963,8 +963,8 @@ function ccm(X::Dataset{D,T},Y::Dataset{D,T}; metric = Euclidean(), w::Int = 1,
     K = D+1
     @assert length(X)==length(Y)
 
-    # X = regularize(X) # normalization
-    # Y = regularize(Y) # normalization
+    # X = DelayEmbeddings.standardize(X) # normalization
+    # Y = DelayEmbeddings.standardize(Y) # normalization
     XX = Matrix(X)
     YY = Matrix(Y)
 
