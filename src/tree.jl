@@ -380,11 +380,64 @@ function backprop!(n::Root,τs,ts,L_min)
 end
 
 """
-    mcdts_embedding(N::Int=100)
 
-Do the MCDTS embedding with `N` trials, returns the tree.
+mcdts_embedding
+
+## Convenience / default option call
+
+    mcdts_embedding(data::Dataset, N::Int=100; kwargs...)
+
+Do the MCDTS embedding of the `data` with `N` trials, returns the tree. Embedding parameters like the Theiler window, considered delays and the function that chooses the next embedding step are all estiamted automatically or the default option is used. `data` is a `DynamicalSystems.Dataset`.
+
+## All options
+
+    mcdts_embedding(data::DynamicalSystems.Dataset, w::Int, choose_func, delays::AbstractRange{D}, N::Int=40;
+                max_depth::Int=20, KNN::Int = 3, FNN::Bool = false, PRED::Bool=false,
+                Tw::Int = 1, verbose::Bool=false, tws::AbstractRange{D} = 2:delays[end],
+                threshold::Real = 0, linear::Bool = false, PRED_mean::Bool=false,
+                PRED_L::Bool=false, PRED_KL::Bool=false, CCM::Bool=false,
+                Y_CCM = Dataset(zeros(size(data))))
+
+* `w` is the Theiler window (neighbors in time
+with index `w` close to the point, that are excluded from being true neighbors. `w=0` means to exclude only the point itself, and no temporal neighbors. In case of multivariate time series input choose `w` as the maximum of all `wᵢ's`. As a default in the convience call this is estimated with a mutual information minimum method of DelayEmbeddings.jl
+* `choose_func`: Function to choose next node in the tree with, default choise: `(L)->(MCDTS.softmaxL(L,β=2.))`
+* `delays = 0:100`: The possible time lags
+
+### Keyword Arguments
+
+* `max_depth = 20`: Threshold, which determines the algorithm. It either breaks,
+  when it converges, i.e. when there is no way to reduce the cost-function any
+  further, or when this threshold is reached.
+* `KNN = 3`: The number of nearest neighbors considered in the computation of
+  the L-statistic.
+* `FNN:Bool = false`: Determines whether the algorithm should minimize the
+  L-statistic or the FNN-statistic.
+* `PRED::Bool = false`: Determines whether the algorithm should minimize the
+  L-statistic or a cost function based on minimizing the `Tw`-step-prediction error
+* `Tw::Int = 1`: If `PRED = true`, this is the considered prediction horizon
+* `linear::Bool=false`: If `PRED = true`, this determines whether the prediction shall
+  be made on the zeroth or a linear predictor.
+* `PRED_mean::Bool=false`: If `PRED = true`, this determines whether the prediction shall
+  be optimized on the mean MSE of all components or only on the 1st-component (Default)
+* `PRED_L::Bool=false`: If `PRED = true`, this determines whether the prediction shall
+  be optimized on possible delay values gained from the continuity statistic or on
+  delays = 0:25 (Default)
+* `PRED_KL::Bool=false`: If `PRED = true`, this determines whether the prediction shall
+  be optimized on the Kullback-Leibler-divergence of the in-sample prediction and
+  the true in-sample values, or if the optimization shall be made on the MSE of them (Default)
+* `CCM:Bool=false`: TBD
+* `Y_CCM`: TBD
+* `threshold::Real = 0`: The algorithm does not pick a peak from the continuity
+  statistic, when its corresponding `ΔL`/FNN-value exceeds this threshold. Please
+  provide a positive number for both, `L` and `FNN`-statistic option (since the
+  `ΔL`-values are negative numbers for meaningful embedding cycles, this threshold
+  gets internally sign-switched).
+* `tws::Range = 2:delays[end]`: Customization of the sampling of the different T's,
+  when computing Uzal's L-statistics. Here any kind of integer ranges (starting
+  at 2) are allowed, up to `delays[end]`.
+* `choose_mode::Int=0`: Possibility for different modes of choosing the next node based on which trial this is.
 """
-function mcdts_embedding(data, w::Int, choose_func, delays::AbstractRange{D}, N::Int=40;
+function mcdts_embedding(data::Dataset, w::Int, choose_func, delays::AbstractRange{D}, N::Int=100;
             max_depth::Int=20, KNN::Int = 3, FNN::Bool = false, PRED::Bool=false,
             Tw::Int = 1, verbose::Bool=false, tws::AbstractRange{D} = 2:delays[end],
             threshold::Real = 0, linear::Bool = false, PRED_mean::Bool=false,
@@ -415,7 +468,24 @@ function mcdts_embedding(data, w::Int, choose_func, delays::AbstractRange{D}, N:
     return tree
 end
 
-# legacy name
+function mcdts_embedding(data::Dataset, N::Int=100; kwargs...)
+
+    # estimate Theiler window
+    w = []
+    for i=1:size(data,2)
+        push!(w,DelayEmbeddings.estimate_delay(data[:,i],"mi_min"))
+    end
+    w=maximum(w)
+
+    # consider delays up to 100 (if the time series is that long)
+    delays = size(data,1) > 101 : 0:100 ? 0:(size(data,1)-1)
+
+    return mcdts_embedding(data, w, (L)->(MCDTS.softmaxL(L,β=2.)), delays, N; kwargs...)
+end
+
+"""
+Legacy name, please use [`mcdts_embedding`](@ref)
+"""
 mc_delay(varargs...; kwargs...) = mcdts_embedding(varargs...; kwargs...)
 
 
