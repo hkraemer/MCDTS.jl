@@ -184,8 +184,8 @@ x1_cao_true = sum(x1_causal_cao);
 x1_pec_true = sum(x1_causal_pec);
 x1_mcdts_true = sum(x1_causal_mcdts);
 display(strcat("Cao: ",num2str(x1_cao_true),"/50 = ",num2str(x1_cao_true/sample_size)))
-display(strcat("Pecuzal: ",num2str(x1_pec_true),"/50 = ",num2str(x1_cao_true/sample_size)))
-display(strcat("MCDTS: ",num2str(x1_mcdts_true),"/50 = ",num2str(x2_cao_true/sample_size)))
+display(strcat("Pecuzal: ",num2str(x1_pec_true),"/50 = ",num2str(x1_pec_true/sample_size)))
+display(strcat("MCDTS: ",num2str(x1_mcdts_true),"/50 = ",num2str(x1_mcdts_true/sample_size)))
 display("%%%%%%%%%%%%%%%%")
 display("Heat causally affects pressure (Heat embedding):")
 x2_cao_true = sum(x2_causal_cao);
@@ -213,6 +213,12 @@ display(strcat("MCDTS: ",num2str(y2_mcdts_true),"/50 = ",num2str(y2_mcdts_true/s
 
 %% Plot simple bar chart, which will get postprocessed in AI
 clc
+
+% set colors for bars
+c1 = [142/256 144/256 143/256]; % PIK gray
+% c2 = [227/256 114/256 34/256]; % PIK orange
+c2 = [0/256 159/256 218/256]; % PIK blue
+
 yy(1,1) = x1_cao_true/sample_size
 yy(1,2) = 1 - x1_cao_true/sample_size;
 
