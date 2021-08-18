@@ -437,7 +437,7 @@ with index `w` close to the point, that are excluded from being true neighbors. 
   at 2) are allowed, up to `delays[end]`.
 * `choose_mode::Int=0`: Possibility for different modes of choosing the next node based on which trial this is.
 """
-function mcdts_embedding(data::Dataset, w::Int, choose_func, delays::AbstractRange{D}, N::Int=100;
+function mcdts_embedding(data::Dataset, w::Int, choose_func, delays::AbstractRange{D}, N::Int=40;
             max_depth::Int=20, KNN::Int = 3, FNN::Bool = false, PRED::Bool=false,
             Tw::Int = 1, verbose::Bool=false, tws::AbstractRange{D} = 2:delays[end],
             threshold::Real = 0, linear::Bool = false, PRED_mean::Bool=false,
@@ -468,7 +468,7 @@ function mcdts_embedding(data::Dataset, w::Int, choose_func, delays::AbstractRan
     return tree
 end
 
-function mcdts_embedding(data::Dataset, N::Int=100; kwargs...)
+function mcdts_embedding(data::Dataset, N::Int=40; kwargs...)
 
     # estimate Theiler window
     w = []
@@ -478,7 +478,7 @@ function mcdts_embedding(data::Dataset, N::Int=100; kwargs...)
     w=maximum(w)
 
     # consider delays up to 100 (if the time series is that long)
-    delays = size(data,1) > 101 : 0:100 ? 0:(size(data,1)-1)
+    delays = (size(data,1) > 101) ? (0:100) : (0:(size(data,1)-1))
 
     return mcdts_embedding(data, w, (L)->(MCDTS.softmaxL(L,β=2.)), delays, N; kwargs...)
 end
