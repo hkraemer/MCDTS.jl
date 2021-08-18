@@ -33,8 +33,6 @@
 % x2: Heat release causally affects Pressure (based on an embedding of heat release time series)
 % y1: Pressure causally affects Heat release (based on an embedding of pressure time series)
 % y2: Pressure causally affects Heat release (based on an embedding of heat release time series)
-%
-% We also plot the results for further grafical postprocessing in AI
 
 clear, clc
 
@@ -184,8 +182,8 @@ x1_cao_true = sum(x1_causal_cao);
 x1_pec_true = sum(x1_causal_pec);
 x1_mcdts_true = sum(x1_causal_mcdts);
 display(strcat("Cao: ",num2str(x1_cao_true),"/50 = ",num2str(x1_cao_true/sample_size)))
-display(strcat("Pecuzal: ",num2str(x1_pec_true),"/50 = ",num2str(x1_pec_true/sample_size)))
-display(strcat("MCDTS: ",num2str(x1_mcdts_true),"/50 = ",num2str(x1_mcdts_true/sample_size)))
+display(strcat("Pecuzal: ",num2str(x1_pec_true),"/50 = ",num2str(x1_cao_true/sample_size)))
+display(strcat("MCDTS: ",num2str(x1_mcdts_true),"/50 = ",num2str(x2_cao_true/sample_size)))
 display("%%%%%%%%%%%%%%%%")
 display("Heat causally affects pressure (Heat embedding):")
 x2_cao_true = sum(x2_causal_cao);
@@ -224,9 +222,7 @@ subplot(221)
 h = barh(1:2,yy,'stacked'); hold on
 set(h(1),'FaceColor',c1);
 set(h(2),'FaceColor',c2);
-set(gca,'LineWidth',2)
 grid on
-box off
 yticklabels(["CAO", "MCDTS-CCM"])
 title("Heat causally affects pressure (Pressure embedding):")
 
@@ -240,9 +236,7 @@ subplot(222)
 h = barh(1:2,yy,'stacked'); hold on
 set(h(1),'FaceColor',c1);
 set(h(2),'FaceColor',c2);
-set(gca,'LineWidth',2)
 grid on
-box off
 yticklabels(["CAO", "MCDTS-CCM"])
 title("Heat causally affects pressure (Heat embedding):")
 
@@ -257,11 +251,8 @@ subplot(223)
 h = barh(1:2,yy,'stacked'); hold on
 set(h(1),'FaceColor',c1);
 set(h(2),'FaceColor',c2);
-set(gca,'LineWidth',2)
 grid on
 yticklabels(["CAO", "MCDTS-CCM"])
-set(gca, 'XDir', 'reverse')
-box off
 title("Pressure causally affects heat (Pressure embedding):")
 
 yy(1,1) = y2_cao_true/sample_size
@@ -274,11 +265,9 @@ subplot(224)
 h = barh(1:2,yy,'stacked'); hold on
 set(h(1),'FaceColor',c1);
 set(h(2),'FaceColor',c2);
-set(gca,'LineWidth',2)
 grid on
 yticklabels(["CAO", "MCDTS-CCM"])
-set(gca, 'XDir', 'reverse')
-box off
+set(gca, 'XDir',)
 title("Pressure causally affects heat (Heat embedding):")
 
 %% 4) Check the strength of the interaction
