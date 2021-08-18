@@ -344,6 +344,7 @@ xlabel("samples")
 set(gca, 'FontSize',fs, 'LineWidth',2);
 xticks(1:sample_size)
 xticklabels([])
+ylim([-0.5 0.6])
 
 
 yy = vertcat(diff_cao_2,diff_mcdts_2);
@@ -373,4 +374,5 @@ xlabel("samples")
 set(gca, 'FontSize',fs, 'LineWidth',2);
 xticks(1:sample_size)
 xticklabels([])
+ylim([-0.5 0.6])
 
