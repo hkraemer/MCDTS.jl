@@ -22,7 +22,7 @@ lo = Systems.lorenz(rand(3))
 dt = 0.01
 tr = trajectory(lo, 500; dt = dt, Ttr = 10)
 
-data = regularize(tr)
+data = DelayEmbeddings.standardize(tr)
 
 w = DelayEmbeddings.estimate_delay(tr[:,1], "mi_min")
 Yx, taus, _, _, _ = pecuzal_embedding(tr[:,1]; w=w)
@@ -78,15 +78,15 @@ Yx = embed(x,2,1)
 Yy = embed(y,2,1)
 
 w1 = DelayEmbeddings.estimate_delay(x, "mi_min")
-ρ, Y_hat = MCDTS.ccm(Yx, Yy; w = w1)
+ρ, Y_hat = MCDTS.ccm(Yx, y[1:length(Yx)]; w = w1)
 
 yyy, _ = optimal_traditional_de(x, "fnn"; w = w1)
 
 Random.seed!(1234)
 tree = MCDTS.mc_delay(Dataset(x), w1, (L)->(MCDTS.softmaxL(L,β=2.)), 0:10, 10;
-    verbose=true, CCM = true, Y_CCM = Dataset(y))
+    verbose=true, CCM = true, Y_CCM = y)
 best_node = MCDTS.best_embedding(tree)
-τ_mcdts = best_node.τs
+τ_mcdts = best_node.τs .*(-1)
 ts_mcdts2_n = best_node.ts
 L = best_node.L
 
@@ -103,8 +103,8 @@ rho_mcdts_y = zeros(length(100:100:3500))
 for i = 100:100:3500
     xx = x[1:i]
     yy = y[1:i]
-    Yx = embed(xx,d1,τ1)
-    Yy = embed(yy,d2,τ2)
+    Yx = genembed(xx,[0,-τ1])
+    Yy = genembed(yy,[0,-τ2])
 
     Yx2 = genembed(xx, τ_mcdts)
     Yy2 = genembed(yy, τ_mcdts)
@@ -117,11 +117,11 @@ for i = 100:100:3500
         w = maximum([w1,w2])
     end
 
-    rho_y[cnt], _ = MCDTS.ccm(Yx,Yy; w = w)
-    rho_x[cnt], _ = MCDTS.ccm(Yy,Yx; w = w)
+    rho_y[cnt], _ = MCDTS.ccm(Yx,yy[1+τ1:length(Yx)+τ1]; w = w)
+    rho_x[cnt], _ = MCDTS.ccm(Yy,xx[1+τ2:length(Yy)+τ2]; w = w)
 
-    rho_mcdts_y[cnt], _ = MCDTS.ccm(Yx2,Yy2; w = w)
-    rho_mcdts_x[cnt], _ = MCDTS.ccm(Yy2,Yx2; w = w)
+    rho_mcdts_y[cnt], _ = MCDTS.ccm(Yx2,yy[1+maximum(τ_mcdts.*(-1)):length(Yx2)+maximum(τ_mcdts.*(-1))]; w = w)
+    rho_mcdts_x[cnt], _ = MCDTS.ccm(Yy2,xx[1+maximum(τ_mcdts.*(-1)):length(Yy2)+maximum(τ_mcdts.*(-1))]; w = w)
 
     cnt +=1
 end

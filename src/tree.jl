@@ -140,7 +140,7 @@ function next_embedding(n::Node, Ys::Dataset{D, T}, w::Int, τs; KNN::Int = 3,
                             threshold::Real = 0, linear::Bool = false,
                             PRED_L::Bool = false, PRED_mean::Bool = false,
                             PRED_KL::Bool = false, CCM::Bool = false,
-                            Y_CCM = Dataset(zeros(size(Yss))) ) where {D, T<:Real}
+                            Y_CCM = zeros(length(Ys)) ) where {D, T<:Real}
 
     @assert (FNN || PRED) || (~FNN && ~PRED) || (~FNN && ~PRED && CCM) "Select either FNN or PRED or CCM keyword (or none)."
     τs_old = get_τs(n)
@@ -164,7 +164,7 @@ function next_embedding(n::Root, Ys::Dataset{D, T}, w::Int, τs; KNN::Int = 3,
                             PRED_L::Bool = false, PRED_mean::Bool = false,
                             PRED_KL::Bool = false,
                             CCM::Bool = false,
-                            Y_CCM = Dataset(zeros(size(Yss)))) where {D, T<:Real}
+                            Y_CCM = zeros(length(Ys)) ) where {D, T<:Real}
 
     @assert (FNN || PRED) || (~FNN && ~PRED) || (~FNN && ~PRED && CCM) "Select either FNN or PRED or CCM keyword (or none)."
 
@@ -307,7 +307,7 @@ function expand!(n::Root, data::Dataset{D, T}, w::Int, choose_func,
             tws::AbstractRange{DT} = 2:delays[end], threshold::Real = 0,
             choose_mode::Int=0, linear::Bool = false, PRED_mean::Bool=false,
             PRED_L::Bool=false, PRED_KL::Bool=false, CCM::Bool=false,
-            Y_CCM = Dataset(zeros(size(Yss)))) where {D, DT, T<:Real}
+            Y_CCM = zeros(length(data)) ) where {D, DT, T<:Real}
 
     @assert (FNN || PRED) || (~FNN && ~PRED) || (~FNN && ~PRED && CCM) "Select either FNN or PRED or CCM keyword (or none)."
     @assert threshold ≥ 0
@@ -396,7 +396,7 @@ Do the MCDTS embedding of the `data` with `N` trials, returns the tree. Embeddin
                 Tw::Int = 1, verbose::Bool=false, tws::AbstractRange{D} = 2:delays[end],
                 threshold::Real = 0, linear::Bool = false, PRED_mean::Bool=false,
                 PRED_L::Bool=false, PRED_KL::Bool=false, CCM::Bool=false,
-                Y_CCM = Dataset(zeros(size(data))))
+                Y_CCM = zeros(size(data)))
 
 * `w` is the Theiler window (neighbors in time
 with index `w` close to the point, that are excluded from being true neighbors. `w=0` means to exclude only the point itself, and no temporal neighbors. In case of multivariate time series input choose `w` as the maximum of all `wᵢ's`. As a default in the convience call this is estimated with a mutual information minimum method of DelayEmbeddings.jl
@@ -442,7 +442,7 @@ function mcdts_embedding(data::Dataset, w::Int, choose_func, delays::AbstractRan
             Tw::Int = 1, verbose::Bool=false, tws::AbstractRange{D} = 2:delays[end],
             threshold::Real = 0, linear::Bool = false, PRED_mean::Bool=false,
             PRED_L::Bool=false, PRED_KL::Bool=false, CCM::Bool=false,
-            Y_CCM = Dataset(zeros(size(data)))) where {D}
+            Y_CCM = zeros(length(data))) where {D}
 
     # initialize tree
     tree = Root()

@@ -60,7 +60,7 @@ function give_potential_delays(Yss::Dataset{D, T}, τs, w::Int, τ_vals, ts_vals
                 KNN::Int = 3, FNN::Bool = false, PRED::Bool = false, Tw::Int = 1,
                 threshold::Real = 0, tws::AbstractRange{Int} = 2:τs[end],
                 linear::Bool=false, PRED_mean::Bool=false, PRED_L::Bool=false,
-                PRED_KL::Bool=false, CCM::Bool=false, Y_CCM = Dataset(zeros(size(Yss)))) where {D, T}
+                PRED_KL::Bool=false, CCM::Bool=false, Y_CCM = zeros(size(Yss))) where {D, T}
 
     @assert (FNN || PRED) || (~FNN && ~PRED) || (~FNN && ~PRED && CCM) "Select either FNN or PRED or CCM keyword (or none)."
     @assert 0 < samplesize ≤ 1 "Please select a valid `samplesize`, which denotes a fraction of considered fiducial points, i.e. `samplesize` ∈ (0 1]"
@@ -341,10 +341,10 @@ function local_CCM_statistics(ε★, Y_act, Ys, Y_other, τs, w, metric, Tw; τ_
         tau_trials = ((τ_vals.*(-1))...,(τs[τ_idx-1]*(-1)),)
         ts_trials = (ts_vals...,ts,)
         Y_trial = genembed(Ys, tau_trials, ts_trials)
-        Ys_other = genembed(Y_other, tau_trials, ts_trials)
+        # account for value-shift due to negative lags
+        Ys_other = Y_other[1+maximum(tau_trials.*(-1)):length(Y_trial)+maximum(tau_trials.*(-1))]
         # compute ρ_CCM for Y_trial and Y_other
         ρ_CCM[i], _ = MCDTS.ccm(Y_trial, Ys_other; w = w)
-
     end
     return -ρ_CCM, max_idx
 end
