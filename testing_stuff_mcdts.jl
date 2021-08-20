@@ -496,3 +496,62 @@ using MCDTS
 trial1 = genembed(s1, -τ_mcdts)
 trial2 = genembed(s2, -τ_mcdts)
 rho_mcdts, _ = MCDTS.ccm(trial1, trial2; w = w1)
+
+
+
+
+
+d1 = readdlm("results_analysis_CCM_full_combustion_1_Pearson.csv")
+d1_old = readdlm("./application/Causality/Combustion/results/results_analysis_CCM_full_combustion_1_Pearson.csv")
+
+dx_cao = readdlm("results_analysis_CCM_full_combustion_1_x1_cao.csv")
+dy_cao = readdlm("results_analysis_CCM_full_combustion_1_y1_cao.csv")
+dx_cao_old = readdlm("./application/Causality/Combustion/results/results_analysis_CCM_full_combustion_1_x1_cao.csv")
+dy_cao_old = readdlm("./application/Causality/Combustion/results/results_analysis_CCM_full_combustion_1_y1_cao.csv")
+
+dx_pec = readdlm("results_analysis_CCM_full_combustion_1_x1_pec.csv")
+dy_pec = readdlm("results_analysis_CCM_full_combustion_1_y1_pec.csv")
+dx_pec_old = readdlm("./application/Causality/Combustion/results/results_analysis_CCM_full_combustion_1_x1_pec.csv")
+dy_pec_old = readdlm("./application/Causality/Combustion/results/results_analysis_CCM_full_combustion_1_y1_pec.csv")
+
+dx_mcdts = readdlm("results_analysis_CCM_full_combustion_1_x1_mcdts.csv")
+dy_mcdts = readdlm("results_analysis_CCM_full_combustion_1_y1_mcdts.csv")
+dx_mcdts_old = readdlm("./application/Causality/Combustion/results/results_analysis_CCM_full_combustion_1_x1_mcdts.csv")
+dy_mcdts_old = readdlm("./application/Causality/Combustion/results/results_analysis_CCM_full_combustion_1_y1_mcdts.csv")
+
+figure()
+subplot(231)
+plot(dx_cao)
+plot(dy_cao)
+grid()
+legend("X cao", "Y_cao")
+
+subplot(232)
+plot(dx_pec)
+plot(dy_pec)
+grid()
+legend("X pec", "Y_pec")
+
+subplot(233)
+plot(dx_mcdts)
+plot(dy_mcdts)
+grid()
+legend("X mcdts", "Y_mcdts")
+
+subplot(234)
+plot(dx_cao_old)
+plot(dy_cao_old)
+grid()
+legend("X cao_old", "Y_cao_old")
+
+subplot(235)
+plot(dx_pec_old)
+plot(dy_pec_old)
+grid()
+legend("X pec_old", "Y_pec_old")
+
+subplot(236)
+plot(dx_mcdts_old)
+plot(dy_mcdts_old)
+grid()
+legend("X mcdts_old", "Y_mcdts_old")

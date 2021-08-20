@@ -939,14 +939,20 @@ end
 
 
 """
-    ccm(X, Y; kwargs...) → ρ, Y_hat
+    ccm(X, y; kwargs...) → ρ, y_hat
 
-    Compute the convergent crossmapping (CCM) (Sugihara et al. 2012) of two
-    vector time series `X` and `Y` (must have the same length and dimensionality).
-    Return the correlation coefficient of `Y` and its predicted values for `Y_hat`,
+    Compute the convergent crossmapping (CCM) (Sugihara et al. 2012) of a
+    vector time series `X` (and embedded time series `x`) and the time series `y`
+    NOTE: 'X' and 'y' must have the same length and you have to make sure that
+    'y' starts at the same time index as 'X' does. - When using [`genembed`](@ref)
+    with negative delays to construct `X` from `x`, which is mandatory here, then
+    'y' needs to be shifted by the largest negative delay value, which has been
+    used to construct `X`.
+
+    Returns the correlation coefficient of `y` and its predicted values for `y_hat`,
     based on the nearest neighbour structure of `X`.
-    It is said that 'Y' causes 'X', if ρ increases with increasing  vector time
-    series length AND ρ is "quite high".
+    It is said that 'y' causes 'x', if ρ increases with increasing time series
+    length AND ρ is "quite high".
 
     Keyword arguments:
     *`metric = Euclidean()`: The metric for vector distance computation.

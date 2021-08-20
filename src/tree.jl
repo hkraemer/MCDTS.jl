@@ -4,23 +4,25 @@ using Revise
 import Base.show
 
 """
-The MCDTS algorithm is implemented as a tree with different kind types encoding the leafs and the root of the tree. AbstractTreeElement is the abstract type of these types.
+    The MCDTS algorithm is implemented as a tree with different kind types encoding
+    the leafs and the root of the tree. AbstractTreeElement is the abstract type of
+    these types.
 """
 abstract type AbstractTreeElement end
 
 """
     mutable struct Root
 
-The 'start'/root of Tree. Each node contains its children. The root contains the starting branches/nodes.
+    The 'start'/root of Tree. Each node contains its children. The root contains the starting branches/nodes.
 
-# Initialization:
+    # Initialization:
 
-`r = Root()`
+    `r = Root()`
 
-# Fields:
+    # Fields:
 
-* `children::Union{Array{Node,1},Nothing}`: The first nodes of the tree.
-* `Lmin`; Is the global minimum of the cumulative ΔL statistic found so far.
+    * `children::Union{Array{Node,1},Nothing}`: The first nodes of the tree.
+    * `Lmin`; Is the global minimum of the cumulative ΔL statistic found so far.
 """
 mutable struct Root <: AbstractTreeElement
     children
@@ -44,15 +46,15 @@ end
 """
     mutable struct Node{T}
 
-A node of the tree. Each node contains its children and information about the current embedding.
+    A node of the tree. Each node contains its children and information about the current embedding.
 
-# Fields:
+    # Fields:
 
-* `τ::Int`: The delay value of this node
-* `L::T`: The value of the cumulative ΔL statistic at this node
-* `τs::Array{Int,1}`: The complete vector with all τs chosen along this path up until this node
-* `ts::Array{Int,1}`: The complex vector which of the possibly multivariate time series is used at each embedding step i
-* `children::Union{Array{Node,1},Nothing}`: The children of this node
+    * `τ::Int`: The delay value of this node
+    * `L::T`: The value of the cumulative ΔL statistic at this node
+    * `τs::Array{Int,1}`: The complete vector with all τs chosen along this path up until this node
+    * `ts::Array{Int,1}`: The complex vector which of the possibly multivariate time series is used at each embedding step i
+    * `children::Union{Array{Node,1},Nothing}`: The children of this node
 """
 mutable struct Node{T} <: AbstractTreeElement
     τ::Int
@@ -93,45 +95,48 @@ end
 """
     next_embedding(n::Node, Ys::Dataset{D, T}, w::Int, τs; kwars...) → τ_pot, ts_pot, L_pot, flag
 
-Performs the next embedding step. For the actual embedding contained in tree leaf `n`
-compute as many conitnuity statistics as there are time series in the Dataset
-`Ys` for a range of possible delays `τs`. Return the values for the best delay
-`τ_pot`, its corresponding time series index `ts_pot` the according L-value
-`L_pot` and `flag`, following the Pecuzal-logic.
+    Performs the next embedding step. For the actual embedding contained in tree leaf `n`
+    compute as many conitnuity statistics as there are time series in the Dataset
+    `Ys` for a range of possible delays `τs`. Return the values for the best delay
+    `τ_pot`, its corresponding time series index `ts_pot` the according L-value
+    `L_pot` and `flag`, following the Pecuzal-logic.
 
-# Keyword arguments
-* `KNN = 3`: The number of nearest neighbors considered in the computation of
-  the L-statistic.
-* `FNN::Bool = false`: Determines whether the algorithm should minimize the
-  L-statistic or the FNN-statistic.
-* `PRED::Bool = false`: Determines whether the algorithm should minimize the
-  L-statistic or a cost function based on minimizing the `Tw`-step-prediction error
-* `Tw::Int = 1`: If `PRED = true`, this is the considered prediction horizon
-* `linear::Bool=false`: If `PRED = true`, this determines whether the prediction shall
-  be made on the zeroth or a linear predictor.
-* `PRED_mean::Bool=false`: If `PRED = true`, this determines whether the prediction shall
-    be optimized on the mean MSE of all components or only on the 1st-component (Default)
-* `PRED_L::Bool=false`: If `PRED = true`, this determines whether the prediction shall
-    be optimized on possible delay values gained from the continuity statistic or on
-    delays = 0:25 (Default)
-* `PRED_KL::Bool=false`: If `PRED = true`, this determines whether the prediction shall
-  be optimized on the Kullback-Leibler-divergence of the in-sample prediction and
-  the true in-sample values, or if the optimization shall be made on the MSE of them (Default)
-* `threshold::Real = 0`: The algorithm does not pick a peak from the continuity
-  statistic, when its corresponding `ΔL`/FNN-value exceeds this threshold. Please
-  provide a positive number for both, `L` and `FNN`-statistic option (since the
-  `ΔL`-values are negative numbers for meaningful embedding cycles, this threshold
-  gets internally sign-switched).
-* `tws::Range = 2:τs[end]`: Customization of the sampling of the different T's,
-  when computing Uzal's L-statistics. Here any kind of integer ranges (starting
-  at 2) are allowed, up to `τs[end]`.
+    # Keyword arguments
+    * `KNN = 3`: The number of nearest neighbors considered in the computation of
+      the L-statistic.
+    * `FNN::Bool = false`: Determines whether the algorithm should minimize the
+      L-statistic or the FNN-statistic.
+    * `PRED::Bool = false`: Determines whether the algorithm should minimize the
+      L-statistic or a cost function based on minimizing the `Tw`-step-prediction error
+    * `Tw::Int = 1`: If `PRED = true`, this is the considered prediction horizon
+    * `linear::Bool=false`: If `PRED = true`, this determines whether the prediction shall
+      be made on the zeroth or a linear predictor.
+    * `PRED_mean::Bool=false`: If `PRED = true`, this determines whether the prediction shall
+        be optimized on the mean MSE of all components or only on the 1st-component (Default)
+    * `PRED_L::Bool=false`: If `PRED = true`, this determines whether the prediction shall
+        be optimized on possible delay values gained from the continuity statistic or on
+        delays = 0:25 (Default)
+    * `PRED_KL::Bool=false`: If `PRED = true`, this determines whether the prediction shall
+      be optimized on the Kullback-Leibler-divergence of the in-sample prediction and
+      the true in-sample values, or if the optimization shall be made on the MSE of them (Default)
+    * `CCM:Bool=false`: Determines whether the algorithm should maximize the CCM-correlation
+      coefficient of the embedded vector from `Ys` and the given time series `Y_CCM`.
+    * `Y_CCM`: The time series CCM should cross map to.
+    * `threshold::Real = 0`: The algorithm does not pick a peak from the continuity
+      statistic, when its corresponding `ΔL`/FNN-value exceeds this threshold. Please
+      provide a positive number for both, `L` and `FNN`-statistic option (since the
+      `ΔL`-values are negative numbers for meaningful embedding cycles, this threshold
+      gets internally sign-switched).
+    * `tws::Range = 2:τs[end]`: Customization of the sampling of the different T's,
+      when computing Uzal's L-statistics. Here any kind of integer ranges (starting
+      at 2) are allowed, up to `τs[end]`.
 
-# Returns
+    # Returns
 
-* `τ_pot`: Next delay
-* `ts_pot`: Index of the time series used (in case of multivariate time series)
-* `L_pot`: L statistic of next embedding step with delay `τ_pot` from `ts_pot`.
-* `flag`: Did the embedding converge? i.e. L can not be further minimized anymore
+    * `τ_pot`: Next delay
+    * `ts_pot`: Index of the time series used (in case of multivariate time series)
+    * `L_pot`: L statistic of next embedding step with delay `τ_pot` from `ts_pot`.
+    * `flag`: Did the embedding converge? i.e. L can not be further minimized anymore
 
 """
 function next_embedding(n::Node, Ys::Dataset{D, T}, w::Int, τs; KNN::Int = 3,
@@ -192,12 +197,12 @@ end
 """
     choose_next_node(n::Union{Node,Root}, func, Lmin_global,i_trial::Int=1)
 
-Returns one of the children of based on the function `func(Ls)->i_node`,
-Lmin_global is the best L value so far in the optimization process, if any of
-the input Ls to choose from is smaller than it, it is always chosen.
-`choose_mode` is only relevant for the first embedding step right now: it
-determines if the first step is chosen uniform (`choose_mode==0`) or with the
-`func` (`choose_mode==1`).
+    Returns one of the children of based on the function `func(Ls)->i_node`,
+    Lmin_global is the best L value so far in the optimization process, if any of
+    the input Ls to choose from is smaller than it, it is always chosen.
+    `choose_mode` is only relevant for the first embedding step right now: it
+    determines if the first step is chosen uniform (`choose_mode==0`) or with the
+    `func` (`choose_mode==1`).
 """
 function choose_next_node(n::Node,func, Lmin_global=-Inf,choose_mode=1)
     N = N_children(n)
@@ -239,7 +244,7 @@ minL(Ls) = argmin(Ls)
 """
     softmaxL(Ls; β=1.5)
 
-Return an index with prob computed by a softmax of all Ls.
+    Returns an index with prob computed by a softmax of all Ls.
 """
 function softmaxL(Ls; β=1.5)
     softmaxnorm = sum(exp.(-β*Ls))
@@ -259,46 +264,47 @@ end
 """
     expand!(n::Union{Node,Root}, data::Dataset, w::Int, choose_func, delays; kwargs...)
 
-This is one single rollout and backprop of the tree. For details please see the accompanying paper.
+    This is one single rollout and backprop of the tree. For details please see the accompanying paper.
 
-* `n`: Starting node
-* `data`: data
-* `w`: Theiler Window
-* `choose_func`: Function to choose next node with
-* `delays = 0:100`: The possible time lags
+    * `n`: Starting node
+    * `data`: data
+    * `w`: Theiler Window
+    * `choose_func`: Function to choose next node with
+    * `delays = 0:100`: The possible time lags
 
-# Keyword arguments
-* `max_depth = 20`: Threshold, which determines the algorithm. It either breaks,
-  when it converges, i.e. when there is no way to reduce the cost-function any
-  further, or when this threshold is reached.
-* `KNN = 3`: The number of nearest neighbors considered in the computation of
-  the L-statistic.
-* `FNN:Bool = false`: Determines whether the algorithm should minimize the
-  L-statistic or the FNN-statistic.
-* `PRED::Bool = false`: Determines whether the algorithm should minimize the
-  L-statistic or a cost function based on minimizing the `Tw`-step-prediction error
-* `Tw::Int = 1`: If `PRED = true`, this is the considered prediction horizon
-* `linear::Bool=false`: If `PRED = true`, this determines whether the prediction shall
-  be made on the zeroth or a linear predictor.
-* `PRED_mean::Bool=false`: If `PRED = true`, this determines whether the prediction shall
-  be optimized on the mean MSE of all components or only on the 1st-component (Default)
-* `PRED_L::Bool=false`: If `PRED = true`, this determines whether the prediction shall
-  be optimized on possible delay values gained from the continuity statistic or on
-  delays = 0:25 (Default)
-* `PRED_KL::Bool=false`: If `PRED = true`, this determines whether the prediction shall
-  be optimized on the Kullback-Leibler-divergence of the in-sample prediction and
-  the true in-sample values, or if the optimization shall be made on the MSE of them (Default)
-* `CCM:Bool=false`: TBD
-* `Y_CCM`: TBD
-* `threshold::Real = 0`: The algorithm does not pick a peak from the continuity
-  statistic, when its corresponding `ΔL`/FNN-value exceeds this threshold. Please
-  provide a positive number for both, `L` and `FNN`-statistic option (since the
-  `ΔL`-values are negative numbers for meaningful embedding cycles, this threshold
-  gets internally sign-switched).
-* `tws::Range = 2:delays[end]`: Customization of the sampling of the different T's,
-  when computing Uzal's L-statistics. Here any kind of integer ranges (starting
-  at 2) are allowed, up to `delays[end]`.
-* `choose_mode::Int=0`: Possibility for different modes of choosing the next node based on which trial this is.
+    # Keyword arguments
+    * `max_depth = 20`: Threshold, which determines the algorithm. It either breaks,
+      when it converges, i.e. when there is no way to reduce the cost-function any
+      further, or when this threshold is reached.
+    * `KNN = 3`: The number of nearest neighbors considered in the computation of
+      the L-statistic.
+    * `FNN:Bool = false`: Determines whether the algorithm should minimize the
+      L-statistic or the FNN-statistic.
+    * `PRED::Bool = false`: Determines whether the algorithm should minimize the
+      L-statistic or a cost function based on minimizing the `Tw`-step-prediction error
+    * `Tw::Int = 1`: If `PRED = true`, this is the considered prediction horizon
+    * `linear::Bool=false`: If `PRED = true`, this determines whether the prediction shall
+      be made on the zeroth or a linear predictor.
+    * `PRED_mean::Bool=false`: If `PRED = true`, this determines whether the prediction shall
+      be optimized on the mean MSE of all components or only on the 1st-component (Default)
+    * `PRED_L::Bool=false`: If `PRED = true`, this determines whether the prediction shall
+      be optimized on possible delay values gained from the continuity statistic or on
+      delays = 0:25 (Default)
+    * `PRED_KL::Bool=false`: If `PRED = true`, this determines whether the prediction shall
+      be optimized on the Kullback-Leibler-divergence of the in-sample prediction and
+      the true in-sample values, or if the optimization shall be made on the MSE of them (Default)
+    * `CCM:Bool=false`: Determines whether the algorithm should maximize the CCM-correlation
+      coefficient of the embedded vector from `Ys` and the given time series `Y_CCM`.
+    * `Y_CCM`: The time series CCM should cross map to.
+    * `threshold::Real = 0`: The algorithm does not pick a peak from the continuity
+      statistic, when its corresponding `ΔL`/FNN-value exceeds this threshold. Please
+      provide a positive number for both, `L` and `FNN`-statistic option (since the
+      `ΔL`-values are negative numbers for meaningful embedding cycles, this threshold
+      gets internally sign-switched).
+    * `tws::Range = 2:delays[end]`: Customization of the sampling of the different T's,
+      when computing Uzal's L-statistics. Here any kind of integer ranges (starting
+      at 2) are allowed, up to `delays[end]`.
+    * `choose_mode::Int=0`: Possibility for different modes of choosing the next node based on which trial this is.
 
 """
 function expand!(n::Root, data::Dataset{D, T}, w::Int, choose_func,
@@ -360,8 +366,9 @@ end
 """
     backprop!(n::Root,τs,ts,L_min)
 
-Backpropagation of the tree spanned by all children in `n` (for this run).
-All children-nodes L-values get set to the final value achieved in this run. This function is ususally called be [`expand!`](@ref).
+    Backpropagation of the tree spanned by all children in `n` (for this run).
+    All children-nodes L-values get set to the final value achieved in this run.
+    This function is ususally called be [`expand!`](@ref).
 """
 function backprop!(n::Root,τs,ts,L_min)
 
@@ -381,15 +388,18 @@ end
 
 """
 
-mcdts_embedding
+    mcdts_embedding
 
-## Convenience / default option call
+    ## Convenience / default option call
 
     mcdts_embedding(data::Dataset, N::Int=100; kwargs...)
 
-Do the MCDTS embedding of the `data` with `N` trials, returns the tree. Embedding parameters like the Theiler window, considered delays and the function that chooses the next embedding step are all estiamted automatically or the default option is used. `data` is a `DynamicalSystems.Dataset`.
+    Do the MCDTS embedding of the `data` with `N` trials, returns the tree.
+    Embedding parameters like the Theiler window, considered delays and the
+    function that chooses the next embedding step are all estiamted automatically
+    or the default option is used. `data` is a `DynamicalSystems.Dataset`.
 
-## All options
+    ## All options
 
     mcdts_embedding(data::DynamicalSystems.Dataset, w::Int, choose_func, delays::AbstractRange{D}, N::Int=40;
                 max_depth::Int=20, KNN::Int = 3, FNN::Bool = false, PRED::Bool=false,
@@ -398,44 +408,45 @@ Do the MCDTS embedding of the `data` with `N` trials, returns the tree. Embeddin
                 PRED_L::Bool=false, PRED_KL::Bool=false, CCM::Bool=false,
                 Y_CCM = zeros(size(data)))
 
-* `w` is the Theiler window (neighbors in time
-with index `w` close to the point, that are excluded from being true neighbors. `w=0` means to exclude only the point itself, and no temporal neighbors. In case of multivariate time series input choose `w` as the maximum of all `wᵢ's`. As a default in the convience call this is estimated with a mutual information minimum method of DelayEmbeddings.jl
-* `choose_func`: Function to choose next node in the tree with, default choise: `(L)->(MCDTS.softmaxL(L,β=2.))`
-* `delays = 0:100`: The possible time lags
+    * `w` is the Theiler window (neighbors in time
+    with index `w` close to the point, that are excluded from being true neighbors. `w=0` means to exclude only the point itself, and no temporal neighbors. In case of multivariate time series input choose `w` as the maximum of all `wᵢ's`. As a default in the convience call this is estimated with a mutual information minimum method of DelayEmbeddings.jl
+    * `choose_func`: Function to choose next node in the tree with, default choise: `(L)->(MCDTS.softmaxL(L,β=2.))`
+    * `delays = 0:100`: The possible time lags
 
-### Keyword Arguments
+    ### Keyword Arguments
 
-* `max_depth = 20`: Threshold, which determines the algorithm. It either breaks,
-  when it converges, i.e. when there is no way to reduce the cost-function any
-  further, or when this threshold is reached.
-* `KNN = 3`: The number of nearest neighbors considered in the computation of
-  the L-statistic.
-* `FNN:Bool = false`: Determines whether the algorithm should minimize the
-  L-statistic or the FNN-statistic.
-* `PRED::Bool = false`: Determines whether the algorithm should minimize the
-  L-statistic or a cost function based on minimizing the `Tw`-step-prediction error
-* `Tw::Int = 1`: If `PRED = true`, this is the considered prediction horizon
-* `linear::Bool=false`: If `PRED = true`, this determines whether the prediction shall
-  be made on the zeroth or a linear predictor.
-* `PRED_mean::Bool=false`: If `PRED = true`, this determines whether the prediction shall
-  be optimized on the mean MSE of all components or only on the 1st-component (Default)
-* `PRED_L::Bool=false`: If `PRED = true`, this determines whether the prediction shall
-  be optimized on possible delay values gained from the continuity statistic or on
-  delays = 0:25 (Default)
-* `PRED_KL::Bool=false`: If `PRED = true`, this determines whether the prediction shall
-  be optimized on the Kullback-Leibler-divergence of the in-sample prediction and
-  the true in-sample values, or if the optimization shall be made on the MSE of them (Default)
-* `CCM:Bool=false`: TBD
-* `Y_CCM`: TBD
-* `threshold::Real = 0`: The algorithm does not pick a peak from the continuity
-  statistic, when its corresponding `ΔL`/FNN-value exceeds this threshold. Please
-  provide a positive number for both, `L` and `FNN`-statistic option (since the
-  `ΔL`-values are negative numbers for meaningful embedding cycles, this threshold
-  gets internally sign-switched).
-* `tws::Range = 2:delays[end]`: Customization of the sampling of the different T's,
-  when computing Uzal's L-statistics. Here any kind of integer ranges (starting
-  at 2) are allowed, up to `delays[end]`.
-* `choose_mode::Int=0`: Possibility for different modes of choosing the next node based on which trial this is.
+    * `max_depth = 20`: Threshold, which determines the algorithm. It either breaks,
+      when it converges, i.e. when there is no way to reduce the cost-function any
+      further, or when this threshold is reached.
+    * `KNN = 3`: The number of nearest neighbors considered in the computation of
+      the L-statistic.
+    * `FNN:Bool = false`: Determines whether the algorithm should minimize the
+      L-statistic or the FNN-statistic.
+    * `PRED::Bool = false`: Determines whether the algorithm should minimize the
+      L-statistic or a cost function based on minimizing the `Tw`-step-prediction error
+    * `Tw::Int = 1`: If `PRED = true`, this is the considered prediction horizon
+    * `linear::Bool=false`: If `PRED = true`, this determines whether the prediction shall
+      be made on the zeroth or a linear predictor.
+    * `PRED_mean::Bool=false`: If `PRED = true`, this determines whether the prediction shall
+      be optimized on the mean MSE of all components or only on the 1st-component (Default)
+    * `PRED_L::Bool=false`: If `PRED = true`, this determines whether the prediction shall
+      be optimized on possible delay values gained from the continuity statistic or on
+      delays = 0:25 (Default)
+    * `PRED_KL::Bool=false`: If `PRED = true`, this determines whether the prediction shall
+      be optimized on the Kullback-Leibler-divergence of the in-sample prediction and
+      the true in-sample values, or if the optimization shall be made on the MSE of them (Default)
+    * `CCM:Bool=false`: Determines whether the algorithm should maximize the CCM-correlation
+      coefficient of the embedded vector from `Ys` and the given time series `Y_CCM`.
+    * `Y_CCM`: The time series CCM should cross map to.
+    * `threshold::Real = 0`: The algorithm does not pick a peak from the continuity
+      statistic, when its corresponding `ΔL`/FNN-value exceeds this threshold. Please
+      provide a positive number for both, `L` and `FNN`-statistic option (since the
+      `ΔL`-values are negative numbers for meaningful embedding cycles, this threshold
+      gets internally sign-switched).
+    * `tws::Range = 2:delays[end]`: Customization of the sampling of the different T's,
+      when computing Uzal's L-statistics. Here any kind of integer ranges (starting
+      at 2) are allowed, up to `delays[end]`.
+    * `choose_mode::Int=0`: Possibility for different modes of choosing the next node based on which trial this is.
 """
 function mcdts_embedding(data::Dataset, w::Int, choose_func, delays::AbstractRange{D}, N::Int=40;
             max_depth::Int=20, KNN::Int = 3, FNN::Bool = false, PRED::Bool=false,
@@ -484,7 +495,7 @@ function mcdts_embedding(data::Dataset, N::Int=40; kwargs...)
 end
 
 """
-Legacy name, please use [`mcdts_embedding`](@ref)
+    Legacy name, please use [`mcdts_embedding`](@ref)
 """
 mc_delay(varargs...; kwargs...) = mcdts_embedding(varargs...; kwargs...)
 
@@ -492,7 +503,7 @@ mc_delay(varargs...; kwargs...) = mcdts_embedding(varargs...; kwargs...)
 """
     best_embedding(r::Root)
 
-Given the root `r` of a tree, return the best embedding in the form of the final node at the end of the best embedding
+    Given the root `r` of a tree, return the best embedding in the form of the final node at the end of the best embedding
 """
 function best_embedding(r::Root)
 

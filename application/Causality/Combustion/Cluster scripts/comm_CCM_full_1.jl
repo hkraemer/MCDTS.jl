@@ -120,7 +120,7 @@ for i = N_min:step:N
     rho_ccm[4,cnt], _ = MCDTS.ccm(Yy_pec, xx[1+maximum(taus_pec2):length(Yy_pec)+maximum(taus_pec2)]; w = w2)
 
     rho_ccm[5,cnt], _ = MCDTS.ccm(Yx_mcdts, yy[1+maximum(τ_mcdts1):length(Yx_mcdts)+maximum(τ_mcdts1)]; w = w1)
-    rho_ccm[6,cnt], _ = MCDTS.ccm(Yy_mcdts, xx[1+maximum(τ_mcdts1):length(Yx_mcdts)+maximum(τ_mcdts1)]; w = w2)
+    rho_ccm[6,cnt], _ = MCDTS.ccm(Yy_mcdts, xx[1+maximum(τ_mcdts2):length(Yy_mcdts)+maximum(τ_mcdts2)]; w = w2)
 
 end
 
