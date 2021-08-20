@@ -98,13 +98,13 @@ println("\nTesting MCDTS complete tree, coupled Logistic, CCM:")
     w1 = DelayEmbeddings.estimate_delay(x, "mi_min")
     w2 = DelayEmbeddings.estimate_delay(y, "mi_min")
 
-    test1 = DelayEmbeddings.standardize(Dataset(x))
-    test2 = DelayEmbeddings.standardize(Dataset(y))
+    test1 = DelayEmbeddings.standardize(x)
+    test2 = DelayEmbeddings.standardize(y)
     # try MCDTS with CCM
     taus1 = 0:10 # the possible delay vals
     trials = 20 # the sampling of the tree
     Random.seed!(1234)
-    tree = MCDTS.mc_delay(test1, w1, (L)->(MCDTS.softmaxL(L,β=2.)), taus1, trials;
+    tree = MCDTS.mc_delay(Dataset(test1), w1, (L)->(MCDTS.softmaxL(L,β=2.)), taus1, trials;
         verbose=false, CCM = true, Y_CCM = test2)
     best_node = MCDTS.best_embedding(tree)
     τ_mcdts = best_node.τs
@@ -118,7 +118,7 @@ println("\nTesting MCDTS complete tree, coupled Logistic, CCM:")
     @test τ_mcdts[3] == 3
 
     Random.seed!(1234)
-    tree = MCDTS.mc_delay(test2, w2, (L)->(MCDTS.softmaxL(L,β=2.)), taus1, trials;
+    tree = MCDTS.mc_delay(Dataset(test2), w2, (L)->(MCDTS.softmaxL(L,β=2.)), taus1, trials;
         verbose=false, CCM = true, Y_CCM = test1)
     best_node = MCDTS.best_embedding(tree)
     τ_mcdts = best_node.τs

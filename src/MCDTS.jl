@@ -1,7 +1,7 @@
 module MCDTS
 
 include("tree.jl")
-include("pecuzal_methods.jl")
+include("cost_functions.jl")
 include("pecora.jl")
 include("data_analysis_functions.jl")
 

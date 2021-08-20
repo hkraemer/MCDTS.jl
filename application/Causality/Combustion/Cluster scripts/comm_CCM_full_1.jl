@@ -16,7 +16,16 @@ data1 = readdlm("pressure_downsampled.txt")
 data2 = readdlm("heat_release_downsampled.txt")
 
 ## Generate subset
-Random.seed!(121)
+
+run = 1
+
+runs = [121, 122, 123, 124, 125, 126, 127, 128, 129, 130,
+    131, 132, 133, 134, 135, 136, 137, 138, 139, 140,
+    141, 142, 143, 144, 145, 146, 147, 148, 149, 150,
+    151, 152, 153, 154, 155, 156, 157, 158, 159, 160,
+    161, 162, 163, 164, 165, 166, 167, 168, 169, 170]
+
+Random.seed!(runs[run])
 N = 5000
 N_min = 500
 step = 100
@@ -110,8 +119,8 @@ for i = N_min:step:N
     rho_ccm[3,cnt], _ = MCDTS.ccm(Yx_pec, yy[1+maximum(taus_pec1):length(Yx_pec)+maximum(taus_pec1)]; w = w1)
     rho_ccm[4,cnt], _ = MCDTS.ccm(Yy_pec, xx[1+maximum(taus_pec2):length(Yy_pec)+maximum(taus_pec2)]; w = w2)
 
-    rho_ccm[5,cnt], _ = MCDTS.ccm(Yx_mcdts, yy[1+maximum(taus_mcdts1):length(Yx_mcdts)+maximum(taus_mcdts1)]; w = w1)
-    rho_ccm[6,cnt], _ = MCDTS.ccm(Yy_mcdts, xx[1+maximum(taus_mcdts1):length(Yx_mcdts)+maximum(taus_mcdts1)]; w = w2)
+    rho_ccm[5,cnt], _ = MCDTS.ccm(Yx_mcdts, yy[1+maximum(τ_mcdts1):length(Yx_mcdts)+maximum(τ_mcdts1)]; w = w1)
+    rho_ccm[6,cnt], _ = MCDTS.ccm(Yy_mcdts, xx[1+maximum(τ_mcdts1):length(Yx_mcdts)+maximum(τ_mcdts1)]; w = w2)
 
 end
 
@@ -119,7 +128,7 @@ end
 varnames = ["y1_cao", "x1_cao", "y1_pec", "x1_pec", "y1_mcdts", "x1_mcdts", "Pearson"]
 
 for i = 1:length(varnames)
-    writestr = "results_analysis_CCM_full_combustion_1_"*varnames[i]*".csv"
+    writestr = "results_analysis_CCM_full_combustion_$(run)_"*varnames[i]*".csv"
     if i == 7
         data = ρp
     else
