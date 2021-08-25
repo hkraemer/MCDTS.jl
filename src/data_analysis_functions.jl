@@ -942,7 +942,7 @@ end
     ccm(X, y; kwargs...) → ρ, y_hat
 
     Compute the convergent crossmapping (CCM) (Sugihara et al. 2012) of a
-    vector time series `X` (and embedded time series `x`) and the time series `y`
+    vector time series `X` (an embedded time series `x`) on the time series `y`
     NOTE: 'X' and 'y' must have the same length and you have to make sure that
     'y' starts at the same time index as 'X' does. - When using [`genembed`](@ref)
     with negative delays to construct `X` from `x`, which is mandatory here, then

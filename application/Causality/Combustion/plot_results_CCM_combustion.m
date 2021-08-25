@@ -2,20 +2,16 @@
 % the combustion data (pressure & heat release), computed in the scripts 
 % in the folder `./Cluster scripts/`
 
-clear, clc
+% Decoding: y1 = Heat -> Pressure, x1 = Pressure -> Heat
 
-method1 = 1; % set 1: full (one embedding for all time series), 
-             % set 0: for each time series a new embedding
-             
-sample = 26;  % set 1: sample 1, set 2: sample 2 ... until sample 20.
+clear, clc
+         
+sample = 8;  % set 1: sample 1, set 2: sample 2 ... until sample 50.
 
 
 % load the results
-if method1 == 0
-    lstr1 = strcat('./results/results_analysis_CCM_combustion_',num2str(sample),'_');
-else
-    lstr1 = strcat('./results/results_analysis_CCM_full_combustion_',num2str(sample),'_');
-end
+lstr1 = strcat('./results 3/results_analysis_CCM_full_combustion_',num2str(sample),'_');
+
 
 % set colors for bars
 c1 = [142/256 144/256 143/256]; % PIK gray
@@ -26,17 +22,10 @@ x1(1,:) = load(strcat(lstr1,'x1_cao.csv'));
 x1(2,:) = load(strcat(lstr1,'x1_pec.csv'));
 x1(3,:) = load(strcat(lstr1,'x1_mcdts.csv'));
 
-x2(1,:) = load(strcat(lstr1,'x2_cao.csv'));
-x2(2,:) = load(strcat(lstr1,'x2_pec.csv'));
-x2(3,:) = load(strcat(lstr1,'x2_mcdts.csv'));
-
 y1(1,:) = load(strcat(lstr1,'y1_cao.csv'));
 y1(2,:) = load(strcat(lstr1,'y1_pec.csv'));
 y1(3,:) = load(strcat(lstr1,'y1_mcdts.csv'));
 
-y2(1,:) = load(strcat(lstr1,'y2_cao.csv'));
-y2(2,:) = load(strcat(lstr1,'y2_pec.csv'));
-y2(3,:) = load(strcat(lstr1,'y2_mcdts.csv'));
 
 rho_p = load(strcat(lstr1,'Pearson.csv'));
 
@@ -47,39 +36,20 @@ ts_lengths = 500:100:5000;
 fs = 35;
 lw = 5;
 
-% figure('Units','normalized','Position',[.001 .001 .6 .9])
-% h = plot(ts_lengths,x1(1,:), 'LineWidth', lw); hold on
-% set(h,'Color',c1)
-% % plot(ts_lengths,x1(2,:), 'LineWidth', lw), hold on
-% h = plot(ts_lengths,x1(3,:), 'LineWidth', lw); hold on
-% set(h,'Color',c2)
-% plot(ts_lengths,rho_p, 'r--', 'LineWidth', lw)
-% % legend('CCM Cao', 'CCM PECUZAL', 'CCM MCDTS', 'Pearson corr.coeff.')
-% legend('CCM Cao', 'CCM MCDTS-C-CCM', '<-> time series')
-% legend('Location','northwest')
-% grid on
-% xlabel('time series length')
-% ylabel('\rho')
-% title(strcat('CCM for sample ',num2str(sample),'{ }','{ }','{ }','{ }','{ }','Heat -> Pressure (pressure embedding)'))
-% set(gca, 'LineWidth',2, 'Fontsize',fs)
-% ylim([-0.3 1])
-% xlim([500 5000])
-% 
-
 % compute slope of linear trend
-p = polyfit(1:46, x2(1,:), 1);
+p = polyfit(1:46, x1(1,:), 1);
 f1 = polyval(p,1:46);
 
-p = polyfit(1:46, x2(3,:), 1);
+p = polyfit(1:46, x1(3,:), 1);
 f3 = polyval(p,1:46);
 
 figure('Units','normalized','Position',[.001 .001 .6 .9])
-h = plot(ts_lengths,x2(1,:), 'LineWidth', lw); hold on
+h = plot(ts_lengths,x1(1,:), 'LineWidth', lw); hold on
 set(h,'Color',c1)
 lh = plot(ts_lengths, f1, 'k--', 'LineWidth', 2, 'HandleVisibility', 'off');
 lh.Color=[0,0,0,0.5];
-% plot(ts_lengths,x2(2,:), 'LineWidth', lw), hold on
-h = plot(ts_lengths,x2(3,:), 'LineWidth', lw); hold on
+% plot(ts_lengths,x1(2,:), 'LineWidth', lw), hold on
+h = plot(ts_lengths,x1(3,:), 'LineWidth', lw); hold on
 set(h,'Color',c2)
 lh = plot(ts_lengths, f3, 'k--', 'LineWidth', 2, 'HandleVisibility', 'off');
 lh.Color=[0,0,0,0.5];
@@ -90,44 +60,37 @@ legend('Location','northwest')
 grid on
 xlabel('time series length')
 ylabel('\rho')
-title(strcat('CCM for sample ',num2str(sample),'{ }','{ }','{ }','{ }','{ }','Heat -> Pressure (heat embedding)'))
+title(strcat('CCM for sample ',num2str(sample),'{ }','{ }','{ }','{ }','{ }','Pressure -> heat'))
 set(gca, 'LineWidth',2, 'Fontsize',fs)
 ylim([-0.3 1])
 xlim([500 5000])
 
-% figure('Units','normalized','Position',[.001 .001 .6 .9])
-% h = plot(ts_lengths,y1(1,:), 'LineWidth', lw); hold on
-% set(h,'Color',c1)
-% % plot(ts_lengths,y1(2,:), 'LineWidth', lw), hold on
-% h = plot(ts_lengths,y1(3,:), 'LineWidth', lw); hold on
-% set(h,'Color',c2)
-% plot(ts_lengths,rho_p, 'r--', 'LineWidth', lw)
-% % legend('CCM Cao', 'CCM PECUZAL', 'CCM MCDTS', 'Pearson corr.coeff.')
-% legend('CCM Cao', 'CCM MCDTS-C-CCM', '<-> time series')
-% legend('Location','northwest')
-% grid on
-% xlabel('time series length')
-% ylabel('\rho')
-% title(strcat('CCM for sample ',num2str(sample),'{ }','{ }','{ }','{ }','{ }','Pressure -> Heat (pressure embedding)'))
-% set(gca, 'LineWidth',2, 'Fontsize',fs)
-% ylim([-0.3 1])
-% xlim([500 5000])
+% compute slope of linear trend
+p = polyfit(1:46, y1(1,:), 1);
+f1 = polyval(p,1:46);
 
-% figure('Units','normalized','Position',[.001 .001 .6 .9])
-% h = plot(ts_lengths,y2(1,:), 'LineWidth', lw); hold on
-% set(h,'Color',c1)
-% % plot(ts_lengths,y2(2,:), 'LineWidth', lw), hold on
-% h = plot(ts_lengths,y2(3,:), 'LineWidth', lw); hold on
-% set(h,'Color',c2)
-% plot(ts_lengths,rho_p, 'r--', 'LineWidth', lw)
-% % legend('CCM Cao', 'CCM PECUZAL', 'CCM MCDTS', 'Pearson corr.coeff.')
-% legend('CCM Cao', 'CCM MCDTS-C-CCM', '<-> time series')
-% legend('Location','northwest')
-% grid on
-% xlabel('time series length')
-% ylabel('\rho')
-% title(strcat('CCM for sample ',num2str(sample),'{ }','{ }','{ }','{ }','{ }','Pressure -> Heat (heat embedding)'))
-% set(gca, 'LineWidth',2, 'Fontsize',fs)
-% ylim([-0.3 1])
-% xlim([500 5000])
+p = polyfit(1:46, y1(3,:), 1);
+f3 = polyval(p,1:46);
+
+figure('Units','normalized','Position',[.001 .001 .6 .9])
+h = plot(ts_lengths,y1(1,:), 'LineWidth', lw); hold on
+set(h,'Color',c1)
+lh = plot(ts_lengths, f1, 'k--', 'LineWidth', 2, 'HandleVisibility', 'off');
+lh.Color=[0,0,0,0.5];
+% plot(ts_lengths,y1(2,:), 'LineWidth', lw), hold on
+h = plot(ts_lengths,y1(3,:), 'LineWidth', lw); hold on
+set(h,'Color',c2)
+lh = plot(ts_lengths, f3, 'k--', 'LineWidth', 2, 'HandleVisibility', 'off');
+lh.Color=[0,0,0,0.5];
+plot(ts_lengths,rho_p, 'r--', 'LineWidth', lw)
+% legend('CCM Cao', 'CCM PECUZAL', 'CCM MCDTS', 'Pearson corr.coeff.')
+legend('CCM Cao', 'CCM MCDTS-C-CCM', '<-> time series')
+legend('Location','northwest')
+grid on
+xlabel('time series length')
+ylabel('\rho')
+title(strcat('CCM for sample ',num2str(sample),'{ }','{ }','{ }','{ }','{ }','Heat -> Pressure'))
+set(gca, 'LineWidth',2, 'Fontsize',fs)
+ylim([-0.3 1])
+xlim([500 5000])
 
