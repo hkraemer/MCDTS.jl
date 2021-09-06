@@ -6,12 +6,10 @@
 
 clear, clc
          
-sample = 4;  % set 1: sample 1, set 2: sample 2 ... until sample 50.
-
+sample = 24;  % set 1: sample 1, set 2: sample 2 ... until sample 50.
 
 % load the results
 lstr1 = strcat('./results 4/results_analysis_CCM_full_combustion_',num2str(sample),'_');
-
 
 % set colors for bars
 c1 = [142/256 144/256 143/256]; % PIK gray

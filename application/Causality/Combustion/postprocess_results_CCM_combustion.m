@@ -266,7 +266,7 @@ xlabel("samples")
 set(gca, 'FontSize',fs, 'LineWidth',2);
 xticks(1:sample_size)
 xticklabels([])
-ylim([-0.5 0.6])
+ylim([-0.5 0.5])
 
 
 
@@ -298,4 +298,4 @@ xlabel("samples")
 set(gca, 'FontSize',fs, 'LineWidth',2);
 xticks(1:sample_size)
 xticklabels([])
-ylim([-0.5 0.6])
+ylim([-0.5 0.5])
