@@ -22,7 +22,7 @@ lo = Systems.lorenz(rand(3))
 dt = 0.01
 tr = trajectory(lo, 500; dt = dt, Ttr = 10)
 
-data = regularize(tr)
+data = DelayEmbeddings.standardize(tr)
 
 w = DelayEmbeddings.estimate_delay(tr[:,1], "mi_min")
 Yx, taus, _, _, _ = pecuzal_embedding(tr[:,1]; w=w)
@@ -78,15 +78,15 @@ Yx = embed(x,2,1)
 Yy = embed(y,2,1)
 
 w1 = DelayEmbeddings.estimate_delay(x, "mi_min")
-ρ, Y_hat = MCDTS.ccm(Yx, Yy; w = w1)
+ρ, Y_hat = MCDTS.ccm(Yx, y[1:length(Yx)]; w = w1)
 
 yyy, _ = optimal_traditional_de(x, "fnn"; w = w1)
 
 Random.seed!(1234)
 tree = MCDTS.mc_delay(Dataset(x), w1, (L)->(MCDTS.softmaxL(L,β=2.)), 0:10, 10;
-    verbose=true, CCM = true, Y_CCM = Dataset(y))
+    verbose=true, CCM = true, Y_CCM = y)
 best_node = MCDTS.best_embedding(tree)
-τ_mcdts = best_node.τs
+τ_mcdts = best_node.τs .*(-1)
 ts_mcdts2_n = best_node.ts
 L = best_node.L
 
@@ -103,8 +103,8 @@ rho_mcdts_y = zeros(length(100:100:3500))
 for i = 100:100:3500
     xx = x[1:i]
     yy = y[1:i]
-    Yx = embed(xx,d1,τ1)
-    Yy = embed(yy,d2,τ2)
+    Yx = genembed(xx,[0,-τ1])
+    Yy = genembed(yy,[0,-τ2])
 
     Yx2 = genembed(xx, τ_mcdts)
     Yy2 = genembed(yy, τ_mcdts)
@@ -117,11 +117,11 @@ for i = 100:100:3500
         w = maximum([w1,w2])
     end
 
-    rho_y[cnt], _ = MCDTS.ccm(Yx,Yy; w = w)
-    rho_x[cnt], _ = MCDTS.ccm(Yy,Yx; w = w)
+    rho_y[cnt], _ = MCDTS.ccm(Yx,yy[1+τ1:length(Yx)+τ1]; w = w)
+    rho_x[cnt], _ = MCDTS.ccm(Yy,xx[1+τ2:length(Yy)+τ2]; w = w)
 
-    rho_mcdts_y[cnt], _ = MCDTS.ccm(Yx2,Yy2; w = w)
-    rho_mcdts_x[cnt], _ = MCDTS.ccm(Yy2,Yx2; w = w)
+    rho_mcdts_y[cnt], _ = MCDTS.ccm(Yx2,yy[1+maximum(τ_mcdts.*(-1)):length(Yx2)+maximum(τ_mcdts.*(-1))]; w = w)
+    rho_mcdts_x[cnt], _ = MCDTS.ccm(Yy2,xx[1+maximum(τ_mcdts.*(-1)):length(Yy2)+maximum(τ_mcdts.*(-1))]; w = w)
 
     cnt +=1
 end
@@ -496,3 +496,62 @@ using MCDTS
 trial1 = genembed(s1, -τ_mcdts)
 trial2 = genembed(s2, -τ_mcdts)
 rho_mcdts, _ = MCDTS.ccm(trial1, trial2; w = w1)
+
+
+
+
+
+d1 = readdlm("results_analysis_CCM_full_combustion_1_Pearson.csv")
+d1_old = readdlm("./application/Causality/Combustion/results/results_analysis_CCM_full_combustion_1_Pearson.csv")
+
+dx_cao = readdlm("results_analysis_CCM_full_combustion_1_x1_cao.csv")
+dy_cao = readdlm("results_analysis_CCM_full_combustion_1_y1_cao.csv")
+dx_cao_old = readdlm("./application/Causality/Combustion/results/results_analysis_CCM_full_combustion_1_x1_cao.csv")
+dy_cao_old = readdlm("./application/Causality/Combustion/results/results_analysis_CCM_full_combustion_1_y1_cao.csv")
+
+dx_pec = readdlm("results_analysis_CCM_full_combustion_1_x1_pec.csv")
+dy_pec = readdlm("results_analysis_CCM_full_combustion_1_y1_pec.csv")
+dx_pec_old = readdlm("./application/Causality/Combustion/results/results_analysis_CCM_full_combustion_1_x1_pec.csv")
+dy_pec_old = readdlm("./application/Causality/Combustion/results/results_analysis_CCM_full_combustion_1_y1_pec.csv")
+
+dx_mcdts = readdlm("results_analysis_CCM_full_combustion_1_x1_mcdts.csv")
+dy_mcdts = readdlm("results_analysis_CCM_full_combustion_1_y1_mcdts.csv")
+dx_mcdts_old = readdlm("./application/Causality/Combustion/results/results_analysis_CCM_full_combustion_1_x1_mcdts.csv")
+dy_mcdts_old = readdlm("./application/Causality/Combustion/results/results_analysis_CCM_full_combustion_1_y1_mcdts.csv")
+
+figure()
+subplot(231)
+plot(dx_cao)
+plot(dy_cao)
+grid()
+legend("X cao", "Y_cao")
+
+subplot(232)
+plot(dx_pec)
+plot(dy_pec)
+grid()
+legend("X pec", "Y_pec")
+
+subplot(233)
+plot(dx_mcdts)
+plot(dy_mcdts)
+grid()
+legend("X mcdts", "Y_mcdts")
+
+subplot(234)
+plot(dx_cao_old)
+plot(dy_cao_old)
+grid()
+legend("X cao_old", "Y_cao_old")
+
+subplot(235)
+plot(dx_pec_old)
+plot(dy_pec_old)
+grid()
+legend("X pec_old", "Y_pec_old")
+
+subplot(236)
+plot(dx_mcdts_old)
+plot(dy_mcdts_old)
+grid()
+legend("X mcdts_old", "Y_mcdts_old")

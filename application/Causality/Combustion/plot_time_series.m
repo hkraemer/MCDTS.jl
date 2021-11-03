@@ -3,20 +3,20 @@
 
 clear, clc
 
-data1 = load('./data/pressure_downsampled.txt');
-data2 = load('./data/heat_release_downsampled.txt');
-
+data1 = load('./data/Nonstationary 2/pressure_downsampled.txt');
+data2 = load('./data/Nonstationary 2/heat_release_downsampled.txt');
+time = load('./data/Nonstationary 2/time_downsampled.txt');
 
 %% 
 lw = 1;
 fs = 18;
 
-idx = 223233;
+idx = 28301;
+% idx = 333487;
 N = 5000;
 
-dt = 1/12000;
-t = 0:dt:(dt*(3360000-1));
-t = t(1:2:end);
+dt = mean(diff(time));
+t = 0:dt:(dt*(length(data1)-1));
 
 figure('Units','normalized','Position',[.001 .001 .99 .99])
 

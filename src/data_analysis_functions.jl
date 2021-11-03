@@ -939,14 +939,20 @@ end
 
 
 """
-    ccm(X, Y; kwargs...) → ρ, Y_hat
+    ccm(X, y; kwargs...) → ρ, y_hat
 
-    Compute the convergent crossmapping (CCM) (Sugihara et al. 2012) of two
-    vector time series `X` and `Y` (must have the same length and dimensionality).
-    Return the correlation coefficient of `Y` and its predicted values for `Y_hat`,
+    Compute the convergent crossmapping (CCM) (Sugihara et al. 2012) of a
+    vector time series `X` (an embedded time series `x`) on the time series `y`
+    NOTE: 'X' and 'y' must have the same length and you have to make sure that
+    'y' starts at the same time index as 'X' does. - When using [`genembed`](@ref)
+    with negative delays to construct `X` from `x`, which is mandatory here, then
+    'y' needs to be shifted by the largest negative delay value, which has been
+    used to construct `X`.
+
+    Returns the correlation coefficient of `y` and its predicted values for `y_hat`,
     based on the nearest neighbour structure of `X`.
-    It is said that 'Y' causes 'X', if ρ increases with increasing  vector time
-    series length AND ρ is "quite high".
+    It is said that 'y' causes 'x', if ρ increases with increasing time series
+    length AND ρ is "quite high".
 
     Keyword arguments:
     *`metric = Euclidean()`: The metric for vector distance computation.
@@ -957,16 +963,13 @@ end
                           to a lag of zero.
 
 """
-function ccm(X::Dataset{D,T},Y::Dataset{D,T}; metric = Euclidean(), w::Int = 1,
+function ccm(X::Dataset{D,T},Y::Vector{T}; metric = Euclidean(), w::Int = 1,
     lags::AbstractArray = [0]) where {D,T<:Real}
 
     K = D+1
     @assert length(X)==length(Y)
 
-    # X = DelayEmbeddings.standardize(X) # normalization
-    # Y = DelayEmbeddings.standardize(Y) # normalization
     XX = Matrix(X)
-    YY = Matrix(Y)
 
     N = length(X)
     # for potential later extension to sampled batches of fraction samplesize
@@ -983,7 +986,7 @@ function ccm(X::Dataset{D,T},Y::Dataset{D,T}; metric = Euclidean(), w::Int = 1,
     vtree = KDTree(X, metric)
     allNNidxs, allNNdist = DelayEmbeddings.all_neighbors(vtree, vxs, ns, K, w)
 
-    Y_hat = zeros(T, NN, D) # preallocation
+    Y_hat = zeros(T, NN) # preallocation
 
     # loop over each fiducial point
     for (i,v) in enumerate(vxs)
@@ -999,25 +1002,10 @@ function ccm(X::Dataset{D,T},Y::Dataset{D,T}; metric = Euclidean(), w::Int = 1,
         ws = u ./ sum(u)
 
         # compute Y_hat as a wheighted mean
-        for j = 1:D
-            Y_hat[i,j] = sum(ws .* YY[NNidxs,j])
-        end
+        Y_hat[i] = sum(ws .* Y[NNidxs])
+
     end
 
-    # compute correlation coefficient between Y_hat and YY
-    # ρ = zeros(length(lags))
-    # for (i,l) in enumerate(lags)
-    #     # shift vals for lagged ccm
-    #     if l < 0
-    #         Y_hats = Y_hat[-l+1:end,1]
-    #         Yy = YY[1:end+l,1]
-    #     else
-    #         Y_hats = Y_hat[1:end-l,1]
-    #         Yy = YY[l+1:end,1]
-    #     end
-    #     dd = Statistics.cor(Y_hats, Yy)
-    #     ρ[i] = Statistics.cor(Y_hats, Yy)
-    # end
-    ρ = Statistics.cor(Y_hat[:,1], YY[:,1])
+    ρ = Statistics.cor(Y_hat, Y)
     return ρ, Dataset(Y_hat)
 end

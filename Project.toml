@@ -1,7 +1,7 @@
 name = "MCDTS"
 uuid = "8b172166-a5f3-45b7-b6bf-d03bacc35f61"
 authors = ["Maximilian Gelbrecht, K. Hauke Kraemer"]
-version = "0.9.8"
+version = "0.9.10"
 
 [deps]
 ARFIMA = "9d0fb3db-ba49-4108-bc86-650b3813b6d5"
