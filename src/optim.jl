@@ -2,7 +2,7 @@ abstract type AbstractMCDTSOptimGoal end
 
 struct MCDTSOptimGoal <: AbstractMCDTSOptimGoal
     Γ::AbstractLoss
-    Λ::AbstractDelayPreselection  
+    Λ::AbstractDelayPreselection
 end
 
 Pecuzal() = MCDTSOptimGoal(L_function(), Continuity_function())
@@ -13,12 +13,26 @@ abstract type AbstractLoss end
 
 
 struct L_function <: AbstractLoss
-
+    #kwargs.... # pseudocode
 end
+
 
 struct Continuity_function <: AbstractDelayPreselection
 
 end
+
+# Methods for delay preselection stat
+
+# DelayPreselect(c::Continuity_function, ...) != ϵ
+# DelayPreselect(c::Range_function, ...) != ϵ
+# ....
+
+
+# Methods for Loss stats
+# Loss(c::L_function, ...) != L_pot
+# Loss(c::FNN, ...) != L_pot
+# Loss(c::CCM, ...) != L_pot
+# ...
 
 
 
