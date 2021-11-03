@@ -140,6 +140,11 @@ function embedding_cycle_pecuzal(Y_act, Ys, τs, w, samplesize, K, metric, α, p
                     PRED_mean::Bool=false, PRED_L::Bool=false, PRED_KL::Bool=false,
                     CCM::Bool=false, Y_other = zeros(size(Ys)))
 
+
+
+    # DelayPreselect(optimalg.Λ)
+    # --> verschiedene methoden fuer DelayPreselect
+
     if (PRED && ~PRED_L) || CCM
         ε★ = zeros(length(τs), size(Ys,2))
     elseif PRED && PRED_L

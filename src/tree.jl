@@ -91,7 +91,7 @@ function choose_children(n::AbstractTreeElement, τ::Int, t::Int)
 end
 
 """
-    next_embedding(n::Node, Ys::Dataset{D, T}, w::Int, τs; kwars...) → τ_pot, ts_pot, L_pot, flag
+    next_embedding(n::Node, optimalg::AbstractMCDTSOptimGoal, Ys::Dataset{D, T}, w::Int, τs; kwars...) → τ_pot, ts_pot, L_pot, flag
 
 Performs the next embedding step. For the actual embedding contained in tree leaf `n`
 compute as many conitnuity statistics as there are time series in the Dataset
@@ -134,7 +134,7 @@ compute as many conitnuity statistics as there are time series in the Dataset
 * `flag`: Did the embedding converge? i.e. L can not be further minimized anymore
 
 """
-function next_embedding(n::Node, Ys::Dataset{D, T}, w::Int, τs; KNN::Int = 3,
+function next_embedding(n::Node, optimalg::AbstractMCDTSOptimGoal, Ys::Dataset{D, T}, w::Int, τs; KNN::Int = 3,
                             FNN::Bool = false, PRED::Bool = false, Tw::Int=1,
                             tws::AbstractRange{Int} = 2:τs[end],
                             threshold::Real = 0, linear::Bool = false,
@@ -257,11 +257,12 @@ function softmaxL(Ls; β=1.5)
 end
 
 """
-    expand!(n::Union{Node,Root}, data::Dataset, w::Int, choose_func, delays; kwargs...)
+    expand!(n::Union{Node,Root}, optimalg::AbstractMCDTSOptimGoal, data::Dataset, w::Int, choose_func, delays; kwargs...)
 
 This is one single rollout and backprop of the tree. For details please see the accompanying paper.
 
 * `n`: Starting node
+*  optimalg::AbstractMCDTSOptimGoal
 * `data`: data
 * `w`: Theiler Window
 * `choose_func`: Function to choose next node with
@@ -301,17 +302,13 @@ This is one single rollout and backprop of the tree. For details please see the 
 * `choose_mode::Int=0`: Possibility for different modes of choosing the next node based on which trial this is.
 
 """
-function expand!(n::Root, data::Dataset{D, T}, w::Int, choose_func,
-            delays::AbstractRange{DT} = 0:100; max_depth::Int=20, KNN::Int=3,
-            verbose=false, FNN::Bool = false, PRED::Bool = false, Tw::Int = 1,
-            tws::AbstractRange{DT} = 2:delays[end], threshold::Real = 0,
-            choose_mode::Int=0, linear::Bool = false, PRED_mean::Bool=false,
-            PRED_L::Bool=false, PRED_KL::Bool=false, CCM::Bool=false,
-            Y_CCM = Dataset(zeros(size(Yss)))) where {D, DT, T<:Real}
+function expand!(n::Root, optimalg::AbstractMCDTSOptimGoal, data::Dataset{D, T}, w::Int, choose_func,
+            delays::AbstractRange{DT} = 0:100; max_depth::Int=20,
+            verbose=false, kwargs...) where {D, DT, T<:Real}
 
-    @assert (FNN || PRED) || (~FNN && ~PRED) || (~FNN && ~PRED && CCM) "Select either FNN or PRED or CCM keyword (or none)."
-    @assert threshold ≥ 0
-    @assert tws[1] == 2
+
+    #@assert threshold ≥ 0    # muss in den Optimalg struct
+    #@assert tws[1] == 2
     @assert w > 0
     current_node = n
 
@@ -319,12 +316,7 @@ function expand!(n::Root, data::Dataset{D, T}, w::Int, choose_func,
         # next embedding step
         # only if it was not already computed
         if current_node.children == nothing
-            τs, ts, Ls, converged = next_embedding(current_node, data, w, delays;
-                                                KNN = KNN, FNN = FNN, PRED = PRED,
-                                                Tw = Tw, tws = tws, threshold = threshold,
-                                                linear = linear, PRED_mean = PRED_mean,
-                                                PRED_L = PRED_L, PRED_KL = PRED_KL,
-                                                CCM = CCM, Y_CCM = Y_CCM)
+            τs, ts, Ls, converged = next_embedding(current_node, optimalg, data, w, delays; kwargs...)
 
             if converged
                 break
@@ -332,7 +324,7 @@ function expand!(n::Root, data::Dataset{D, T}, w::Int, choose_func,
                 # spawn children
                 children = []
                 for j = 1:length(τs)
-                    if FNN || PRED || CCM
+                    if FNN || PRED || CCM   # look into it depending on OptimAlg
                         push!(children, Node(τs[j],ts[j],Ls[j],[get_τs(current_node); τs[j]], [get_ts(current_node); ts[j]], nothing))
                     else
                         if typeof(current_node) == MCDTS.Root
@@ -437,24 +429,14 @@ with index `w` close to the point, that are excluded from being true neighbors. 
   at 2) are allowed, up to `delays[end]`.
 * `choose_mode::Int=0`: Possibility for different modes of choosing the next node based on which trial this is.
 """
-function mcdts_embedding(data::Dataset, w::Int, choose_func, delays::AbstractRange{D}, N::Int=40;
-            max_depth::Int=20, KNN::Int = 3, FNN::Bool = false, PRED::Bool=false,
-            Tw::Int = 1, verbose::Bool=false, tws::AbstractRange{D} = 2:delays[end],
-            threshold::Real = 0, linear::Bool = false, PRED_mean::Bool=false,
-            PRED_L::Bool=false, PRED_KL::Bool=false, CCM::Bool=false,
-            Y_CCM = Dataset(zeros(size(data)))) where {D}
+function mcdts_embedding(data::Dataset, optimalg::AbstractMCDTSOptimGoal,  w::Int, choose_func, delays::AbstractRange{D}, N::Int=40; kwargs...) where {D}
 
     # initialize tree
     tree = Root()
 
     for i=1:N
 
-        expand!(tree, data, w, choose_func, delays; KNN = KNN, FNN = FNN,
-                    PRED = PRED, Tw = Tw, max_depth = max_depth, tws = tws,
-                    linear = linear, PRED_mean = PRED_mean, PRED_L = PRED_L,
-                    PRED_KL = PRED_KL, threshold = threshold,
-                    choose_mode=i<(N/2) ? 0 : 1, CCM = CCM,
-                    Y_CCM = Y_CCM)
+        expand!(tree, optimalg, data, w, choose_func, delays; kwargs...)
 
         if verbose
             if (i%1)==0
@@ -479,9 +461,12 @@ function mcdts_embedding(data::Dataset, N::Int=40; kwargs...)
 
     # consider delays up to 100 (if the time series is that long)
     delays = (size(data,1) > 101) ? (0:100) : (0:(size(data,1)-1))
+    pecuzal = PecuzalOptim()
 
-    return mcdts_embedding(data, w, (L)->(MCDTS.softmaxL(L,β=2.)), delays, N; kwargs...)
+    return mcdts_embedding(data, pecuzal, w, (L)->(MCDTS.softmaxL(L,β=2.)), delays, N; kwargs...)
 end
+
+
 
 """
 Legacy name, please use [`mcdts_embedding`](@ref)
