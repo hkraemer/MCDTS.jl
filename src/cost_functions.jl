@@ -8,54 +8,54 @@ using Revise
     give_potential_delays(Ys::Dataset, τs, w::Int, τ_vals,
                     ts_vals [; kwargs...]) → τ_pot, ts_pot, L_pot/FNN_flag, flag
 
-Compute the potential delay `τ_pot` and time series values `ts_pot`, which would
-each result in a potential L-statistic value `L_pot`, by using the PECUZAL
-embedding method and for a range of possible delay values `τs`. The input
-dataset `Ys` can be multivariate. `w` is the Theiler window (neighbors in time
-with index `w` close to the point, that are excluded from being true neighbors.
-`w=0` means to exclude only the point itself, and no temporal neighbors. In case
-of multivariate time series input choose `w` as the maximum of all `wᵢ's`.
+    Compute the potential delay `τ_pot` and time series values `ts_pot`, which would
+    each result in a potential L-statistic value `L_pot`, by using the PECUZAL
+    embedding method and for a range of possible delay values `τs`. The input
+    dataset `Ys` can be multivariate. `w` is the Theiler window (neighbors in time
+    with index `w` close to the point, that are excluded from being true neighbors.
+    `w=0` means to exclude only the point itself, and no temporal neighbors. In case
+    of multivariate time series input choose `w` as the maximum of all `wᵢ's`.
 
-## Keyword arguments
+    ## Keyword arguments
 
-* `samplesize::Real = 1`: determine the fraction of all phase space points
-  (=`length(s)`) to be considered (fiducial points v) to average ε★ to produce
-  `⟨ε★⟩`.
-* `K::Int = 13`: the amount of nearest neighbors in the δ-ball (read algorithm description).
-   Must be at least 8 (in order to gurantee a valid statistic). `⟨ε★⟩` is computed
-   taking the minimum result over all `k ∈ K` (read algorithm description).
-* `KNN::Int = 3`: the amount of nearest neighbors considered, in order to compute
-   σ_k^2 (read algorithm description [`uzal_cost`]@ref). If given a vector, minimum
-   result over all `knn ∈ KNN` is returned.
-* `α::Real = 0.05`: The significance level for obtaining the continuity statistic
-* `p::Real = 0.5`: The p-parameter for the binomial distribution used for the
-  computation of the continuity statistic ⟨ε★⟩.
-* `FNN:Bool = false`: Determines whether the algorithm should minimize the L-statistic
-  or the FNN-statistic
-* `PRED::Bool = false`: Determines whether the algorithm should minimize the
-  L-statistic or a cost function based on minimizing the `Tw`-step-prediction error
-* `Tw::Int = 1`: If `PRED = true`, this is the considered prediction horizon
-* `linear::Bool=false`: If `PRED = true`, this determines whether the prediction shall
-  be made on the zeroth or a linear predictor.
-* `PRED_mean::Bool=false`: If `PRED = true`, this determines whether the prediction shall
-  be optimized on the mean MSE of all components or only on the 1st-component (Default)
-* `PRED_L::Bool=false`: If `PRED = true`, this determines whether the prediction shall
-  be optimized on possible delay values gained from the continuity statistic or on
-  delays = 0:25 (Default)
-* `PRED_KL::Bool=false`: If `PRED = true`, this determines whether the prediction shall
-  be optimized on the Kullback-Leibler-divergence of the in-sample prediction and
-  the true in-sample values, or if the optimization shall be made on the MSE of them (Default)
-* `CCM:Bool=false`: Determines whether the algorithm should maximize the CCM-correlation
+    * `samplesize::Real = 1`: determine the fraction of all phase space points
+      (=`length(s)`) to be considered (fiducial points v) to average ε★ to produce
+      `⟨ε★⟩`.
+    * `K::Int = 13`: the amount of nearest neighbors in the δ-ball (read algorithm description).
+       Must be at least 8 (in order to gurantee a valid statistic). `⟨ε★⟩` is computed
+       taking the minimum result over all `k ∈ K` (read algorithm description).
+    * `KNN::Int = 3`: the amount of nearest neighbors considered, in order to compute
+       σ_k^2 (read algorithm description [`uzal_cost`]@ref). If given a vector, minimum
+       result over all `knn ∈ KNN` is returned.
+    * `α::Real = 0.05`: The significance level for obtaining the continuity statistic
+    * `p::Real = 0.5`: The p-parameter for the binomial distribution used for the
+      computation of the continuity statistic ⟨ε★⟩.
+    * `FNN:Bool = false`: Determines whether the algorithm should minimize the L-statistic
+      or the FNN-statistic
+    * `PRED::Bool = false`: Determines whether the algorithm should minimize the
+      L-statistic or a cost function based on minimizing the `Tw`-step-prediction error
+    * `Tw::Int = 1`: If `PRED = true`, this is the considered prediction horizon
+    * `linear::Bool=false`: If `PRED = true`, this determines whether the prediction shall
+      be made on the zeroth or a linear predictor.
+    * `PRED_mean::Bool=false`: If `PRED = true`, this determines whether the prediction shall
+      be optimized on the mean MSE of all components or only on the 1st-component (Default)
+    * `PRED_L::Bool=false`: If `PRED = true`, this determines whether the prediction shall
+      be optimized on possible delay values gained from the continuity statistic or on
+      delays = 0:25 (Default)
+    * `PRED_KL::Bool=false`: If `PRED = true`, this determines whether the prediction shall
+      be optimized on the Kullback-Leibler-divergence of the in-sample prediction and
+      the true in-sample values, or if the optimization shall be made on the MSE of them (Default)
+    * `CCM:Bool=false`: Determines whether the algorithm should maximize the CCM-correlation
       coefficient of the embedded vector from `Ys` and the given time series `Y_CCM`.
-* `Y_CCM`: The time series CCM should cross map to.
-* `threshold::Real = 0`: The algorithm does not pick a peak from the continuity
-  statistic, when its corresponding `ΔL`/FNN-value exceeds this threshold. Please
-  provide a positive number for both, `L` and `FNN`-statistic option (since the
-  `ΔL`-values are negative numbers for meaningful embedding cycles, this threshold
-  gets internally sign-switched).
-* `tws::Range = 2:τs[end]`: Customization of the sampling of the different T's,
-  when computing Uzal's L-statistics. Here any kind of integer ranges (starting
-  at 2) are allowed, up to `τs[end]`.
+    * `Y_CCM`: The time series CCM should cross map to.
+    * `threshold::Real = 0`: The algorithm does not pick a peak from the continuity
+      statistic, when its corresponding `ΔL`/FNN-value exceeds this threshold. Please
+      provide a positive number for both, `L` and `FNN`-statistic option (since the
+      `ΔL`-values are negative numbers for meaningful embedding cycles, this threshold
+      gets internally sign-switched).
+    * `tws::Range = 2:τs[end]`: Customization of the sampling of the different T's,
+      when computing Uzal's L-statistics. Here any kind of integer ranges (starting
+      at 2) are allowed, up to `τs[end]`.
 """
 function give_potential_delays(Yss::Dataset{D, T}, τs, w::Int, τ_vals, ts_vals, L_old;
                 samplesize::Real=1, K::Int = 13, α::Real = 0.05, p::Real = 0.5,
@@ -263,7 +263,7 @@ end
 
 
 """
-    Return negative correlation coefficient for CCM.
+    Return costs (MSE) of a `Tw`-step-ahead local-prediction.
 """
 function local_PRED_statistics(ε★, Y_act, Ys, τs, w, metric, Tw; τ_vals = [0],
                         ts_vals = [1], ts = 1, K::Int = 1, linear::Bool=false,
@@ -329,7 +329,7 @@ end
 
 
 """
-Return negative correlation coefficient for CCM.
+    Return negative correlation coefficient for CCM.
 """
 function local_CCM_statistics(ε★, Y_act, Ys, Y_other, τs, w, metric, Tw; τ_vals = [0],
                         ts_vals = [1], ts = 1, K::Int = 1)
