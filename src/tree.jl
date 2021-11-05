@@ -3,6 +3,8 @@ using DelayEmbeddings
 using Revise
 import Base.show
 
+export mcdts_embedding
+
 """
     The MCDTS algorithm is implemented as a tree with different kind types encoding
     the leafs and the root of the tree. AbstractTreeElement is the abstract type of
@@ -11,16 +13,12 @@ import Base.show
 abstract type AbstractTreeElement end
 
 """
-    mutable struct Root
+    mutable struct Root <: AbstractTreeElement
 
     The 'start'/root of Tree. Each node contains its children. The root contains the starting branches/nodes.
+    For initialization type `r = Root()`.
 
-    # Initialization:
-
-    `r = Root()`
-
-    # Fields:
-
+    ## Fieldnames:
     * `children::Union{Array{Node,1},Nothing}`: The first nodes of the tree.
     * `Lmin`; Is the global minimum of the cumulative ΔL statistic found so far.
 """
@@ -48,8 +46,7 @@ end
 
     A node of the tree. Each node contains its children and information about the current embedding.
 
-    # Fields:
-
+    ## Fieldnames:
     * `τ::Int`: The delay value of this node
     * `L::T`: The value of the cumulative ΔL statistic at this node
     * `τs::Array{Int,1}`: The complete vector with all τs chosen along this path up until this node
@@ -101,7 +98,7 @@ end
     `τ_pot`, its corresponding time series index `ts_pot` the according L-value
     `L_pot` and `flag`, following the Pecuzal-logic.
 
-    # Keyword arguments
+    ## Keyword arguments
     * `KNN = 3`: The number of nearest neighbors considered in the computation of
       the L-statistic.
     * `FNN::Bool = false`: Determines whether the algorithm should minimize the
@@ -131,8 +128,7 @@ end
       when computing Uzal's L-statistics. Here any kind of integer ranges (starting
       at 2) are allowed, up to `τs[end]`.
 
-    # Returns
-
+    ## Returns
     * `τ_pot`: Next delay
     * `ts_pot`: Index of the time series used (in case of multivariate time series)
     * `L_pot`: L statistic of next embedding step with delay `τ_pot` from `ts_pot`.
@@ -266,14 +262,14 @@ end
 
     This is one single rollout and backprop of the tree. For details please see the accompanying paper.
 
-* `n`: Starting node
-*  optimalg::AbstractMCDTSOptimGoal
-* `data`: data
-* `w`: Theiler Window
-* `choose_func`: Function to choose next node with
-* `delays = 0:100`: The possible time lags
+    * `n`: Starting node
+    *  optimalg::AbstractMCDTSOptimGoal
+    * `data`: data
+    * `w`: Theiler Window
+    * `choose_func`: Function to choose next node with
+    * `delays = 0:100`: The possible time lags
 
-    # Keyword arguments
+    ## Keyword arguments
     * `max_depth = 20`: Threshold, which determines the algorithm. It either breaks,
       when it converges, i.e. when there is no way to reduce the cost-function any
       further, or when this threshold is reached.
@@ -406,7 +402,6 @@ end
     * `delays = 0:100`: The possible time lags
 
     ### Keyword Arguments
-
     * `max_depth = 20`: Threshold, which determines the algorithm. It either breaks,
       when it converges, i.e. when there is no way to reduce the cost-function any
       further, or when this threshold is reached.
