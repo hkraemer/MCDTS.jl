@@ -75,8 +75,8 @@ struct L_statistic <: AbstractLoss
         @assert x <= 0 "Please provide a (small) negative number for the threshold of ΔL."
         @assert y > 0
         @assert z[1] == 2 "The considered range for the time horizon of the L-function must start at 2."
+        typeof(x) <: Int ? new(convert(AbstractFloat, x),y,z) : new(x,y,z)
     end
-    L_statistic(x,y,z) = typeof(x) <: Int ? new(convert(AbstractFloat, x),y,z) : error("Fieldname threshold must be an integer or float < 0.")
     L_statistic(x,y) = new(x,y,2:100)
     L_statistic(x) = new(x,3,2:100)
     L_statistic() = new(0,3,2:100)
@@ -109,9 +109,9 @@ struct FNN_statistic <: AbstractLoss
     FNN_statistic(x,y) = begin
         @assert x >= 0
         @assert y > 0
+        typeof(x) <: Int ? new(convert(AbstractFloat, x),y) : new(x,y)
+        typeof(y) <: Int ? new(x,convert(AbstractFloat, y)) : new(x,y)
     end
-    FNN_statistic(x,y) = typeof(x) <: Int ? new(convert(AbstractFloat, x),y)
-    FNN_statistic(x,y) = typeof(y) <: Int ? new(x,convert(AbstractFloat, y))
     FNN_statistic(x) = new(x,2.)
     FNN_statistic() = new(0.,2.)
 end
@@ -126,25 +126,30 @@ end
     series CCM should cross map to from `data` (see [`mcdts_embedding`](@ref)).
 
     ## Fieldnames
+    * `timeseries`: The time series CCM should cross map to.
     * `threshold::Float`: A threshold for the sufficient correlation of the
       cross-mapped values and the true values from `Y_CMM` for the current embedding.
       When the correlation coefficient exeeds this threshold in an embedding cycle
       the embedding stops.
 
     ## Defaults
-    * When calling `CCM_ρ()`, a CCM_ρ-object is created, which uses the threshold 1,
-      i.e. no threshold, since the correlation coefficient can not exceed 1.
+    * When calling `CCM_ρ(timeseries)`, a CCM_ρ-object is created, storing
+      `timeseries`, which is considered to be causally depended and the
+      `threshold=1` is used, i.e. no threshold, since the correlation coefficient
+      can not exceed 1.
 
     [^Sugihara2012]: Sugihara et al., [Detecting Causality in Complex Ecosystems. Science 338, 6106, 496-500](https://doi.org/10.1126/science.1227079)
 """
 struct CCM_ρ <: AbstractLoss
+    timeseries::Vector
     threshold::AbstractFloat
+
     # Constraints and Defaults
-    CCM_ρ(x) = begin
-        @assert x > 0 && x <= 1
+    CCM_ρ(x,y) = begin
+        @assert y > 0 && y <= 1
+        typeof(y) <: Int ? new(x,convert(AbstractFloat, y)) : new(x,y)
     end
-    CCM_ρ(x) = typeof(x) <: Int ? new(convert(AbstractFloat, x))
-    CCM_ρ() = new(1.)
+    CCM_ρ(x) = new(x,1.)
 end
 
 """
@@ -214,9 +219,13 @@ end
 
     ## Fieldnames
     * `type::Int` is an integer, which encodes the type of prediction error:
-    * For `type = 1` the root mean squared prediction error over all components
+    * For `type = 1` the root mean squared prediction error over the first component,
+      i.e. the timeseries, which needs to be predicted, is used. (default)
+    * For `type = 2` the root mean squared prediction error over all components
       (dimensionality of the state space) is used.
-    * For `type = 2` the mean Kullback-Leibler Distance of the predicted and the true
+    * For `type = 3` the mean Kullback-Leibler Distance of the predicted and the true
+      values of the first component, i.e. the timeseries, which needs to be predicted, is used.
+    * For `type = 4` the mean Kullback-Leibler Distance of the predicted and the true
       values over all components (dimensionality of the state space) is used.
 
     ## Default settings
@@ -227,7 +236,7 @@ struct PredictionLoss <: AbstractPredictionLoss
     type::Int
     # Constraints and Defaults
     PredictionLoss(x) = begin
-        @assert x == 1 || x == 2
+        @assert x == 1 || x == 2 || x == 3 || x == 4
     end
     PredictionLoss() = PredictionLoss(1)
 end
@@ -293,19 +302,20 @@ end
       with `K=13`, `samplesize=1.`, `α=0.05` and `p=0.5`.
 
 """
-struct Continuity_function{P::Int,T<:Real} <: AbstractDelayPreselection
-    K::P
-    samplesize::T
-    α::T
-    p::T
+struct Continuity_function <: AbstractDelayPreselection
+    K::Int
+    samplesize
+    α
+    p
     # Constraints and Defaults
     Continuity_function(k,x,y,z) = begin
         @assert k > 7 "At least 8 nearest neighbors must be in the δ-ball, in order to gurantee a valid statistic."
         @assert 0. < x ≤ 1. "Please select a valid `samplesize`, which denotes a fraction of considered fiducial points, i.e. `samplesize` ∈ (0 1]"
         @assert 1. > y > 0.
         @assert 1. > z > 0.
+        @assert typeof(x) <:Real && typeof(y) <:Real && typeof(z) <:Real
     end
-    Continuity_function() = new(13,1.,0.05,0.5)
+    Continuity_function() = new(13, 1., 0.05, 0.5)
 end
 
 """
