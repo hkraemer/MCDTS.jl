@@ -15,14 +15,14 @@ using Revise
 # Methods for altering arrays containing nodes (children) depending on the chosen Loss-function
 # FNN, CCM & Prediction
 function push!(children::Union{Array{Node,1},Nothing}, n, Γ::AbstractLoss, current_node::AbstractTreeElement)
-    push!(children, Node(n[1],n[2],n[3],[get_τs(current_node); n[1]], [get_ts(current_node); n[2]], nothing))
+    Base.push!(children, Node(n[1],n[2],n[3],[get_τs(current_node); n[1]], [get_ts(current_node); n[2]], nothing))
 end
 # L-function
 function push!(children::Union{Array{Node,1},Nothing}, n, Γ::L_statistic, current_node::AbstractTreeElement)
     if typeof(current_node) == MCDTS.Root
-        push!(children, Node(n[1],n[2],(current_node.Lmin+n[3]),[get_τs(current_node); n[1]], [get_ts(current_node); n[2]], nothing))
+        Base.push!(children, Node(n[1],n[2],(current_node.Lmin+n[3]),[get_τs(current_node); n[1]], [get_ts(current_node); n[2]], nothing))
     else
-        push!(children, Node(n[1],n[2],(current_node.L+n[3]),[get_τs(current_node); n[1]], [get_ts(current_node); n[2]], nothing))
+        Base.push!(children, Node(n[1],n[2],(current_node.L+n[3]),[get_τs(current_node); n[1]], [get_ts(current_node); n[2]], nothing))
     end
 end
 
@@ -36,6 +36,9 @@ function init_embedding_params(Γ::FNN_statistic, N::Int)
     return [0], [1], ones(N)
 end
 function init_embedding_params(Γ::L_statistic, N::Int)
+    return [0], [1], zeros(N)
+end
+function init_embedding_params(Γ::CCM_ρ, N::Int)
     return [0], [1], zeros(N)
 end
 
@@ -61,7 +64,6 @@ function get_potential_delays(optimalg::AbstractMCDTSOptimGoal, Yss::Dataset{D, 
                 τs, w::Int, τ_vals, ts_vals, L_old; kwargs...) where {D, T}
 
     Ys = DelayEmbeddings.standardize(Yss)
-    Y_other = DelayEmbeddings.standardize(Y_CCM)
 
     # compute actual embedding trajectory Y_act
     if typeof(optimalg.Γ) == Prediction_error
@@ -72,7 +74,7 @@ function get_potential_delays(optimalg::AbstractMCDTSOptimGoal, Yss::Dataset{D, 
 
     # compute potential delay values with corresponding time series values and
     # Loss-values
-    τ_pots, ts_pots, L_pots = embedding_cycle_pecuzal(optimalg, Y_act, Ys, τs, w, τ_vals, ts_vals; kwargs...)
+    τ_pots, ts_pots, L_pots = embedding_cycle(optimalg, Y_act, Ys, τs, w, τ_vals, ts_vals; kwargs...)
 
     # transform array of arrays to a single array
     τ_pot = reduce(vcat, τ_pots)
@@ -85,7 +87,7 @@ function get_potential_delays(optimalg::AbstractMCDTSOptimGoal, Yss::Dataset{D, 
     end
 
     taus, ts, Ls, converge = get_embedding_params_according_to_loss(optimalg.Γ,
-                                            τ_pot, ts_popt, L_pot, L_old)
+                                            τ_pot, ts_pot, L_pot, L_old)
 
     return taus, ts, Ls, converge
 end
@@ -97,7 +99,7 @@ end
     delay-, time series- and according Loss-values with respect to the actual loss
     in the current embedding cycle.
 """
-function get_embedding_params_according_to_loss(Γ::AbstractLoss, τ_pot, ts_popt, L_pot, L_old)
+function get_embedding_params_according_to_loss(Γ::AbstractLoss, τ_pot, ts_pot, L_pot, L_old)
     threshold = Γ.threshold
     if (minimum(L_pot) ≥ L_old)
         flag = true
@@ -113,7 +115,7 @@ function get_embedding_params_according_to_loss(Γ::AbstractLoss, τ_pot, ts_pop
     end
 end
 
-function get_embedding_params_according_to_loss(Γ::L_statistic, τ_pot, ts_popt, L_pot, L_old)
+function get_embedding_params_according_to_loss(Γ::L_statistic, τ_pot, ts_pot, L_pot, L_old)
     threshold = Γ.threshold
     if minimum(L_pot) > threshold
         flag = true
@@ -134,11 +136,10 @@ end
     (`τ_pot`, `ts_pot`) pair. If `FNN=true`, `L_pot` stores the corresponding
     fnn-statistic-values.
 """
-function embedding_cycle_pecuzal(optimalg::AbstractMCDTSOptimGoal, Y_act, Ys, τs,
+function embedding_cycle(optimalg::AbstractMCDTSOptimGoal, Y_act, Ys, τs,
                                                     w, τ_vals, ts_vals; kwargs...)
 
     # Compute Delay-pre-selection method according to `optimalg.Λ`
-
     delay_pre_selection_statistic = get_delay_statistic(optimalg.Λ, Ys, τs, w, τ_vals, ts_vals; kwargs... )
 
     # update τ_vals, ts_vals, Ls, ε★s
@@ -152,18 +153,21 @@ end
     Compute all possible τ-values (and according time series numbers) and their
     corresponding Loss-statistics for the input delay_pre_selection_statistic `dps`.
 """
-function pick_possible_embedding_params(Γ::AbstractLoss, Λ::AbstractDelayPreselection, Y_act, Ys, τs, w, τ_vals, ts_vals; kwargs...)
+function pick_possible_embedding_params(Γ::AbstractLoss, Λ::AbstractDelayPreselection, dps, Y_act::Dataset{D, T}, Ys, τs, w::Int, τ_vals, ts_vals; kwargs...) where {D, T}
     L_pots = []
     τ_pots = []
     ts_pots = []
 
     for ts = 1:size(Ys,2)
         # compute loss and its corresponding index w.r.t `elay_pre_selection_statistic`
-        L_trials, max_idx = compute_loss(Γ, Λ, dps, Y_act, Ys, τs, w, ts, τ_vals, ts_vals; kwargs...)
-
-        push!(L_pots, L_trials)
-        push!(ts_pots, fill(ts,length(L_trials)))
-        push!(τ_pots, τs[max_idx.-1])
+        L_trials, max_idx = compute_loss(Γ, Λ, dps[:,ts], Y_act, Ys, τs, w, ts, τ_vals, ts_vals; kwargs...)
+        tt = τs[max_idx.-1]
+        if typeof(tt)==Int
+            tt = [tt]
+        end
+        Base.push!(L_pots, L_trials)
+        Base.push!(ts_pots, fill(ts,length(L_trials)))
+        Base.push!(τ_pots, tt)
     end
     return τ_pots, ts_pots, L_pots
 end
@@ -172,31 +176,32 @@ end
     Compute the loss of a given delay-preselection statistic `dps` and the loss
     determined by `optimalg.Γ`.
 """
-function compute_loss(Γ::L_statistic, Λ::AbstractDelayPreselection, dps::Vector{T}, Y_act::Dataset{D, T}, Ys, τs, w::Int, ts::Int, τ_vals, ts_vals; metric, kwargs...) where {D, T}
+function compute_loss(Γ::L_statistic, Λ::AbstractDelayPreselection, dps::Vector{P}, Y_act::Dataset{D, T}, Ys, τs, w::Int, ts::Int, τ_vals, ts_vals; metric = Euclidean(), kwargs...) where {P, D, T}
     # zero-padding of dps in order to also cover τ=0 (important for the multivariate case)
-    L_trials, max_idx = MCDTS.local_L_statistics(Λ, vec([0; dps[:,ts]]), Y_act,
-                    Ys[:,ts], τs, Γ.KNN, w, metric; tws = Γ.tws)
+    L_trials, max_idx = MCDTS.local_L_statistics(Λ, vec([0; dps]), Y_act,
+                    Ys[:,ts], τs, Γ.KNN, w, metric, τ_vals, ts_vals, ts; tws = Γ.tws)
     return L_trials, max_idx
 end
 
-function compute_loss(Γ::FNN_statistic, Λ::AbstractDelayPreselection, dps::Vector{T}, Y_act::Dataset{D, T}, Ys, τs, w::Int, ts::Int, τ_vals, ts_vals; metric, kwargs...) where {D, T}
+function compute_loss(Γ::FNN_statistic, Λ::AbstractDelayPreselection, dps::Vector{P}, Y_act::Dataset{D, T}, Ys, τs, w::Int, ts::Int, τ_vals, ts_vals; metric = Euclidean(), kwargs...) where {P, D, T}
     # zero-padding of dps in order to also cover τ=0 (important for the multivariate case)
-    L_trials, max_idx = MCDTS.local_fnn_statistics(Λ, vec([0; dps[:,ts]]), Y_act,
-                    Ys[:,ts], τs, w, metric; r = Γ.r)
+    L_trials, max_idx = MCDTS.local_fnn_statistics(Λ, vec([0; dps]), Y_act,
+                    Ys[:,ts], τs, w, metric, τ_vals, ts_vals, ts; r = Γ.r)
     return L_trials, max_idx
 end
 
-function compute_loss(Γ::CCM_ρ, Λ::AbstractDelayPreselection, dps::Vector{T}, Y_act::Dataset{D, T}, Ys, τs, w::Int, ts::Int, τ_vals, ts_vals; metric, kwargs...) where {D, T}
+function compute_loss(Γ::CCM_ρ, Λ::AbstractDelayPreselection, dps::Vector{P}, Y_act::Dataset{D, T}, Ys, τs, w::Int, ts::Int, τ_vals, ts_vals; metric = Euclidean(), kwargs...) where {P, D, T}
     # zero-padding of dps in order to also cover τ=0 (important for the multivariate case)
-    L_trials, max_idx = MCDTS.local_CCM_statistics(Λ, vec([0; dps[:,ts]]), Y_act,
-                    Ys, Γ.timeseries, τs, w, metric, τ_vals, ts_vals, ts)
+    Y_other = DelayEmbeddings.standardize(Γ.timeseries)
+    L_trials, max_idx = MCDTS.local_CCM_statistics(Λ, vec([0; dps]), Y_act,
+                    Ys, Y_other, τs, w, metric, τ_vals, ts_vals, ts)
     return L_trials, max_idx
 end
 
-function compute_loss(Γ::Prediction_error, Λ::AbstractDelayPreselection, dps::Vector{T}, Y_act::Dataset{D, T}, Ys, τs, w::Int, ts::Int, τ_vals, ts_vals; metric, kwargs...) where {D, T}
+function compute_loss(Γ::Prediction_error, Λ::AbstractDelayPreselection, dps::Vector{P}, Y_act::Dataset{D, T}, Ys, τs, w::Int, ts::Int, τ_vals, ts_vals; metric = Euclidean(), kwargs...) where {P, D, T}
     # zero-padding of dps in order to also cover τ=0 (important for the multivariate case)
     L_trials, max_idx = MCDTS.local_PRED_statistics(Γ.PredictionType.loss, Γ.PredictionType.method,
-            Λ, vec([0; dps[:,ts]]), Y_act, Ys, τs, w, metric, τ_vals, ts_vals, ts)
+            Λ, vec([0; dps]), Y_act, Ys, τs, w, metric, τ_vals, ts_vals, ts)
     return L_trials, max_idx
 end
 
@@ -205,8 +210,8 @@ end
     Return the maximum decrease of the L-statistic `L_decrease` and corresponding
     delay-indices `max_idx` for all local maxima in ε★
 """
-function local_L_statistics(Λ::Continuity_function, dps::Vector{T}, Y_act::Dataset{D, T}, s::Vector{T},
-        τs, KNN::Int, w::Int, metric; tws::AbstractRange{Int} = 2:τs[end]) where {D, T}
+function local_L_statistics(Λ::Continuity_function, dps::Vector{P}, Y_act::Dataset{D, T}, s::Vector{T},
+        τs, KNN::Int, w::Int, metric, τ_vals, ts_vals, ts::Int; tws::AbstractRange{Int} = 2:τs[end]) where {P, D, T}
 
     _, max_idx = get_maxima(dps) # determine local maxima in ⟨ε★⟩
     L_decrease = zeros(Float64, length(max_idx))
@@ -220,10 +225,14 @@ function local_L_statistics(Λ::Continuity_function, dps::Vector{T}, Y_act::Data
     return L_decrease, max_idx
 end
 
-function local_L_statistics(Λ::Range_function, dps::Vector{T}, Y_act::Dataset{D, T}, s::Vector{T},
-        τs, KNN::Int, w::Int, metric; tws::AbstractRange{Int} = 2:τs[end]) where {D, T}
+function local_L_statistics(Λ::Range_function, dps::Vector{P}, Y_act::Dataset{D, T}, s::Vector{T},
+        τs, KNN::Int, w::Int, metric, τ_vals, ts_vals, ts::Int; tws::AbstractRange{Int} = 2:τs[end]) where {P, D, T}
 
-    max_idx = Vector(dps.+2)
+    max_idx = Vector(dps[2:end].+1)
+
+    ts_idx = findall(e->e==ts, ts_vals) # do not consider already taken delays
+    filter!(e->e∉(τ_vals[ts_idx] .+ 2), max_idx) # do not consider already taken delays
+
     L_decrease = zeros(Float64, length(max_idx))
     for (i,τ_idx) in enumerate(max_idx)
         # create candidate phase space vector for this peak/τ-value
@@ -238,7 +247,7 @@ end
 """
     Return the FNN-statistic `FNN` and indices `max_idx`  for all local maxima in dps
 """
-function local_fnn_statistics(Λ::Continuity_function, dps::Vector{T}, Y_act::Dataset{D, T}, s::Vector{T}, τs, w::Int, metric; r=2) where {D, T}
+function local_fnn_statistics(Λ::Continuity_function, dps::Vector{P}, Y_act::Dataset{D, T}, s::Vector{T}, τs, w::Int, metric, τ_vals, ts_vals, ts::Int; r=2) where {P, D, T}
 
     _, max_idx = get_maxima(dps) # determine local maxima in ⟨ε★⟩
     FNN_trials = zeros(Float64, length(max_idx))
@@ -262,9 +271,13 @@ function local_fnn_statistics(Λ::Continuity_function, dps::Vector{T}, Y_act::Da
     return FNN_trials, max_idx
 end
 
-function local_fnn_statistics(Λ::Range_function, dps::Vector{T}, Y_act::Dataset{D, T}, s::Vector{T}, τs, w::Int, metric; r=2) where {D, T}
+function local_fnn_statistics(Λ::Range_function, dps::Vector{P}, Y_act::Dataset{D, T}, s::Vector{T}, τs, w::Int, metric, τ_vals, ts_vals, ts::Int; r=2) where {P, D, T}
 
-    max_idx = Vector(dps.+2)
+    max_idx = Vector(dps[2:end].+1)
+
+    ts_idx = findall(e->e==ts, ts_vals) # do not consider already taken delays
+    filter!(e->e∉(τ_vals[ts_idx] .+ 2), max_idx) # do not consider already taken delays
+
     FNN_trials = zeros(Float64, length(max_idx))
     ξ_trials = zeros(Float64, length(max_idx))
 
@@ -289,13 +302,9 @@ end
 """
     Return negative correlation coefficient for CCM.
 """
-function local_CCM_statistics(Λ::Continuity_function, dps::Vector{T}, Y_act::Dataset{D, T}, Ys, Y_other::Vector{T}, τs, w::Int, metric, τ_vals, ts_vals, ts::Int) where {D, T}
+function local_CCM_statistics(Λ::Continuity_function, dps::Vector{P}, Y_act::Dataset{D, T}, Ys, Y_other::Vector{T}, τs, w::Int, metric, τ_vals, ts_vals, ts::Int) where {P, D, T}
 
-    s = Ys[:,ts]
     _, max_idx = get_maxima(dps) # determine local maxima in ⟨ε★⟩
-
-    ts_idx = findall(e->e==ts, ts_vals) # do not consider already taken delays
-    filter!(e->e∉(τ_vals[ts_idx] .+ 2), max_idx) # do not consider already taken delays
 
     ρ_CCM = zeros(Float64, length(max_idx))
 
@@ -312,10 +321,9 @@ function local_CCM_statistics(Λ::Continuity_function, dps::Vector{T}, Y_act::Da
     end
     return -ρ_CCM, max_idx
 end
-function local_CCM_statistics(Λ::Range_function, dps::Vector{T}, Y_act::Dataset{D, T}, Ys, Y_other::Vector{T}, τs, w::Int, metric, τ_vals, ts_vals, ts::Int) where {D, T}
+function local_CCM_statistics(Λ::Range_function, dps::Vector{P}, Y_act::Dataset{D, T}, Ys, Y_other::Vector{T}, τs, w::Int, metric, τ_vals, ts_vals, ts::Int) where {P, D, T}
 
-    s = Ys[:,ts]
-    max_idx = Vector(dps.+2)
+    max_idx = Vector(dps[2:end].+1)
 
     ts_idx = findall(e->e==ts, ts_vals) # do not consider already taken delays
     filter!(e->e∉(τ_vals[ts_idx] .+ 2), max_idx) # do not consider already taken delays
@@ -340,13 +348,10 @@ end
     Return costs (MSE) of a `Tw`-step-ahead local-prediction.
 """
 function local_PRED_statistics(PredictionLoss::AbstractPredictionLoss, PredictionMethod::AbstractPredictionMethod,
-    Λ::Continuity_function, dps::Vector{T}, Y_act::Dataset{D, T}, Ys, τs, w::Int,
-                            metric, τ_vals, ts_vals, ts) where {D, T}
-    s = Ys[:,ts]
-    _, max_idx = get_maxima(dps) # determine local maxima in ⟨ε★⟩
+    Λ::Continuity_function, dps::Vector{P}, Y_act::Dataset{D, T}, Ys, τs, w::Int,
+                            metric, τ_vals, ts_vals, ts) where {P, D, T}
 
-    ts_idx = findall(e->e==ts, ts_vals) # do not consider already taken delays
-    filter!(e->e∉(τ_vals[ts_idx] .+ 2), max_idx) # do not consider already taken delays
+    _, max_idx = get_maxima(dps) # determine local maxima in ⟨ε★⟩
 
     PRED_mse = zeros(Float64, length(max_idx))
     for (i,τ_idx) in enumerate(max_idx)
@@ -392,10 +397,10 @@ function local_PRED_statistics(PredictionLoss::AbstractPredictionLoss, Predictio
 end
 
 function local_PRED_statistics(PredictionLoss::AbstractPredictionLoss, PredictionMethod::AbstractPredictionMethod,
-    Λ::Range_function, dps::Vector{T}, Y_act::Dataset{D, T}, Ys, τs, w::Int,
-                            metric, τ_vals, ts_vals, ts) where {D, T}
-    s = Ys[:,ts]
-    max_idx = Vector(dps.+2)
+    Λ::Range_function, dps::Vector{P}, Y_act::Dataset{D, T}, Ys, τs, w::Int,
+                            metric, τ_vals, ts_vals, ts) where {P, D, T}
+
+    max_idx = Vector(dps[2:end].+1)
 
     ts_idx = findall(e->e==ts, ts_vals) # do not consider already taken delays
     filter!(e->e∉(τ_vals[ts_idx] .+ 2), max_idx) # do not consider already taken delays
@@ -825,14 +830,14 @@ end
     Compute the delay statistic according to the chosen method in `optimalg.Λ` (see [`MCDTSOptimGoal`](@ref))
 """
 function get_delay_statistic(Λ::Continuity_function, Ys, τs, w, τ_vals, ts_vals; metric = Euclidean(), kwargs... )
-    ε★, _ = DelayEmbeddings.pecora(Ys, Tuple(τ_vals .*(-1)), Tuple(ts_vals); delays = τs.*(-1), w = w,
+    ε★, _ = pecora(Ys, Tuple(τ_vals), Tuple(ts_vals); delays = τs, w = w,
             samplesize = Λ.samplesize, K = Λ.K, metric = metric, α = Λ.α,
             p = Λ.p, undersampling = false)
     return ε★
 end
 
 function get_delay_statistic(Λ::Range_function, Ys, τs, w, τ_vals, ts_vals; kwargs... )
-    return zeros(length(τs), size(Ys,2))
+    return repeat(Vector(1:length(τs)), outer = [1,size(Ys,2)])
 end
 
 
@@ -850,8 +855,8 @@ function get_maxima(s::Vector{T}) where {T}
     for i = 2:N-1
         if s[i-1] < s[i] && s[i+1] < s[i]
             flag = false
-            push!(maximas, s[i])
-            push!(maximas_idx, i)
+            Base.push!(maximas, s[i])
+            Base.push!(maximas_idx, i)
         end
         # handling constant values
         if flag

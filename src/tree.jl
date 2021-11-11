@@ -237,7 +237,7 @@ function expand!(n::Root, optimalg::AbstractMCDTSOptimGoal, data::Dataset{D, T},
                 break
             else
                 # spawn children
-                children = []
+                children = Node[]
                 for j = 1:length(τs)
                     push!(children, (τs[j],ts[j],Ls[j]), optimalg.Γ, current_node)
                 end
@@ -389,7 +389,7 @@ end
       [^Kraemer2021b]: Kraemer, K.H., Gelbrecht, M., Pavithran, I., Sujith, R. I. and Marwan, N. (2021). [Optimal state space reconstruction via Monte Carlo Decision Tree Search. Submitted to Nonlinear Dynamics](https://doi.org/10.21203/rs.3.rs-899760/v1)
 """
 function mcdts_embedding(data::Dataset, optimalg::AbstractMCDTSOptimGoal, w::Int,
-                            delays::AbstractRange{D}, N::Int=40; kwargs...) where {D}
+                            delays::AbstractRange{D}, N::Int=40; verbose::Bool = false, kwargs...) where {D}
     @assert N > 0
     @assert w >= 0
 

@@ -29,9 +29,9 @@ abstract type AbstractLoss end
 struct MCDTSOptimGoal <: AbstractMCDTSOptimGoal
     Γ::AbstractLoss
     Λ::AbstractDelayPreselection
-    # Constraints and Defaults
-    MCDTSOptimGoal() = new(L_statistic(), Continuity_function())
 end
+# Defaults
+MCDTSOptimGoal() = MCDTSOptimGoal(L_statistic(), Continuity_function())
 
 
 ## Constructors for Loss Functions
@@ -147,9 +147,9 @@ struct CCM_ρ <: AbstractLoss
     # Constraints and Defaults
     CCM_ρ(x,y) = begin
         @assert y > 0 && y <= 1
-        typeof(y) <: Int ? new(x,convert(AbstractFloat, y)) : new(x,y)
+        typeof(y) <: Int ? new(x,convert(AbstractFloat, -y)) : new(x,-y)
     end
-    CCM_ρ(x) = new(x,1.)
+    CCM_ρ(x) = new(x,-1.)
 end
 
 """
@@ -332,10 +332,10 @@ struct Range_function <: AbstractDelayPreselection end
 ## Some Defaults for the MCDTSOptimGoal-struct:
 
 # PECUZAL
-Pecuzal() = MCDTSOptimGoal(L_statistic(), Continuity_function())
+PecuzalOptim() = MCDTSOptimGoal(L_statistic(), Continuity_function())
 # Continuity & FNN-statistic
-FNN() = MCDTSOptimGoal(FNN_statistic(), Continuity_function())
+FNNOptim() = MCDTSOptimGoal(FNN_statistic(), Continuity_function())
 # For CCM-causality analysis
-CCM() = MCDTSOptimGoal(CCM_ρ(), Range_function())
+CCMOptim() = MCDTSOptimGoal(CCM_ρ(), Range_function())
 # For prediction with zeroth order predictor
-Predict() = MCDTSOptimGoal(CCM_ρ(), Range_function())
+PredictOptim() = MCDTSOptimGoal(CCM_ρ(), Range_function())
