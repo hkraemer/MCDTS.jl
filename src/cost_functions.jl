@@ -98,10 +98,6 @@ function give_potential_delays(Yss::Dataset{D, T}, τs, w::Int, τ_vals, ts_vals
     ts_pot = reduce(vcat, ts_pots)
     L_pot = reduce(vcat, L_pots)
 
-    println("Hi")
-    println("Give Potential")
-    println(τ_pot,ts_pot,L_pot)
-
     if isempty(τ_pot)
         flag = true
         return Int[],Int[],eltype(L_pots)[], flag
@@ -273,9 +269,9 @@ function local_PRED_statistics(ε★, Y_act, Ys, τs, w, metric, Tw; τ_vals = [
         _, max_idx = get_maxima(ε★) # determine local maxima in ⟨ε★⟩
     else
         max_idx = Vector(τs.+2)
+        ts_idx = findall(e->e==ts, ts_vals) # do not consider already taken delays
+        filter!(e->e∉(τ_vals[ts_idx] .+ 2), max_idx) # do not consider already taken delays
     end
-    ts_idx = findall(e->e==ts, ts_vals) # do not consider already taken delays
-    filter!(e->e∉(τ_vals[ts_idx] .+ 2), max_idx) # do not consider already taken delays
 
     PRED_mse = zeros(Float64, length(max_idx))
     for (i,τ_idx) in enumerate(max_idx)
@@ -336,7 +332,6 @@ function local_CCM_statistics(ε★, Y_act, Ys, Y_other, τs, w, metric, Tw; τ_
     s = Ys[:,ts]
     max_idx = Vector(τs.+2)
 
-    println("local CCM statistics")
     ts_idx = findall(e->e==ts, ts_vals) # do not consider already taken delays
     filter!(e->e∉(τ_vals[ts_idx] .+ 2), max_idx) # do not consider already taken delays
 
@@ -348,15 +343,8 @@ function local_CCM_statistics(ε★, Y_act, Ys, Y_other, τs, w, metric, Tw; τ_
         ts_trials = (ts_vals...,ts,)
         Y_trial = genembed(Ys, tau_trials, ts_trials)
         # account for value-shift due to negative lags
-        println(Y_other[1:3])
         Ys_other = Y_other[1+maximum(tau_trials.*(-1)):length(Y_trial)+maximum(tau_trials.*(-1))]
         # compute ρ_CCM for Y_trial and Y_other
-
-        println(Y_trial[1,:])
-        println(Ys_other[1:3])
-        println(w)
-        println(metric)
-        println("********************")
         ρ_CCM[i], _ = MCDTS.ccm(Y_trial, Ys_other; w = w)
     end
     return -ρ_CCM, max_idx
