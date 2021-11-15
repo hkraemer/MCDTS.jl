@@ -81,10 +81,6 @@ function get_potential_delays(optimalg::AbstractMCDTSOptimGoal, Yss::Dataset{D, 
     ts_pot = reduce(vcat, ts_pots)
     L_pot = reduce(vcat, L_pots)
 
-    println("Hi")
-    println("Give Potential")
-    println(τ_pot,ts_pot,L_pot)
-
     if isempty(τ_pot)
         flag = true
         return Int[],Int[],eltype(L_pots)[], flag
@@ -333,7 +329,6 @@ function local_CCM_statistics(Λ::Range_function, dps::Vector{P}, Y_act::Dataset
     filter!(e->e∉(τ_vals[ts_idx] .+ 2), max_idx) # do not consider already taken delays
 
     ρ_CCM = zeros(Float64, length(max_idx))
-
     for (i,τ_idx) in enumerate(max_idx)
         # create candidate phase space vector for this peak/τ-value
         tau_trials = ((τ_vals.*(-1))...,(τs[τ_idx-1]*(-1)),)
@@ -342,12 +337,6 @@ function local_CCM_statistics(Λ::Range_function, dps::Vector{P}, Y_act::Dataset
         # account for value-shift due to negative lags
         Ys_other = Y_other[1+maximum(tau_trials.*(-1)):length(Y_trial)+maximum(tau_trials.*(-1))]
         # compute ρ_CCM for Y_trial and Y_other
-        println("local CCM statistics")
-        println(Y_trial[1,:])
-        println(Ys_other[1:3])
-        println(w)
-        println(metric)
-        println("********************")
         ρ_CCM[i], _ = MCDTS.ccm(Y_trial, Ys_other; metric = metric, w = w)
 
     end
