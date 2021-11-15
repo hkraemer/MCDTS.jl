@@ -17,9 +17,103 @@ w = maximum(hcat(w1,w2,w3))
 delays = 0:100
 runs = 10
 runs2 = 10
+T_steps = 100
 
 ##
 
+max_depth = 15
+x1 = data[1:end-T_steps,1]
+x2 = data[end-T_steps+1:end,1]
+y1 = data[1:end-T_steps,2]
+y2 = data[end-T_steps+1:end,2]
+
+# Prediction range-function, zeroth predictor first comp-MSE
+delays = 0:5
+runs = 10
+
+Random.seed!(1234)
+Tw = 1 #prediction horizon
+KNN = 5 # nearest neighbors for pred method
+
+PredType = MCDTSpredictionType(PredictionLoss(), local_model(zeroth, KNN, Tw))
+optmodel = MCDTS.MCDTSOptimGoal(Prediction_error(PredType), MCDTS.Range_function())
+
+
+@time tree = mcdts_embedding(Dataset(x1), optmodel, w1, delays, runs; max_depth = max_depth)
+
+
+best_node = MCDTS.best_embedding(tree)
+τ_mcdts = best_node.τs
+L_mcdts = best_node.L
+@test length(τ_mcdts) == 2
+@test τ_mcdts[2] == 1
+@test L_mcdts < 0.0094
+
+# Prediction range-function, linear predictor first comp-MSE
+delays = 0:5
+runs = 5
+
+Random.seed!(1234)
+tree = MCDTS.mc_delay(Dataset(x1), w1, (L)->(MCDTS.softmaxL(L,β=2.)), delays, runs; PRED=true, PRED_L = false, PRED_KL = false, linear = true, max_depth = 15, verbose=true)
+best_node = MCDTS.best_embedding(tree)
+τ_mcdts2 = best_node.τs
+L_mcdts2 = best_node.L
+@test length(τ_mcdts2) == 4
+@test τ_mcdts2[2] == 2
+@test τ_mcdts2[3] == 3
+@test τ_mcdts2[4] == 1
+@test L_mcdts2 < 0.0000037
+
+# Prediction range-function, zeroth predictor mean-KL
+delays = 0:10
+runs = 10
+
+Random.seed!(1234)
+tree = MCDTS.mc_delay(Dataset(x1), w1, (L)->(MCDTS.softmaxL(L,β=2.)), delays, runs; PRED=true, PRED_L = false, PRED_KL = true, linear = false, PRED_mean = true, max_depth = 15, verbose=true)
+best_node = MCDTS.best_embedding(tree)
+τ_mcdts3 = best_node.τs
+L_mcdts3 = best_node.L
+@test length(τ_mcdts3) == 5
+@test τ_mcdts3[2] == 1
+@test τ_mcdts3[3] == 2
+@test τ_mcdts3[4] == 10
+@test τ_mcdts3[5] == 3
+@test L_mcdts3 < 0.0057
+
+# Prediction range-function, linear predictor first-comp-KL
+delays = 0:5
+runs = 5
+
+Random.seed!(1234)
+tree = MCDTS.mc_delay(Dataset(x1), w1, (L)->(MCDTS.softmaxL(L,β=2.)), delays, runs; PRED=true, PRED_L = false, PRED_KL = true, linear = true, PRED_mean = false, max_depth = 15, verbose=true)
+best_node = MCDTS.best_embedding(tree)
+τ_mcdts4 = best_node.τs
+L_mcdts4 = best_node.L
+@test length(τ_mcdts4) == 2
+@test τ_mcdts4[2] == 2
+@test L_mcdts4 < 9.3e-8
+
+# multivariate prediction range-function, zeroth predictor first-comp-MSE
+delays = 0:5
+runs = 5
+data_sample = Dataset(hcat(x1,y1))
+
+Random.seed!(1234)
+tree = MCDTS.mc_delay(data_sample, w1, (L)->(MCDTS.softmaxL(L,β=2.)), delays, runs; PRED=true, PRED_L = false, PRED_KL = false, linear = false, PRED_mean = false, max_depth = 15, verbose=true)
+best_node = MCDTS.best_embedding(tree)
+τ_mcdts5 = best_node.τs
+ts_mcdts5 = best_node.ts
+L_mcdts5 = best_node.L
+@test length(τ_mcdts5) == 3
+@test ts_mcdts5[1] == 1
+@test ts_mcdts5[2] == 2
+@test ts_mcdts5[3] == 1
+@test τ_mcdts5[1] == 0
+@test τ_mcdts5[2] == 4
+@test τ_mcdts5[3] == 1
+@test L_mcdts5 < 0.0066
+
+##
 
 println("\nTesting MCDTS complete tree, Lorenz63 univariate:")
 @testset "MCDTS single rollout on univariate data" begin
@@ -135,6 +229,103 @@ println("\nTesting MCDTS complete tree, coupled Logistic, CCM:")
     @test length(τ_mcdts) ==  2
     @test τ_mcdts[1] == 0
     @test τ_mcdts[2] == 1
+
+end
+
+println("\nTesting MCDTS complete tree, Lorenz Prediction:")
+@testset "MCDTS single rollout on prediction of Lorenz" begin
+
+    max_depth = 15
+    x1 = data[1:end-T_steps,1]
+    x2 = data[end-T_steps+1:end,1]
+    y1 = data[1:end-T_steps,2]
+    y2 = data[end-T_steps+1:end,2]
+
+    # Prediction range-function, zeroth predictor first comp-MSE
+    delays = 0:5
+    runs = 10
+
+    Random.seed!(1234)
+    Tw = 1 #prediction horizon
+    KNN = 5 # nearest neighbors for pred method
+
+    PredType = MCDTSpredictionType(PredictionLoss(), local_model(zeroth, KNN, Tw))
+    optmodel = MCDTS.MCDTSOptimGoal(Prediction_error(PredType), MCDTS.Range_function())
+
+
+    @time tree = mcdts_embedding(Dataset(x1), optmodel, w1, delays, runs; max_depth = max_depth)
+
+
+    best_node = MCDTS.best_embedding(tree)
+    τ_mcdts = best_node.τs
+    L_mcdts = best_node.L
+    @test length(τ_mcdts) == 2
+    @test τ_mcdts[2] == 1
+    @test L_mcdts < 0.0094
+
+    # Prediction range-function, linear predictor first comp-MSE
+    delays = 0:5
+    runs = 5
+
+    Random.seed!(1234)
+    tree = MCDTS.mc_delay(Dataset(x1), w1, (L)->(MCDTS.softmaxL(L,β=2.)), delays, runs; PRED=true, PRED_L = false, PRED_KL = false, linear = true, max_depth = 15, verbose=true)
+    best_node = MCDTS.best_embedding(tree)
+    τ_mcdts2 = best_node.τs
+    L_mcdts2 = best_node.L
+    @test length(τ_mcdts2) == 4
+    @test τ_mcdts2[2] == 2
+    @test τ_mcdts2[3] == 3
+    @test τ_mcdts2[4] == 1
+    @test L_mcdts2 < 0.0000037
+
+    # Prediction range-function, zeroth predictor mean-KL
+    delays = 0:10
+    runs = 10
+
+    Random.seed!(1234)
+    tree = MCDTS.mc_delay(Dataset(x1), w1, (L)->(MCDTS.softmaxL(L,β=2.)), delays, runs; PRED=true, PRED_L = false, PRED_KL = true, linear = false, PRED_mean = true, max_depth = 15, verbose=true)
+    best_node = MCDTS.best_embedding(tree)
+    τ_mcdts3 = best_node.τs
+    L_mcdts3 = best_node.L
+    @test length(τ_mcdts3) == 5
+    @test τ_mcdts3[2] == 1
+    @test τ_mcdts3[3] == 2
+    @test τ_mcdts3[4] == 10
+    @test τ_mcdts3[5] == 3
+    @test L_mcdts3 < 0.0057
+
+    # Prediction range-function, linear predictor first-comp-KL
+    delays = 0:5
+    runs = 5
+
+    Random.seed!(1234)
+    tree = MCDTS.mc_delay(Dataset(x1), w1, (L)->(MCDTS.softmaxL(L,β=2.)), delays, runs; PRED=true, PRED_L = false, PRED_KL = true, linear = true, PRED_mean = false, max_depth = 15, verbose=true)
+    best_node = MCDTS.best_embedding(tree)
+    τ_mcdts4 = best_node.τs
+    L_mcdts4 = best_node.L
+    @test length(τ_mcdts4) == 2
+    @test τ_mcdts4[2] == 2
+    @test L_mcdts4 < 9.3e-8
+
+    # multivariate prediction range-function, zeroth predictor first-comp-MSE
+    delays = 0:5
+    runs = 5
+    data_sample = Dataset(hcat(x1,y1))
+
+    Random.seed!(1234)
+    tree = MCDTS.mc_delay(data_sample, w1, (L)->(MCDTS.softmaxL(L,β=2.)), delays, runs; PRED=true, PRED_L = false, PRED_KL = false, linear = false, PRED_mean = false, max_depth = 15, verbose=true)
+    best_node = MCDTS.best_embedding(tree)
+    τ_mcdts5 = best_node.τs
+    ts_mcdts5 = best_node.ts
+    L_mcdts5 = best_node.L
+    @test length(τ_mcdts5) == 3
+    @test ts_mcdts5[1] == 1
+    @test ts_mcdts5[2] == 2
+    @test ts_mcdts5[3] == 1
+    @test τ_mcdts5[1] == 0
+    @test τ_mcdts5[2] == 4
+    @test τ_mcdts5[3] == 1
+    @test L_mcdts5 < 0.0066
 
 end
 
