@@ -98,6 +98,10 @@ function give_potential_delays(Yss::Dataset{D, T}, τs, w::Int, τ_vals, ts_vals
     ts_pot = reduce(vcat, ts_pots)
     L_pot = reduce(vcat, L_pots)
 
+    println("Hi")
+    println("Give Potential")
+    println(τ_pot,ts_pot,L_pot)
+
     if isempty(τ_pot)
         flag = true
         return Int[],Int[],eltype(L_pots)[], flag

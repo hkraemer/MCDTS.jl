@@ -459,7 +459,6 @@ function mcdts_embedding(data::Dataset, w::Int, choose_func, delays::AbstractRan
     tree = Root()
 
     for i=1:N
-
         expand!(tree, data, w, choose_func, delays; KNN = KNN, FNN = FNN,
                     PRED = PRED, Tw = Tw, max_depth = max_depth, tws = tws,
                     linear = linear, PRED_mean = PRED_mean, PRED_L = PRED_L,
