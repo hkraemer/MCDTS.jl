@@ -336,7 +336,7 @@ function local_CCM_statistics(ε★, Y_act, Ys, Y_other, τs, w, metric, Tw; τ_
     s = Ys[:,ts]
     max_idx = Vector(τs.+2)
 
-
+    println("local CCM statistics")
     ts_idx = findall(e->e==ts, ts_vals) # do not consider already taken delays
     filter!(e->e∉(τ_vals[ts_idx] .+ 2), max_idx) # do not consider already taken delays
 
@@ -348,8 +348,15 @@ function local_CCM_statistics(ε★, Y_act, Ys, Y_other, τs, w, metric, Tw; τ_
         ts_trials = (ts_vals...,ts,)
         Y_trial = genembed(Ys, tau_trials, ts_trials)
         # account for value-shift due to negative lags
+        println(Y_other[1:3])
         Ys_other = Y_other[1+maximum(tau_trials.*(-1)):length(Y_trial)+maximum(tau_trials.*(-1))]
         # compute ρ_CCM for Y_trial and Y_other
+
+        println(Y_trial[1,:])
+        println(Ys_other[1:3])
+        println(w)
+        println(metric)
+        println("********************")
         ρ_CCM[i], _ = MCDTS.ccm(Y_trial, Ys_other; w = w)
     end
     return -ρ_CCM, max_idx
