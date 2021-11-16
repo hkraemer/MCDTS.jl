@@ -205,8 +205,9 @@ struct MCDTSpredictionType <: AbstractMCDTSpredictionType
     loss::AbstractPredictionLoss
     method::AbstractPredictionMethod
     # Constraints and Defaults
-    MCDTSpredictionType(x) = new(x,local_model("zeroth",2,1))
-    MCDTSpredictionType() = new(1,local_model("zeroth",2,1))
+    MCDTSpredictionType(x,y) = new(x,y)
+    MCDTSpredictionType(x) = new(x,local_model())
+    MCDTSpredictionType() = new(PredictionLoss(), local_model())
 end
 
 
@@ -237,6 +238,7 @@ struct PredictionLoss <: AbstractPredictionLoss
     # Constraints and Defaults
     PredictionLoss(x) = begin
         @assert x == 1 || x == 2 || x == 3 || x == 4
+        new(x)
     end
     PredictionLoss() = PredictionLoss(1)
 end
@@ -269,15 +271,15 @@ struct local_model <: AbstractPredictionMethod
     Tw::Int
     # Constraints and Defaults
     local_model(x,y,z) = begin
-        @assert x == "zeroth" || "linear"
-        @assert KNN > 0
-        @assert Tw > 1
+        @assert x in ["zeroth", "linear"]
+        @assert y > 0
+        @assert z > 0
+        new(x,y,z)
     end
-    local_model(x,y) = new(x,y,1)
-    local_model(x) = new(x,2)
-    local_model() = local_model("zeroth")
 end
-
+local_model() = local_model("zeroth")
+local_model(method) = local_model(method, 2)
+local_model(method, y) = local_model(method, y , 1)
 
 
 ## Constructors for DelayPreSelection Functions
@@ -314,6 +316,7 @@ struct Continuity_function <: AbstractDelayPreselection
         @assert 1. > y > 0.
         @assert 1. > z > 0.
         @assert typeof(x) <:Real && typeof(y) <:Real && typeof(z) <:Real
+        new(k,x,y,z)
     end
     Continuity_function() = new(13, 1., 0.05, 0.5)
 end

@@ -27,34 +27,43 @@ x2 = data[end-T_steps+1:end,1]
 y1 = data[1:end-T_steps,2]
 y2 = data[end-T_steps+1:end,2]
 
+
 # Prediction range-function, zeroth predictor first comp-MSE
 delays = 0:5
 runs = 10
 
 Random.seed!(1234)
 Tw = 1 #prediction horizon
-KNN = 5 # nearest neighbors for pred method
+KNN = 1 # nearest neighbors for pred method
 
-PredType = MCDTSpredictionType(PredictionLoss(), local_model(zeroth, KNN, Tw))
-optmodel = MCDTS.MCDTSOptimGoal(Prediction_error(PredType), MCDTS.Range_function())
-
+PredMeth = MCDTS.local_model("zeroth", KNN, Tw)
+PredLoss = MCDTS.PredictionLoss(1)
+PredType = MCDTS.MCDTSpredictionType(PredLoss, PredMeth)
+optmodel = MCDTS.MCDTSOptimGoal(MCDTS.Prediction_error(PredType), MCDTS.Range_function())
 
 @time tree = mcdts_embedding(Dataset(x1), optmodel, w1, delays, runs; max_depth = max_depth)
-
-
 best_node = MCDTS.best_embedding(tree)
 τ_mcdts = best_node.τs
 L_mcdts = best_node.L
 @test length(τ_mcdts) == 2
 @test τ_mcdts[2] == 1
-@test L_mcdts < 0.0094
+@test L_mcdts < 0.0095
+
 
 # Prediction range-function, linear predictor first comp-MSE
 delays = 0:5
 runs = 5
 
 Random.seed!(1234)
-tree = MCDTS.mc_delay(Dataset(x1), w1, (L)->(MCDTS.softmaxL(L,β=2.)), delays, runs; PRED=true, PRED_L = false, PRED_KL = false, linear = true, max_depth = 15, verbose=true)
+Tw = 1 #prediction horizon
+KNN = 1 # nearest neighbors for pred method
+
+PredMeth = MCDTS.local_model("linear", KNN, Tw)
+PredLoss = MCDTS.PredictionLoss(1)
+PredType = MCDTS.MCDTSpredictionType(PredLoss, PredMeth)
+optmodel = MCDTS.MCDTSOptimGoal(MCDTS.Prediction_error(PredType), MCDTS.Range_function())
+
+@time tree = mcdts_embedding(Dataset(x1), optmodel, w1, delays, runs; max_depth = max_depth)
 best_node = MCDTS.best_embedding(tree)
 τ_mcdts2 = best_node.τs
 L_mcdts2 = best_node.L
@@ -64,12 +73,21 @@ L_mcdts2 = best_node.L
 @test τ_mcdts2[4] == 1
 @test L_mcdts2 < 0.0000037
 
+
 # Prediction range-function, zeroth predictor mean-KL
-delays = 0:10
-runs = 10
+delays = 0:5
+runs = 5
 
 Random.seed!(1234)
-tree = MCDTS.mc_delay(Dataset(x1), w1, (L)->(MCDTS.softmaxL(L,β=2.)), delays, runs; PRED=true, PRED_L = false, PRED_KL = true, linear = false, PRED_mean = true, max_depth = 15, verbose=true)
+Tw = 1 #prediction horizon
+KNN = 1 # nearest neighbors for pred method
+
+PredMeth = MCDTS.local_model("zeroth", KNN, Tw)
+PredLoss = MCDTS.PredictionLoss(4)
+PredType = MCDTS.MCDTSpredictionType(PredLoss, PredMeth)
+optmodel = MCDTS.MCDTSOptimGoal(MCDTS.Prediction_error(PredType), MCDTS.Range_function())
+
+@time tree = mcdts_embedding(Dataset(x1), optmodel, w1, delays, runs; max_depth = max_depth)
 best_node = MCDTS.best_embedding(tree)
 τ_mcdts3 = best_node.τs
 L_mcdts3 = best_node.L
