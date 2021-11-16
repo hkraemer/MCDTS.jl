@@ -29,7 +29,7 @@ y2 = data[end-T_steps+1:end,2]
 
 
 # Prediction range-function, zeroth predictor first comp-MSE
-delays = 0:5
+delays = 0:10
 runs = 10
 
 Random.seed!(1234)
@@ -75,8 +75,8 @@ L_mcdts2 = best_node.L
 
 
 # Prediction range-function, zeroth predictor mean-KL
-delays = 0:5
-runs = 5
+delays = 0:10
+runs = 10
 
 Random.seed!(1234)
 Tw = 1 #prediction horizon
