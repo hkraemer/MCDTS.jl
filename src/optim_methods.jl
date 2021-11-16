@@ -210,28 +210,10 @@ end
     Return the maximum decrease of the L-statistic `L_decrease` and corresponding
     delay-indices `max_idx` for all local maxima in ε★
 """
-function local_L_statistics(Λ::Continuity_function, dps::Vector{P}, Y_act::Dataset{D, T}, s::Vector{T},
+function local_L_statistics(Λ::AbstractDelayPreselection, dps::Vector{P}, Y_act::Dataset{D, T}, s::Vector{T},
         τs, KNN::Int, w::Int, metric, τ_vals, ts_vals, ts::Int; tws::AbstractRange{Int} = 2:τs[end]) where {P, D, T}
 
-    _, max_idx = get_maxima(dps) # determine local maxima in ⟨ε★⟩
-    L_decrease = zeros(Float64, length(max_idx))
-    for (i,τ_idx) in enumerate(max_idx)
-        # create candidate phase space vector for this peak/τ-value
-        Y_trial = DelayEmbeddings.hcat_lagged_values(Y_act, s, τs[τ_idx-1])
-        # compute L-statistic for Y_act and Y_trial and get the maximum decrease
-        L_decrease[i] = MCDTS.uzal_cost_pecuzal_mcdts(Y_act, Y_trial, τs[end]; K = KNN,
-                                w = w, metric = metric, tws = tws)
-    end
-    return L_decrease, max_idx
-end
-
-function local_L_statistics(Λ::Range_function, dps::Vector{P}, Y_act::Dataset{D, T}, s::Vector{T},
-        τs, KNN::Int, w::Int, metric, τ_vals, ts_vals, ts::Int; tws::AbstractRange{Int} = 2:τs[end]) where {P, D, T}
-
-    max_idx = Vector(dps[2:end].+1)
-
-    ts_idx = findall(e->e==ts, ts_vals) # do not consider already taken delays
-    filter!(e->e∉(τ_vals[ts_idx] .+ 2), max_idx) # do not consider already taken delays
+    max_idx = get_max_idx(Λ, dps, τ_vals, ts_vals, ts) # get the candidate delays
 
     L_decrease = zeros(Float64, length(max_idx))
     for (i,τ_idx) in enumerate(max_idx)
@@ -247,36 +229,9 @@ end
 """
     Return the FNN-statistic `FNN` and indices `max_idx`  for all local maxima in dps
 """
-function local_fnn_statistics(Λ::Continuity_function, dps::Vector{P}, Y_act::Dataset{D, T}, s::Vector{T}, τs, w::Int, metric, τ_vals, ts_vals, ts::Int; r=2) where {P, D, T}
+function local_fnn_statistics(Λ::AbstractDelayPreselection, dps::Vector{P}, Y_act::Dataset{D, T}, s::Vector{T}, τs, w::Int, metric, τ_vals, ts_vals, ts::Int; r=2) where {P, D, T}
 
-    _, max_idx = get_maxima(dps) # determine local maxima in ⟨ε★⟩
-    FNN_trials = zeros(Float64, length(max_idx))
-    ξ_trials = zeros(Float64, length(max_idx))
-
-    # compute nearest-neighbor-distances for actual trajectory
-    Y_act2 = Y_act[1:end-τs[maximum(max_idx)-1],:]
-    Y_act2 = DelayEmbeddings.standardize(Y_act2)
-    vtree = KDTree(Y_act2, metric)
-    _, NNdist_old = DelayEmbeddings.all_neighbors(vtree, Y_act2, 1:length(Y_act2), 1, w)
-
-    for (i,τ_idx) in enumerate(max_idx)
-        # create candidate phase space vector for this peak/τ-value
-        Y_trial = DelayEmbeddings.hcat_lagged_values(Y_act,s,τs[τ_idx-1])
-        Y_trial = DelayEmbeddings.standardize(Y_trial)
-        vtree = KDTree(Y_trial, metric)
-        _, NNdist_new = DelayEmbeddings.all_neighbors(vtree, Y_trial, 1:length(Y_trial), 1, w)
-        # compute FNN-statistic
-        FNN_trials[i] = fnn_embedding_cycle(NNdist_old, NNdist_new[1:length(NNdist_old)], r)
-    end
-    return FNN_trials, max_idx
-end
-
-function local_fnn_statistics(Λ::Range_function, dps::Vector{P}, Y_act::Dataset{D, T}, s::Vector{T}, τs, w::Int, metric, τ_vals, ts_vals, ts::Int; r=2) where {P, D, T}
-
-    max_idx = Vector(dps[2:end].+1)
-
-    ts_idx = findall(e->e==ts, ts_vals) # do not consider already taken delays
-    filter!(e->e∉(τ_vals[ts_idx] .+ 2), max_idx) # do not consider already taken delays
+    max_idx = get_max_idx(Λ, dps, τ_vals, ts_vals, ts) # get the candidate delays
 
     FNN_trials = zeros(Float64, length(max_idx))
     ξ_trials = zeros(Float64, length(max_idx))
@@ -302,9 +257,9 @@ end
 """
     Return negative correlation coefficient for CCM.
 """
-function local_CCM_statistics(Λ::Continuity_function, dps::Vector{P}, Y_act::Dataset{D, T}, Ys, Y_other::Vector{T}, τs, w::Int, metric, τ_vals, ts_vals, ts::Int) where {P, D, T}
+function local_CCM_statistics(Λ::AbstractDelayPreselection, dps::Vector{P}, Y_act::Dataset{D, T}, Ys, Y_other::Vector{T}, τs, w::Int, metric, τ_vals, ts_vals, ts::Int) where {P, D, T}
 
-    _, max_idx = get_maxima(dps) # determine local maxima in ⟨ε★⟩
+    max_idx = get_max_idx(Λ, dps, τ_vals, ts_vals, ts) # get the candidate delays
 
     ρ_CCM = zeros(Float64, length(max_idx))
 
@@ -321,36 +276,16 @@ function local_CCM_statistics(Λ::Continuity_function, dps::Vector{P}, Y_act::Da
     end
     return -ρ_CCM, max_idx
 end
-function local_CCM_statistics(Λ::Range_function, dps::Vector{P}, Y_act::Dataset{D, T}, Ys, Y_other::Vector{T}, τs, w::Int, metric, τ_vals, ts_vals, ts::Int) where {P, D, T}
 
-    max_idx = Vector(dps[2:end].+1)
-
-    ts_idx = findall(e->e==ts, ts_vals) # do not consider already taken delays
-    filter!(e->e∉(τ_vals[ts_idx] .+ 2), max_idx) # do not consider already taken delays
-
-    ρ_CCM = zeros(Float64, length(max_idx))
-    for (i,τ_idx) in enumerate(max_idx)
-        # create candidate phase space vector for this peak/τ-value
-        tau_trials = ((τ_vals.*(-1))...,(τs[τ_idx-1]*(-1)),)
-        ts_trials = (ts_vals...,ts,)
-        Y_trial = genembed(Ys, tau_trials, ts_trials)
-        # account for value-shift due to negative lags
-        Ys_other = Y_other[1+maximum(tau_trials.*(-1)):length(Y_trial)+maximum(tau_trials.*(-1))]
-        # compute ρ_CCM for Y_trial and Y_other
-        ρ_CCM[i], _ = MCDTS.ccm(Y_trial, Ys_other; metric = metric, w = w)
-
-    end
-    return -ρ_CCM, max_idx
-end
 
 """
     Return costs (MSE) of a `Tw`-step-ahead local-prediction.
 """
 function local_PRED_statistics(PredictionLoss::AbstractPredictionLoss, PredictionMethod::AbstractPredictionMethod,
-    Λ::Continuity_function, dps::Vector{P}, Y_act::Dataset{D, T}, Ys, τs, w::Int,
+    Λ::AbstractDelayPreselection, dps::Vector{P}, Y_act::Dataset{D, T}, Ys, τs, w::Int,
                             metric, τ_vals, ts_vals, ts) where {P, D, T}
 
-    _, max_idx = get_maxima(dps) # determine local maxima in ⟨ε★⟩
+    max_idx = get_max_idx(Λ, dps, τ_vals, ts_vals, ts) # get the candidate delays
 
     PRED_mse = zeros(Float64, length(max_idx))
     for (i,τ_idx) in enumerate(max_idx)
@@ -395,57 +330,29 @@ function local_PRED_statistics(PredictionLoss::AbstractPredictionLoss, Predictio
     return PRED_mse, max_idx
 end
 
-function local_PRED_statistics(PredictionLoss::AbstractPredictionLoss, PredictionMethod::AbstractPredictionMethod,
-    Λ::Range_function, dps::Vector{P}, Y_act::Dataset{D, T}, Ys, τs, w::Int,
-                            metric, τ_vals, ts_vals, ts) where {P, D, T}
+
+"""
+    get_max_idx(Λ::AbstractDelayPreselection, dps::Vector, τ_vals, ts_vals) → max_idx
+
+    Compute the candidate delay values from the given delay pre-selection statistic
+    `dps` with respect to `Λ`, which determined how `dps` was obtained and how
+    to select the candidates (e.g. pick the maxima of `dps` in case of the
+    `Λ` being the Continuity function). See [`Continuity_function`](@ref) and
+    [`Range_function`](@ref).
+"""
+function get_max_idx(Λ::Range_function, dps::Vector{T}, τ_vals, ts_vals, ts) where {T}
 
     max_idx = Vector(dps[2:end].+1)
-
     ts_idx = findall(e->e==ts, ts_vals) # do not consider already taken delays
     filter!(e->e∉(τ_vals[ts_idx] .+ 2), max_idx) # do not consider already taken delays
-
-    PRED_mse = zeros(Float64, length(max_idx))
-    for (i,τ_idx) in enumerate(max_idx)
-        # create candidate phase space vector for this peak/τ-value
-        tau_trials = ((τ_vals.*(-1))...,(τs[τ_idx-1]*(-1)),)
-        ts_trials = (ts_vals...,ts,)
-        Y_trial = genembed(Ys, tau_trials, ts_trials)
-        # compute PRED-statistic for Y_trial
-        if PredictionMethod.method == "linear"
-
-            if PredictionLoss.type == 1
-                PRED_mse[i] = MCDTS.linear_prediction_cost(Y_trial; w = w,
-                        K = 2*(size(Y_trial,2)+1), Tw = PredictionMethod.Tw, metric = metric)[1]
-            elseif PredictionLoss.type == 2
-                PRED_mse[i] = mean(MCDTS.linear_prediction_cost(Y_trial; w = w,
-                        K = 2*(size(Y_trial,2)+1), Tw = PredictionMethod.Tw, metric = metric))
-            elseif PredictionLoss.type == 3
-                PRED_mse[i] = MCDTS.linear_prediction_cost_KL(Y_trial; w = w,
-                        K = 2*(size(Y_trial,2)+1), Tw = PredictionMethod.Tw, metric = metric)[1]
-            elseif PredictionLoss.type == 4
-                PRED_mse[i] = mean(MCDTS.linear_prediction_cost_KL(Y_trial; w = w,
-                        K = 2*(size(Y_trial,2)+1), Tw = PredictionMethod.Tw, metric = metric))
-            end
-
-        elseif PredictionMethod.method == "zeroth"
-
-            if PredictionLoss.type == 1
-                PRED_mse[i] = MCDTS.zeroth_prediction_cost(Y_trial; w = w,
-                                K = PredictionMethod.KNN, Tw = PredictionMethod.Tw,  metric = metric)[1]
-            elseif PredictionLoss.type == 2
-                PRED_mse[i] = mean(MCDTS.zeroth_prediction_cost(Y_trial; w = w,
-                        K = PredictionMethod.KNN, Tw = PredictionMethod.Tw,  metric = metric))
-            elseif PredictionLoss.type == 3
-                PRED_mse[i] = MCDTS.zeroth_prediction_cost_KL(Y_trial; w = w,
-                                K = PredictionMethod.KNN, Tw = PredictionMethod.Tw,  metric = metric)[1]
-            elseif PredictionLoss.type == 4
-                PRED_mse[i] = mean(MCDTS.zeroth_prediction_cost_KL(Y_trial; w = w,
-                        K = PredictionMethod.KNN, Tw = PredictionMethod.Tw,  metric = metric))
-            end
-        end
-    end
-    return PRED_mse, max_idx
+    return max_idx
 end
+function get_max_idx(Λ::Continuity_function, dps::Vector{T}, τ_vals, ts_vals, ts) where {T}
+
+    _, max_idx = get_maxima(dps) # determine local maxima in delay_pre_selection_statistic
+    return max_idx
+end
+
 
 """
     zeroth_prediction_cost(Y::Dataset; kwargs...) → Cost
