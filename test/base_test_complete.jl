@@ -1,5 +1,5 @@
-using DynamicalSystems
 using MCDTS
+using DynamicalSystems
 using Random
 using Test
 using DelayEmbeddings
@@ -18,8 +18,6 @@ delays = 0:100
 runs = 10
 runs2 = 10
 T_steps = 100
-
-##
 
 
 println("\nTesting MCDTS complete tree, Lorenz63 univariate:")
@@ -189,9 +187,9 @@ println("\nTesting MCDTS complete tree, Lorenz Prediction:")
     τ_mcdts2 = best_node.τs
     L_mcdts2 = best_node.L
     @test length(τ_mcdts2) == 4
-    @test τ_mcdts2[2] == 2
-    @test τ_mcdts2[3] == 3
-    @test τ_mcdts2[4] == 1
+    @test τ_mcdts2[2] == 3
+    @test τ_mcdts2[3] == 1
+    @test τ_mcdts2[4] == 2
     @test L_mcdts2 < 0.0000037
 
 
@@ -310,8 +308,8 @@ println("\nTesting MCDTS complete tree, Lorenz Prediction:")
     τ_mcdts = best_node.τs
     L_mcdts = best_node.L
     @test length(τ_mcdts) == 3
-    @test τ_mcdts[2] == 5
-    @test τ_mcdts[3] == 1
+    @test τ_mcdts[2] == 1
+    @test τ_mcdts[3] == 5
     @test L_mcdts < 0.01612
 
 end
