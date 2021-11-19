@@ -140,7 +140,7 @@ struct CCM_ρ <: AbstractLoss
     threshold::AbstractFloat
 
     # Constraints and Defaults
-    CCM_ρ(x,y=-1.) = begin
+    CCM_ρ(x,y=1.) = begin
         @assert y > 0 && y <= 1
         typeof(y) <: Int ? new(x,convert(AbstractFloat, -y)) : new(x,-y)
     end

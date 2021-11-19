@@ -296,12 +296,6 @@ function local_PRED_statistics(PredictionLoss::AbstractPredictionLoss, Predictio
         # make a in-sample prediction for Y_trial
         prediction = make_prediction(PredictionMethod, Y_trial; K = PredictionMethod.KNN, w = w,
             Tw = PredictionMethod.Tw, metric = metric)
-        if i == 1
-            println("Hallo")
-            println(size(Y_trial))
-            println(Y_trial[2])
-            println(prediction[1])
-        end
         # compute loss/costs
         costs[i] = compute_costs_from_prediction(PredictionLoss, prediction, Y_trial, PredictionMethod.Tw)
     end
