@@ -366,6 +366,7 @@ end
 function make_prediction(pred_meth::AbstractPredictionMethod{:linear}, Y::AbstractDataset{D, ET}; K::Int = 3, w::Int = 1,
     Tw::Int = 1, metric = Euclidean()) where {D, ET}
 
+    K = 2*(size(Y,2)+1)
     NN = length(Y)-Tw;
     ns = 1:NN  # the fiducial point indices
     vs = Y[ns] # the fiducial points in the data set
