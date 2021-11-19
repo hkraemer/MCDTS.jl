@@ -382,7 +382,11 @@ function zeroth_prediction_cost(Y::AbstractDataset{D, ET};
     # select a random state space vector sample according to input samplesize
     NN = length(Y)-Tw;
     NNN = floor(Int, samplesize*NN)
-    ns = sample(1:NN, NNN; replace=false) # the fiducial point indices
+    if samplesize < 1
+        ns = sample(1:NN, NNN; replace=false) # the fiducial point indices
+    else
+        ns = 1:NN  # the fiducial point indices
+    end
 
     vs = Y[ns] # the fiducial points in the data set
 
@@ -586,7 +590,11 @@ function linear_prediction_cost(Y::AbstractDataset{D, ET};
     # select a random state space vector sample according to input samplesize
     NN = length(Y)-Tw;
     NNN = floor(Int, samplesize*NN)
-    ns = sample(1:NN, NNN; replace=false) # the fiducial point indices
+    if samplesize < 1
+        ns = sample(1:NN, NNN; replace=false) # the fiducial point indices
+    else
+        ns = 1:NN  # the fiducial point indices
+    end
 
     vs = Y[ns] # the fiducial points in the data set
 

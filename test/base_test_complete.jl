@@ -186,11 +186,12 @@ println("\nTesting MCDTS complete tree, Lorenz Prediction:")
     best_node = MCDTS.best_embedding(tree)
     τ_mcdts2 = best_node.τs
     L_mcdts2 = best_node.L
-    @test length(τ_mcdts2) == 4
-    @test τ_mcdts2[2] == 3
+    @test length(τ_mcdts2) == 5
+    @test τ_mcdts2[2] == 4
     @test τ_mcdts2[3] == 1
     @test τ_mcdts2[4] == 2
-    @test L_mcdts2 < 0.0000037
+    @test τ_mcdts2[5] == 3
+    @test L_mcdts2 < 0.00000383
 
 
     # Prediction range-function, zeroth predictor mean-KL
@@ -308,8 +309,8 @@ println("\nTesting MCDTS complete tree, Lorenz Prediction:")
     τ_mcdts = best_node.τs
     L_mcdts = best_node.L
     @test length(τ_mcdts) == 3
-    @test τ_mcdts[2] == 1
-    @test τ_mcdts[3] == 5
+    @test τ_mcdts[2] == 5
+    @test τ_mcdts[3] == 1
     @test L_mcdts < 0.01612
 
 end
