@@ -19,7 +19,6 @@ runs = 10
 runs2 = 10
 T_steps = 100
 
-
 println("\nTesting MCDTS complete tree, Lorenz63 univariate:")
 @testset "MCDTS single rollout on univariate data" begin
 
@@ -308,10 +307,9 @@ println("\nTesting MCDTS complete tree, Lorenz Prediction:")
     best_node = MCDTS.best_embedding(tree)
     τ_mcdts = best_node.τs
     L_mcdts = best_node.L
-    @test length(τ_mcdts) == 3
+    @test length(τ_mcdts) == 2
     @test τ_mcdts[2] == 5
-    @test τ_mcdts[3] == 1
-    @test L_mcdts < 0.01612
+    @test L_mcdts < 0.0209
 
 end
 
