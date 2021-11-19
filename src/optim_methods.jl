@@ -279,7 +279,7 @@ end
 
 
 """
-    Return costs (MSE) of a `Tw`-step-ahead local-prediction.
+    Return costs of a `Tw`-step-ahead local-prediction.
 """
 function local_PRED_statistics(PredictionLoss::AbstractPredictionLoss, PredictionMethod::AbstractPredictionMethod,
     Λ::AbstractDelayPreselection, dps::Vector{P}, Y_act::Dataset{D, T}, Ys, τs, w::Int,
@@ -287,47 +287,19 @@ function local_PRED_statistics(PredictionLoss::AbstractPredictionLoss, Predictio
 
     max_idx = get_max_idx(Λ, dps, τ_vals, ts_vals, ts) # get the candidate delays
 
-    PRED_mse = zeros(Float64, length(max_idx))
+    costs = zeros(Float64, length(max_idx))
     for (i,τ_idx) in enumerate(max_idx)
         # create candidate phase space vector for this peak/τ-value
         tau_trials = ((τ_vals.*(-1))...,(τs[τ_idx-1]*(-1)),)
         ts_trials = (ts_vals...,ts,)
         Y_trial = genembed(Ys, tau_trials, ts_trials)
-        # compute PRED-statistic for Y_trial
-        if PredictionMethod.method == "linear"
-
-            if PredictionLoss.type == 1
-                PRED_mse[i] = MCDTS.linear_prediction_cost(Y_trial; w = w,
-                        K = 2*(size(Y_trial,2)+1), Tw = PredictionMethod.Tw, metric = metric)[1]
-            elseif PredictionLoss.type == 2
-                PRED_mse[i] = mean(MCDTS.linear_prediction_cost(Y_trial; w = w,
-                        K = 2*(size(Y_trial,2)+1), Tw = PredictionMethod.Tw, metric = metric))
-            elseif PredictionLoss.type == 3
-                PRED_mse[i] = MCDTS.linear_prediction_cost_KL(Y_trial; w = w,
-                        K = 2*(size(Y_trial,2)+1), Tw = PredictionMethod.Tw, metric = metric)[1]
-            elseif PredictionLoss.type == 4
-                PRED_mse[i] = mean(MCDTS.linear_prediction_cost_KL(Y_trial; w = w,
-                        K = 2*(size(Y_trial,2)+1), Tw = PredictionMethod.Tw, metric = metric))
-            end
-
-        elseif PredictionMethod.method == "zeroth"
-
-            if PredictionLoss.type == 1
-                PRED_mse[i] = MCDTS.zeroth_prediction_cost(Y_trial; w = w,
-                                K = PredictionMethod.KNN, Tw = PredictionMethod.Tw,  metric = metric)[1]
-            elseif PredictionLoss.type == 2
-                PRED_mse[i] = mean(MCDTS.zeroth_prediction_cost(Y_trial; w = w,
-                        K = PredictionMethod.KNN, Tw = PredictionMethod.Tw,  metric = metric))
-            elseif PredictionLoss.type == 3
-                PRED_mse[i] = MCDTS.zeroth_prediction_cost_KL(Y_trial; w = w,
-                                K = PredictionMethod.KNN, Tw = PredictionMethod.Tw,  metric = metric)[1]
-            elseif PredictionLoss.type == 4
-                PRED_mse[i] = mean(MCDTS.zeroth_prediction_cost_KL(Y_trial; w = w,
-                        K = PredictionMethod.KNN, Tw = PredictionMethod.Tw,  metric = metric))
-            end
-        end
+        # make a in-sample prediction for Y_trial
+        prediction = make_prediction(PredictionMethod, Y_trial; K = PredictionMethod.KNN, w = w,
+            Tw = PredictionMethod.Tw, metric = metric)
+        # compute loss/costs
+        costs[i] = compute_costs_from_prediction(PredictionLoss, prediction, Y_trial, PredictionMethod.Tw)
     end
-    return PRED_mse, max_idx
+    return costs, max_idx
 end
 
 
@@ -351,6 +323,133 @@ function get_max_idx(Λ::Continuity_function, dps::Vector{T}, τ_vals, ts_vals, 
 
     _, max_idx = get_maxima(dps) # determine local maxima in delay_pre_selection_statistic
     return max_idx
+end
+
+
+"""
+    make_prediction(pred_meth::AbstractPredictionMethod, Y::AbstractDataset{D, ET};
+            K::Int = 3, w::Int = 1, Tw::Int = 1, metric = Euclidean()) → prediction
+
+    Compute a in-sample `Tw`-time-steps-ahead of the data `Y`, using the prediction
+    method `pred_meth`. `w` is the Theiler window and `K` the nearest neighbors used.
+"""
+function make_prediction(pred_meth::AbstractPredictionMethod{:zeroth}, Y::AbstractDataset{D, ET}; K::Int = 3, w::Int = 1,
+    Tw::Int = 1, metric = Euclidean()) where {D, ET}
+
+    NN = length(Y)-Tw;
+    ns = 1:NN  # the fiducial point indices
+    vs = Y[ns] # the fiducial points in the data set
+    vtree = KDTree(Y[1:end-Tw], metric)
+    allNNidxs, _ = DelayEmbeddings.all_neighbors(vtree, vs, ns, K, w)
+
+    prediction = zeros(ET, NN, D)
+    # loop over each fiducial point
+    for (i,v) in enumerate(vs)
+        NNidxs = allNNidxs[i] # indices of k nearest neighbors to v
+
+        ϵ_ball = zeros(ET, K, D) # preallocation
+        # determine neighborhood one time step ahead
+        @inbounds for (k, j) in enumerate(NNidxs)
+            ϵ_ball[k, :] .= Y[j + Tw]
+        end
+        # take the average as a prediction
+        prediction[i,:] = mean(ϵ_ball; dims=1)
+    end
+    return Dataset(prediction)
+end
+function make_prediction(pred_meth::AbstractPredictionMethod{:linear}, Y::AbstractDataset{D, ET}; K::Int = 3, w::Int = 1,
+    Tw::Int = 1, metric = Euclidean()) where {D, ET}
+
+    NN = length(Y)-Tw;
+    ns = 1:NN  # the fiducial point indices
+    vs = Y[ns] # the fiducial points in the data set
+    vtree = KDTree(Y[1:end-Tw], metric)
+    allNNidxs, _ = DelayEmbeddings.all_neighbors(vtree, vs, ns, K, w)
+
+    prediction = zeros(ET, NN, D)
+    # loop over each fiducial point
+    for (i,v) in enumerate(vs)
+        NNidxs = allNNidxs[i] # indices of k nearest neighbors to v
+        A = ones(K,D) # datamatrix for later linear equation to solve for AR-process
+        ϵ_ball = zeros(ET, K, D) # preallocation
+        # determine neighborhood one time step ahead
+        @inbounds for (k, j) in enumerate(NNidxs)
+            ϵ_ball[k, :] .= Y[j + Tw]
+            A[k,:] = Y[j]
+        end
+        b  = zeros(D)
+        ar_coeffs = zeros(D, D)
+        namess = ["X"*string(z) for z = 1:D]
+        ee = Meta.parse.(namess)
+        formula_expression = Term(:Y) ~ sum(term.(ee))
+
+        for j = 1:D
+            data = DataFrame()
+            for (cnt,var) in enumerate(namess)
+                data[!, var] = A[:,cnt]
+            end
+            data.Y = ϵ_ball[:,j]
+
+            ols = lm(formula_expression, data)
+            b[j] = coef(ols)[1]
+            for k = 1:D
+                ar_coeffs[j,k] = coef(ols)[k+1]
+            end
+            prediction[i,j] = Y[ns[i],:]'*ar_coeffs[j,:] + b[j]
+        end
+    end
+    return Dataset(prediction)
+end
+
+"""
+    Compute the in-sample prediction costs based on the loss-metric determined
+    by PredictionLoss
+"""
+function compute_costs_from_prediction(PredictionLoss::AbstractPredictionLoss{1}, prediction::AbstractDataset{D, T},
+                            Y::AbstractDataset{D, T}, Tw::Int) where {D, T}
+
+    NN = length(Y)-Tw;
+    ns = 1:NN  # the fiducial point indices
+    costs = zeros(T, NN, D)
+    @inbounds for i = 1:NN
+        costs[i,:] = (Vector(prediction[i]) .- Vector(Y[ns[i]+Tw])).^2
+    end
+    c = sqrt.(mean(costs; dims=1))
+    return c[1]
+end
+function compute_costs_from_prediction(PredictionLoss::AbstractPredictionLoss{2}, prediction::AbstractDataset{D, T},
+                            Y::AbstractDataset{D, T}, Tw::Int) where {D, T}
+
+    NN = length(Y)-Tw;
+    ns = 1:NN  # the fiducial point indices
+    costs = zeros(T, NN, D)
+    @inbounds for i = 1:NN
+        costs[i,:] = (Vector(prediction[i]) .- Vector(Y[ns[i]+Tw])).^2
+    end
+    c = sqrt.(mean(costs; dims=1))
+    return mean(c)
+end
+function compute_costs_from_prediction(PredictionLoss::AbstractPredictionLoss{3}, prediction::AbstractDataset{D, T},
+                            Y::AbstractDataset{D, T}, Tw::Int) where {D, T}
+
+    NN = length(Y)-Tw;
+    ns = 1:NN  # the fiducial point indices
+    costs = zeros(D)
+    for j = 1:D
+        costs[j] = compute_KL_divergence(Vector(prediction[:,j]),Y[ns .+ Tw,j])
+    end
+    return costs[1]
+end
+function compute_costs_from_prediction(PredictionLoss::AbstractPredictionLoss{4}, prediction::AbstractDataset{D, T},
+                            Y::AbstractDataset{D, T}, Tw::Int) where {D, T}
+
+    NN = length(Y)-Tw;
+    ns = 1:NN  # the fiducial point indices
+    costs = zeros(D)
+    for j = 1:D
+        costs[j] = compute_KL_divergence(Vector(prediction[:,j]),Y[ns .+ Tw,j])
+    end
+    return mean(costs)
 end
 
 
@@ -684,10 +783,9 @@ function ccm(X::Dataset{D,T},Y::Vector{T}; metric = Euclidean(), w::Int = 1,
 
     K = D+1
     @assert length(X)==length(Y)
-
     XX = Matrix(X)
-
     N = length(X)
+
     # for potential later extension to sampled batches of fraction samplesize
     samplesize = 1
     NN = floor(Int, samplesize*N)
@@ -698,17 +796,13 @@ function ccm(X::Dataset{D,T},Y::Vector{T}; metric = Euclidean(), w::Int = 1,
     end
 
     vxs = X[ns] # the fiducial points in the data set
-
     vtree = KDTree(X, metric)
     allNNidxs, allNNdist = DelayEmbeddings.all_neighbors(vtree, vxs, ns, K, w)
-
     Y_hat = zeros(T, NN) # preallocation
-
     # loop over each fiducial point
     for (i,v) in enumerate(vxs)
         NNidxs = allNNidxs[i] # indices of k nearest neighbors to v
         NNdist = allNNdist[i] # indices of k nearest neighbors to v
-
         # determine weights
         u = zeros(K)
         ws = zeros(K)
@@ -716,12 +810,9 @@ function ccm(X::Dataset{D,T},Y::Vector{T}; metric = Euclidean(), w::Int = 1,
             u[k] = exp(-(j/NNdist[1]))
         end
         ws = u ./ sum(u)
-
         # compute Y_hat as a wheighted mean
         Y_hat[i] = sum(ws .* Y[NNidxs])
-
     end
-
     ρ = Statistics.cor(Y_hat, Y)
     return ρ, Dataset(Y_hat)
 end

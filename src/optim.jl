@@ -2,9 +2,9 @@ abstract type AbstractMCDTSOptimGoal end
 
 abstract type AbstractMCDTSpredictionType end
 
-abstract type AbstractPredictionLoss end
+abstract type AbstractPredictionLoss{P} end
 
-abstract type AbstractPredictionMethod end
+abstract type AbstractPredictionMethod{T} end
 
 abstract type AbstractDelayPreselection end
 
@@ -71,15 +71,12 @@ struct L_statistic <: AbstractLoss
     KNN::Int
     tws::AbstractRange{Int}
     # Constraints and Defaults
-    L_statistic(x,y,z) = begin
+    L_statistic(x=0,y=3,z=2:100) = begin
         @assert x <= 0 "Please provide a (small) negative number for the threshold of ΔL."
         @assert y > 0
         @assert z[1] == 2 "The considered range for the time horizon of the L-function must start at 2."
         typeof(x) <: Int ? new(convert(AbstractFloat, x),y,z) : new(x,y,z)
     end
-    L_statistic(x,y) = new(x,y,2:100)
-    L_statistic(x) = new(x,3,2:100)
-    L_statistic() = new(0,3,2:100)
 end
 
 """
@@ -106,14 +103,12 @@ struct FNN_statistic <: AbstractLoss
     threshold::AbstractFloat
     r::AbstractFloat
     # Constraints and Defaults
-    FNN_statistic(x,y) = begin
+    FNN_statistic(x=0.,y=2.) = begin
         @assert x >= 0
         @assert y > 0
         typeof(x) <: Int ? new(convert(AbstractFloat, x),y) : new(x,y)
         typeof(y) <: Int ? new(x,convert(AbstractFloat, y)) : new(x,y)
     end
-    FNN_statistic(x) = new(x,2.)
-    FNN_statistic() = new(0.,2.)
 end
 
 """
@@ -145,11 +140,10 @@ struct CCM_ρ <: AbstractLoss
     threshold::AbstractFloat
 
     # Constraints and Defaults
-    CCM_ρ(x,y) = begin
+    CCM_ρ(x,y=-1.) = begin
         @assert y > 0 && y <= 1
         typeof(y) <: Int ? new(x,convert(AbstractFloat, -y)) : new(x,-y)
     end
-    CCM_ρ(x) = new(x,-1.)
 end
 
 """
@@ -233,16 +227,14 @@ end
     * When calling `PredictionLoss()` a PredictionLoss-object is constructed with
       fieldname `type = 1` (≡root mean squared prediction error over all components)
 """
-struct PredictionLoss <: AbstractPredictionLoss
+struct PredictionLoss{t} <: AbstractPredictionLoss{t}
     type::Int
     # Constraints and Defaults
-    PredictionLoss(x) = begin
+    PredictionLoss(x=1) = begin
         @assert x == 1 || x == 2 || x == 3 || x == 4
-        new(x)
+        new{x}(x)
     end
-    PredictionLoss() = PredictionLoss(1)
 end
-
 
 
 """
@@ -265,21 +257,19 @@ end
     * When calling `local_model(method,KNN)` a local_model-object is constructed with a
      `method`-prediction scheme, `KNN` nearest neighbors and a 1-step-ahead prediction.
 """
-struct local_model <: AbstractPredictionMethod
+struct local_model{m} <: AbstractPredictionMethod{m}
     method::String
     KNN::Int
     Tw::Int
     # Constraints and Defaults
-    local_model(x,y,z) = begin
+    local_model(x="zeroth", y=2, z=1) = begin
         @assert x in ["zeroth", "linear"]
         @assert y > 0
         @assert z > 0
-        new(x,y,z)
+        m = Symbol(x)
+        new{m}(x,y,z)
     end
 end
-local_model() = local_model("zeroth")
-local_model(method) = local_model(method, 2)
-local_model(method, y) = local_model(method, y , 1)
 
 
 ## Constructors for DelayPreSelection Functions
@@ -310,7 +300,7 @@ struct Continuity_function <: AbstractDelayPreselection
     α
     p
     # Constraints and Defaults
-    Continuity_function(k,x,y,z) = begin
+    Continuity_function(k=13,x=1.,y=0.05,z=0.5) = begin
         @assert k > 7 "At least 8 nearest neighbors must be in the δ-ball, in order to gurantee a valid statistic."
         @assert 0. < x ≤ 1. "Please select a valid `samplesize`, which denotes a fraction of considered fiducial points, i.e. `samplesize` ∈ (0 1]"
         @assert 1. > y > 0.
@@ -318,7 +308,6 @@ struct Continuity_function <: AbstractDelayPreselection
         @assert typeof(x) <:Real && typeof(y) <:Real && typeof(z) <:Real
         new(k,x,y,z)
     end
-    Continuity_function() = new(13, 1., 0.05, 0.5)
 end
 
 """
