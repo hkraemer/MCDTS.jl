@@ -52,14 +52,16 @@ end
     * `τs::Array{Int,1}`: The complete vector with all τs chosen along this path up until this node
     * `ts::Array{Int,1}`: The complex vector which of the possibly multivariate time series is used at each embedding step i
     * `children::Union{Array{Node,1},Nothing}`: The children of this node
+    * `temp::S`: additional "work"/"temporary" array/field that can be manipulated and saved by the optimization e.g. to reuse prior computations
 """
-mutable struct Node{T} <: AbstractTreeElement
+mutable struct Node{T,S} <: AbstractTreeElement
     τ::Int
     t::Int
     L::T
     τs::Array{Int,1}
     ts::Array{Int,1}
     children::Union{Array{Node,1},Nothing}
+    temp::S
 end
 
 N_children(n::AbstractTreeElement) = n.children == nothing ? 0 : length(n.children)
@@ -119,18 +121,18 @@ function next_embedding(n::Node, optimalg::AbstractMCDTSOptimGoal, Ys::Dataset{D
     ts_old = get_ts(n)
     L_old = n.L
     # do the next embedding step
-    τ_pot, ts_pot, L_pot, flag = get_potential_delays(optimalg::AbstractMCDTSOptimGoal,
-                            Ys, τs, w, Tuple(τs_old), Tuple(ts_old), L_old; kwargs...)
+    τ_pot, ts_pot, L_pot, flag, temp = get_potential_delays(optimalg::AbstractMCDTSOptimGoal,
+                            Ys, τs, w, Tuple(τs_old), Tuple(ts_old), L_old; temp=n.temp, kwargs...)
 
-    return τ_pot, ts_pot, L_pot, flag
+    return τ_pot, ts_pot, L_pot, flag, temp
 end
 
 function next_embedding(n::Root, optimalg::AbstractMCDTSOptimGoal, Ys::Dataset{D, T},
                                         w::Int, τs; kwargs...) where {D, T<:Real}
     # initialize first embedding step
-    τ_pot, ts_pot, L_pot = init_embedding_params(optimalg.Γ, size(Ys,2))
+    τ_pot, ts_pot, L_pot, temp = init_embedding_params(optimalg.Γ, size(Ys,2))
 
-    return τ_pot, ts_pot, L_pot, false
+    return τ_pot, ts_pot, L_pot, false, temp
 end
 
 
@@ -231,7 +233,7 @@ function expand!(n::Root, optimalg::AbstractMCDTSOptimGoal, data::Dataset{D, T},
         # next embedding step
         # only if it was not already computed
         if current_node.children == nothing
-            τs, ts, Ls, converged = next_embedding(current_node, optimalg, data, w, delays; kwargs...)
+            τs, ts, Ls, converged, temps = next_embedding(current_node, optimalg, data, w, delays; kwargs...)
 
             if converged
                 break
@@ -239,7 +241,7 @@ function expand!(n::Root, optimalg::AbstractMCDTSOptimGoal, data::Dataset{D, T},
                 # spawn children
                 children = Node[]
                 for j = 1:length(τs)
-                    push!(children, (τs[j],ts[j],Ls[j]), optimalg.Γ, current_node)
+                    push!(children, (τs[j],ts[j],Ls[j], temps[j]), optimalg.Γ, current_node)
                 end
                 current_node.children = children
             end

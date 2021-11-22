@@ -15,14 +15,14 @@ using Revise
 # Methods for altering arrays containing nodes (children) depending on the chosen Loss-function
 # FNN, CCM & Prediction
 function push!(children::Union{Array{Node,1},Nothing}, n, Γ::AbstractLoss, current_node::AbstractTreeElement)
-    Base.push!(children, Node(n[1],n[2],n[3],[get_τs(current_node); n[1]], [get_ts(current_node); n[2]], nothing))
+    Base.push!(children, Node(n[1],n[2],n[3],[get_τs(current_node); n[1]], [get_ts(current_node); n[2]], nothing, n[4]))
 end
 # L-function
 function push!(children::Union{Array{Node,1},Nothing}, n, Γ::L_statistic, current_node::AbstractTreeElement)
     if typeof(current_node) == MCDTS.Root
-        Base.push!(children, Node(n[1],n[2],(current_node.Lmin+n[3]),[get_τs(current_node); n[1]], [get_ts(current_node); n[2]], nothing))
+        Base.push!(children, Node(n[1],n[2],(current_node.Lmin+n[3]),[get_τs(current_node); n[1]], [get_ts(current_node); n[2]], nothing, n[4]))
     else
-        Base.push!(children, Node(n[1],n[2],(current_node.L+n[3]),[get_τs(current_node); n[1]], [get_ts(current_node); n[2]], nothing))
+        Base.push!(children, Node(n[1],n[2],(current_node.L+n[3]),[get_τs(current_node); n[1]], [get_ts(current_node); n[2]], nothing, n[4]))
     end
 end
 
@@ -30,16 +30,16 @@ end
 
 # force 1st component to be 1st time series in all cases
 function init_embedding_params(Γ::AbstractLoss, N::Int)
-    return [0], [1], 99999*ones(N)
+    return [0], [1], 99999*ones(N), [nothing]
 end
 function init_embedding_params(Γ::FNN_statistic, N::Int)
-    return [0], [1], ones(N)
+    return [0], [1], ones(N), [nothing]
 end
 function init_embedding_params(Γ::L_statistic, N::Int)
-    return [0], [1], zeros(N)
+    return [0], [1], zeros(N), [nothing]
 end
 function init_embedding_params(Γ::CCM_ρ, N::Int)
-    return [0], [1], zeros(N)
+    return [0], [1], zeros(N), [nothing]
 end
 
 
@@ -74,22 +74,23 @@ function get_potential_delays(optimalg::AbstractMCDTSOptimGoal, Yss::Dataset{D, 
 
     # compute potential delay values with corresponding time series values and
     # Loss-values
-    τ_pots, ts_pots, L_pots = embedding_cycle(optimalg, Y_act, Ys, τs, w, τ_vals, ts_vals; kwargs...)
+    τ_pots, ts_pots, L_pots, temps = embedding_cycle(optimalg, Y_act, Ys, τs, w, τ_vals, ts_vals; kwargs...)
 
     # transform array of arrays to a single array
     τ_pot = reduce(vcat, τ_pots)
     ts_pot = reduce(vcat, ts_pots)
     L_pot = reduce(vcat, L_pots)
+    temps = reduce(vcat, temps)
 
     if isempty(τ_pot)
         flag = true
         return Int[],Int[],eltype(L_pots)[], flag
     end
 
-    taus, ts, Ls, converge = get_embedding_params_according_to_loss(optimalg.Γ,
-                                            τ_pot, ts_pot, L_pot, L_old)
+    taus, ts, Ls, converge, temps = get_embedding_params_according_to_loss(optimalg.Γ,
+                                            τ_pot, ts_pot, L_pot, temps, L_old)
 
-    return taus, ts, Ls, converge
+    return taus, ts, Ls, converge, temps
 end
 
 """
@@ -99,32 +100,32 @@ end
     delay-, time series- and according Loss-values with respect to the actual loss
     in the current embedding cycle.
 """
-function get_embedding_params_according_to_loss(Γ::AbstractLoss, τ_pot, ts_pot, L_pot, L_old)
+function get_embedding_params_according_to_loss(Γ::AbstractLoss, τ_pot, ts_pot, L_pot, temp, L_old)
     threshold = Γ.threshold
     if (minimum(L_pot) ≥ L_old)
         flag = true
-        return Int[],Int[],eltype(L_pot)[], flag
+        return Int[],Int[],eltype(L_pot)[], flag, nothing
     elseif (minimum(L_pot) ≤ threshold)
         flag = true
         ind = L_pot .< L_old
-        return τ_pot[ind],ts_pot[ind],L_pot[ind],flag
+        return τ_pot[ind],ts_pot[ind],L_pot[ind],flag, temp[ind]
     else
         flag = false
         ind = L_pot .< L_old
-        return τ_pot[ind],ts_pot[ind],L_pot[ind],flag
+        return τ_pot[ind],ts_pot[ind],L_pot[ind],flag, temp[ind]
     end
 end
 
-function get_embedding_params_according_to_loss(Γ::L_statistic, τ_pot, ts_pot, L_pot, L_old)
+function get_embedding_params_according_to_loss(Γ::L_statistic, τ_pot, ts_pot, L_pot, temp, L_old)
     threshold = Γ.threshold
     if minimum(L_pot) > threshold
         flag = true
         ind = L_pot .≤ threshold
-        return τ_pot[ind],ts_pot[ind],L_pot[ind],flag
+        return τ_pot[ind], ts_pot[ind], L_pot[ind], flag, temp[ind]
     else
         flag = false
         ind = L_pot .≤ threshold
-        return τ_pot[ind],ts_pot[ind],L_pot[ind],flag
+        return τ_pot[ind], ts_pot[ind], L_pot[ind], flag, temp[ind]
     end
 end
 
@@ -143,9 +144,9 @@ function embedding_cycle(optimalg::AbstractMCDTSOptimGoal, Y_act, Ys, τs,
     delay_pre_selection_statistic = get_delay_statistic(optimalg.Λ, Ys, τs, w, τ_vals, ts_vals; kwargs... )
 
     # update τ_vals, ts_vals, Ls, ε★s
-    τ_pot, ts_pot, L_pot = pick_possible_embedding_params(optimalg.Γ, optimalg.Λ, delay_pre_selection_statistic, Y_act, Ys, τs, w, τ_vals, ts_vals; kwargs...)
+    τ_pot, ts_pot, L_pot, temps = pick_possible_embedding_params(optimalg.Γ, optimalg.Λ, delay_pre_selection_statistic, Y_act, Ys, τs, w, τ_vals, ts_vals; kwargs...)
 
-    return τ_pot, ts_pot, L_pot
+    return τ_pot, ts_pot, L_pot, temps
 end
 
 
@@ -157,12 +158,13 @@ function pick_possible_embedding_params(Γ::AbstractLoss, Λ::AbstractDelayPrese
     L_pots = []
     τ_pots = []
     ts_pots = []
+    temps = []
 
     for ts = 1:size(Ys,2)
-        # compute loss and its corresponding index w.r.t `elay_pre_selection_statistic`
+        # compute loss and its corresponding index w.r.t `delay_pre_selection_statistic`
 
         # zero-padding of dps in order to also cover τ=0 (important for the multivariate case)
-        L_trials, max_idx = compute_loss(Γ, Λ, vec([0; dps[:,ts]]), Y_act, Ys, τs, w, ts, τ_vals, ts_vals; kwargs...)
+        L_trials, max_idx, temp = compute_loss(Γ, Λ, vec([0; dps[:,ts]]), Y_act, Ys, τs, w, ts, τ_vals, ts_vals; kwargs...)
         tt = τs[max_idx.-1]
         if typeof(tt)==Int
             tt = [tt]
@@ -170,8 +172,9 @@ function pick_possible_embedding_params(Γ::AbstractLoss, Λ::AbstractDelayPrese
         Base.push!(L_pots, L_trials)
         Base.push!(ts_pots, fill(ts,length(L_trials)))
         Base.push!(τ_pots, tt)
+        Base.push!(temps, temp)
     end
-    return τ_pots, ts_pots, L_pots
+    return τ_pots, ts_pots, L_pots, temps
 end
 
 """
@@ -200,7 +203,7 @@ function compute_loss(Γ::L_statistic, Λ::AbstractDelayPreselection, dps::Vecto
         L_decrease[i] = MCDTS.uzal_cost_pecuzal_mcdts(Y_act, Y_trial, τs[end]; K = KNN,
                                 w = w, metric = metric, tws = tws)
     end
-    return L_decrease, max_idx
+    return L_decrease, max_idx, [nothing for i in max_idx]
 end
 
 """
@@ -210,7 +213,7 @@ function compute_loss(Γ::FNN_statistic, Λ::AbstractDelayPreselection, dps::Vec
 
     r = Γ.r
     s = Ys[:,ts]
-    
+
     max_idx = get_max_idx(Λ, dps, τ_vals, ts_vals, ts) # get the candidate delays
 
     FNN_trials = zeros(Float64, length(max_idx))
@@ -231,7 +234,7 @@ function compute_loss(Γ::FNN_statistic, Λ::AbstractDelayPreselection, dps::Vec
         # compute FNN-statistic
         FNN_trials[i] = fnn_embedding_cycle(NNdist_old, NNdist_new[1:length(NNdist_old)], r)
     end
-    return FNN_trials, max_idx
+    return FNN_trials, max_idx, [nothing for i in max_idx]
 end
 
 """
@@ -256,7 +259,7 @@ function compute_loss(Γ::CCM_ρ, Λ::AbstractDelayPreselection, dps::Vector{P},
         ρ_CCM[i], _ = MCDTS.ccm(Y_trial, Ys_other; metric = metric, w = w)
 
     end
-    return -ρ_CCM, max_idx
+    return -ρ_CCM, max_idx, [nothing for i in max_idx]
 end
 
 """
@@ -280,7 +283,7 @@ function compute_loss(Γ::Prediction_error, Λ::AbstractDelayPreselection, dps::
         # compute loss/costs
         costs[i] = compute_costs_from_prediction(PredictionLoss, prediction, Y_trial, PredictionMethod.Tw)
     end
-    return costs, max_idx
+    return costs, max_idx, [nothing for i in max_idx]
 end
 
 
