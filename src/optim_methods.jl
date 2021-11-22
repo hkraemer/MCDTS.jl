@@ -160,7 +160,9 @@ function pick_possible_embedding_params(Γ::AbstractLoss, Λ::AbstractDelayPrese
 
     for ts = 1:size(Ys,2)
         # compute loss and its corresponding index w.r.t `elay_pre_selection_statistic`
-        L_trials, max_idx = compute_loss(Γ, Λ, dps[:,ts], Y_act, Ys, τs, w, ts, τ_vals, ts_vals; kwargs...)
+
+        # zero-padding of dps in order to also cover τ=0 (important for the multivariate case)
+        L_trials, max_idx = compute_loss(Γ, Λ, vec([0; dps[:,ts]]), Y_act, Ys, τs, w, ts, τ_vals, ts_vals; kwargs...)
         tt = τs[max_idx.-1]
         if typeof(tt)==Int
             tt = [tt]
@@ -176,42 +178,17 @@ end
     Compute the loss of a given delay-preselection statistic `dps` and the loss
     determined by `optimalg.Γ`.
 """
-function compute_loss(Γ::L_statistic, Λ::AbstractDelayPreselection, dps::Vector{P}, Y_act::Dataset{D, T}, Ys, τs, w::Int, ts::Int, τ_vals, ts_vals; metric = Euclidean(), kwargs...) where {P, D, T}
-    # zero-padding of dps in order to also cover τ=0 (important for the multivariate case)
-    L_trials, max_idx = MCDTS.local_L_statistics(Λ, vec([0; dps]), Y_act,
-                    Ys[:,ts], τs, Γ.KNN, w, metric, τ_vals, ts_vals, ts; tws = Γ.tws)
-    return L_trials, max_idx
-end
-
-function compute_loss(Γ::FNN_statistic, Λ::AbstractDelayPreselection, dps::Vector{P}, Y_act::Dataset{D, T}, Ys, τs, w::Int, ts::Int, τ_vals, ts_vals; metric = Euclidean(), kwargs...) where {P, D, T}
-    # zero-padding of dps in order to also cover τ=0 (important for the multivariate case)
-    L_trials, max_idx = MCDTS.local_fnn_statistics(Λ, vec([0; dps]), Y_act,
-                    Ys[:,ts], τs, w, metric, τ_vals, ts_vals, ts; r = Γ.r)
-    return L_trials, max_idx
-end
-
-function compute_loss(Γ::CCM_ρ, Λ::AbstractDelayPreselection, dps::Vector{P}, Y_act::Dataset{D, T}, Ys, τs, w::Int, ts::Int, τ_vals, ts_vals; metric = Euclidean(), kwargs...) where {P, D, T}
-    # zero-padding of dps in order to also cover τ=0 (important for the multivariate case)
-    Y_other = DelayEmbeddings.standardize(Γ.timeseries)
-    L_trials, max_idx = MCDTS.local_CCM_statistics(Λ, vec([0; dps]), Y_act,
-                    Ys, Y_other, τs, w, metric, τ_vals, ts_vals, ts)
-    return L_trials, max_idx
-end
-
-function compute_loss(Γ::Prediction_error, Λ::AbstractDelayPreselection, dps::Vector{P}, Y_act::Dataset{D, T}, Ys, τs, w::Int, ts::Int, τ_vals, ts_vals; metric = Euclidean(), kwargs...) where {P, D, T}
-    # zero-padding of dps in order to also cover τ=0 (important for the multivariate case)
-    L_trials, max_idx = MCDTS.local_PRED_statistics(Γ.PredictionType.loss, Γ.PredictionType.method,
-            Λ, vec([0; dps]), Y_act, Ys, τs, w, metric, τ_vals, ts_vals, ts)
-    return L_trials, max_idx
-end
-
+compute_loss
 
 """
-    Return the maximum decrease of the L-statistic `L_decrease` and corresponding
+    Return the loss based on the maximum decrease of the L-statistic `L_decrease` and corresponding
     delay-indices `max_idx` for all local maxima in ε★
 """
-function local_L_statistics(Λ::AbstractDelayPreselection, dps::Vector{P}, Y_act::Dataset{D, T}, s::Vector{T},
-        τs, KNN::Int, w::Int, metric, τ_vals, ts_vals, ts::Int; tws::AbstractRange{Int} = 2:τs[end]) where {P, D, T}
+function compute_loss(Γ::L_statistic, Λ::AbstractDelayPreselection, dps::Vector{P}, Y_act::Dataset{D, T}, Ys, τs, w::Int, ts::Int, τ_vals, ts_vals; metric=Euclidean(), kwargs...) where {P, D, T}
+
+    KNN = Γ.KNN
+    tws = Γ.tws
+    s = Ys[:,ts]
 
     max_idx = get_max_idx(Λ, dps, τ_vals, ts_vals, ts) # get the candidate delays
 
@@ -227,10 +204,13 @@ function local_L_statistics(Λ::AbstractDelayPreselection, dps::Vector{P}, Y_act
 end
 
 """
-    Return the FNN-statistic `FNN` and indices `max_idx`  for all local maxima in dps
+    Return the loss based on the FNN-statistic `FNN` and indices `max_idx`  for all local maxima in dps
 """
-function local_fnn_statistics(Λ::AbstractDelayPreselection, dps::Vector{P}, Y_act::Dataset{D, T}, s::Vector{T}, τs, w::Int, metric, τ_vals, ts_vals, ts::Int; r=2) where {P, D, T}
+function compute_loss(Γ::FNN_statistic, Λ::AbstractDelayPreselection, dps::Vector{P}, Y_act::Dataset{D, T}, Ys, τs, w::Int, ts::Int, τ_vals, ts_vals; metric=Euclidean(), kwargs...) where {P, D, T}
 
+    r = Γ.r
+    s = Ys[:,ts]
+    
     max_idx = get_max_idx(Λ, dps, τ_vals, ts_vals, ts) # get the candidate delays
 
     FNN_trials = zeros(Float64, length(max_idx))
@@ -255,9 +235,11 @@ function local_fnn_statistics(Λ::AbstractDelayPreselection, dps::Vector{P}, Y_a
 end
 
 """
-    Return negative correlation coefficient for CCM.
+    Return the loss based on the negative correlation coefficient for CCM.
 """
-function local_CCM_statistics(Λ::AbstractDelayPreselection, dps::Vector{P}, Y_act::Dataset{D, T}, Ys, Y_other::Vector{T}, τs, w::Int, metric, τ_vals, ts_vals, ts::Int) where {P, D, T}
+function compute_loss(Γ::CCM_ρ, Λ::AbstractDelayPreselection, dps::Vector{P}, Y_act::Dataset{D, T}, Ys, τs, w::Int, ts::Int, τ_vals, ts_vals; metric=Euclidean(), kwargs...) where {P, D, T}
+
+    Y_other = DelayEmbeddings.standardize(Γ.timeseries)
 
     max_idx = get_max_idx(Λ, dps, τ_vals, ts_vals, ts) # get the candidate delays
 
@@ -277,14 +259,13 @@ function local_CCM_statistics(Λ::AbstractDelayPreselection, dps::Vector{P}, Y_a
     return -ρ_CCM, max_idx
 end
 
-
 """
-    Return costs of a `Tw`-step-ahead local-prediction.
+    Return the loss based on a `Tw`-step-ahead local-prediction.
 """
-function local_PRED_statistics(PredictionLoss::AbstractPredictionLoss, PredictionMethod::AbstractPredictionMethod,
-    Λ::AbstractDelayPreselection, dps::Vector{P}, Y_act::Dataset{D, T}, Ys, τs, w::Int,
-                            metric, τ_vals, ts_vals, ts) where {P, D, T}
+function compute_loss(Γ::Prediction_error, Λ::AbstractDelayPreselection, dps::Vector{P}, Y_act::Dataset{D, T}, Ys, τs, w::Int, ts::Int, τ_vals, ts_vals; metric=Euclidean(), kwargs...) where {P, D, T}
 
+    PredictionLoss = Γ.PredictionType.loss
+    PredictionMethod = Γ.PredictionType.method
     max_idx = get_max_idx(Λ, dps, τ_vals, ts_vals, ts) # get the candidate delays
 
     costs = zeros(Float64, length(max_idx))
