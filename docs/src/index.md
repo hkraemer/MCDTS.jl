@@ -36,4 +36,34 @@ e.g.
 Node with τ=12, i_t=1 ,L=-1.5795030971438209 - full embd. τ=[0, 61, 48, 12] ,i_ts=[1, 1, 1, 1]
 ```
 
-Further, customized embedding options can be looked up in the documentation. 
+This version of `mcdts_embedding` uses default options to estimate all parameters of the algorithm. It is of course also possible to choose these individually and thus also use all different versions that are presented in the paper.
+
+The most important paremters are the Theiler window, the minimum temporal distance for points that are considered neighours in phase space. We can get an estimate with the help of DelayEmbeddings.jl (part of DynamicalSystems.jl)
+
+```julia
+w1 = DelayEmbeddings.estimate_delay(data[:,1],"mi_min")
+w2 = DelayEmbeddings.estimate_delay(data[:,2],"mi_min")
+w3 = DelayEmbeddings.estimate_delay(data[:,3],"mi_min")
+w = maximum(hcat(w1,w2,w3))
+delays = 0:100
+N_trials = 100
+```
+
+Also, we set the range of delays that we want to consider, here `0:100`. Next, we speficy the wanted optimization. The default optimziation goal is the Pecuzal algorithm, as outlined in the paper, with
+```julia
+pecuzal = MCDTS.PecuzalOptim()
+```
+
+Then we can call the proper `mcdts_embedding` function with
+
+```julia
+MCDTS.mcdts_embedding(Dataset(data[:,1]), pecuzal, w1, delays, runs)
+best_node = MCDTS.best_embedding(tree)
+println(best_node)
+```
+
+Further optimisation goals can be set by combining an [`AbstractDelayPreselection`](@ref) with an [`AbstractLoss`](@ref), e.g. via
+```
+optimgoal = MCDTS.MCDTSOptimGoal(MCDTS.FNN_statistic(0.05), MCDTS.Continuity_function())
+```
+which uses the FNN statistic with a threshold of 0.05 as a loss function and the continuity as a delay preselection method. 
