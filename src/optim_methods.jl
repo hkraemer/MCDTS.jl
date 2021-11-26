@@ -279,7 +279,7 @@ function compute_loss(Γ::Prediction_error, Λ::AbstractDelayPreselection, dps::
         Y_trial = genembed(Ys, tau_trials, ts_trials)
         # make a in-sample prediction for Y_trial
         prediction = make_prediction(PredictionMethod, Y_trial; K = PredictionMethod.KNN, w = w,
-            Tw = PredictionMethod.Tw, metric = metric)
+            Tw = PredictionMethod.Tw, metric = metric, i_cycle=length(τ_vals))
         # compute loss/costs
         costs[i] = compute_costs_from_prediction(PredictionLoss, prediction, Y_trial, PredictionMethod.Tw)
     end
@@ -316,9 +316,16 @@ end
 
     Compute a in-sample `Tw`-time-steps-ahead of the data `Y`, using the prediction
     method `pred_meth`. `w` is the Theiler window and `K` the nearest neighbors used.
+
+* `Y`: Dataset (Nt x N_embedd)
+* `K`: Nearest Neighbours
+* `w`: Theiler window
+* `Tw`: Prediction horizon
+* `metric`: Metric for NN search
+* `i_cycle`: Which embedding cycling we are predicting for
 """
 function make_prediction(pred_meth::AbstractPredictionMethod{:zeroth}, Y::AbstractDataset{D, ET}; K::Int = 3, w::Int = 1,
-    Tw::Int = 1, metric = Euclidean()) where {D, ET}
+    Tw::Int = 1, metric = Euclidean(), i_cycle::Int=1) where {D, ET}
 
     NN = length(Y)-Tw;
     ns = 1:NN  # the fiducial point indices
@@ -342,7 +349,7 @@ function make_prediction(pred_meth::AbstractPredictionMethod{:zeroth}, Y::Abstra
     return Dataset(prediction)
 end
 function make_prediction(pred_meth::AbstractPredictionMethod{:linear}, Y::AbstractDataset{D, ET}; K::Int = 3, w::Int = 1,
-    Tw::Int = 1, metric = Euclidean()) where {D, ET}
+    Tw::Int = 1, metric = Euclidean(), i_cycle::Int=1) where {D, ET}
 
     K = 2*(size(Y,2)+1)
     NN = length(Y)-Tw;
