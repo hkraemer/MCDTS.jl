@@ -115,8 +115,8 @@ function next_embedding(n::Node, optimalg::AbstractMCDTSOptimGoal, Ys::Dataset{D
     ts_old = get_ts(n)
     L_old = n.L
     # do the next embedding step
-    τ_pot, ts_pot, L_pot, flag, temp = get_potential_delays(optimalg::AbstractMCDTSOptimGoal,
-                            Ys, τs, w, Tuple(τs_old), Tuple(ts_old), L_old; temp=n.temp, kwargs...)
+    τ_pot, ts_pot, L_pot, flag, temp = get_potential_delays(optimalg, Ys, τs, w,
+                    Tuple(τs_old), Tuple(ts_old), L_old; temp=n.temp, kwargs...)
 
     return τ_pot, ts_pot, L_pot, flag, temp
 end
@@ -347,42 +347,8 @@ end
     * `verbose`: Either `true` or `false` (default); prints status of embedding optimization.
     * `metric`: norm for distance computation (default is `Euclidean()`)
 
-
-
-
-
-
-    * `KNN = 3`: The number of nearest neighbors considered in the computation of
-      the L-statistic.
-    * `FNN:Bool = false`: Determines whether the algorithm should minimize the
-      L-statistic or the FNN-statistic.
-    * `PRED::Bool = false`: Determines whether the algorithm should minimize the
-      L-statistic or a cost function based on minimizing the `Tw`-step-prediction error
-    * `Tw::Int = 1`: If `PRED = true`, this is the considered prediction horizon
-    * `linear::Bool=false`: If `PRED = true`, this determines whether the prediction shall
-      be made on the zeroth or a linear predictor.
-    * `PRED_mean::Bool=false`: If `PRED = true`, this determines whether the prediction shall
-      be optimized on the mean MSE of all components or only on the 1st-component (Default)
-    * `PRED_L::Bool=false`: If `PRED = true`, this determines whether the prediction shall
-      be optimized on possible delay values gained from the continuity statistic or on
-      delays = 0:25 (Default)
-    * `PRED_KL::Bool=false`: If `PRED = true`, this determines whether the prediction shall
-      be optimized on the Kullback-Leibler-divergence of the in-sample prediction and
-      the true in-sample values, or if the optimization shall be made on the MSE of them (Default)
-    * `CCM:Bool=false`: Determines whether the algorithm should maximize the CCM-correlation
-      coefficient of the embedded vector from `Ys` and the given time series `Y_CCM`.
-    * `Y_CCM`: The time series CCM should cross map to.
-    * `threshold::Real = 0`: The algorithm does not pick a peak from the continuity
-      statistic, when its corresponding `ΔL`/FNN-value exceeds this threshold. Please
-      provide a positive number for both, `L` and `FNN`-statistic option (since the
-      `ΔL`-values are negative numbers for meaningful embedding cycles, this threshold
-      gets internally sign-switched).
-    * `tws::Range = 2:delays[end]`: Customization of the sampling of the different T's,
-      when computing Uzal's L-statistics. Here any kind of integer ranges (starting
-      at 2) are allowed, up to `delays[end]`.
-
-      [^Kraemer2021]: Kraemer, K.H., Datseris, G., Kurths, J., Kiss, I.Z., Ocampo-Espindola, Marwan, N. (2021). [A unified and automated approach to attractor reconstruction. New Journal of Physics 23(3), 033017](https://iopscience.iop.org/article/10.1088/1367-2630/abe336).
-      [^Kraemer2021b]: Kraemer, K.H., Gelbrecht, M., Pavithran, I., Sujith, R. I. and Marwan, N. (2021). [Optimal state space reconstruction via Monte Carlo Decision Tree Search. Submitted to Nonlinear Dynamics](https://doi.org/10.21203/rs.3.rs-899760/v1)
+    [^Kraemer2021]: Kraemer, K.H., Datseris, G., Kurths, J., Kiss, I.Z., Ocampo-Espindola, Marwan, N. (2021). [A unified and automated approach to attractor reconstruction. New Journal of Physics 23(3), 033017](https://iopscience.iop.org/article/10.1088/1367-2630/abe336).
+    [^Kraemer2021b]: Kraemer, K.H., Gelbrecht, M., Pavithran, I., Sujith, R. I. and Marwan, N. (2021). [Optimal state space reconstruction via Monte Carlo Decision Tree Search. Submitted to Nonlinear Dynamics](https://doi.org/10.21203/rs.3.rs-899760/v1)
 """
 function mcdts_embedding(data::Dataset, optimalg::AbstractMCDTSOptimGoal, w::Int,
                             delays::AbstractRange{D}, N::Int=40; verbose::Bool = false, kwargs...) where {D}

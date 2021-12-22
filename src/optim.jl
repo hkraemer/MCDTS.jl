@@ -24,7 +24,9 @@ abstract type AbstractLoss end
       far available [`Continuity_function`](@ref) and [`Range_function`](@ref).
 
     ## Defaults
-    * TBD
+    * When calling `MCDTSOptimGoal()`, a optimization goal struct is created, which
+      uses the [`L_statistic`](@ref) as a loss function `Γ` and the [`Continuity_function`](@ref)
+      as a delay Pre-selection method Λ.
 """
 struct MCDTSOptimGoal <: AbstractMCDTSOptimGoal
     Γ::AbstractLoss
@@ -63,7 +65,6 @@ MCDTSOptimGoal() = MCDTSOptimGoal(L_statistic(), Continuity_function())
       the given `threshold`, consideres `KNN` nearest neighbors for time horizons `tws=2:100`.
 
     [^Kraemer2021]: Kraemer, K.H., Datseris, G., Kurths, J., Kiss, I.Z., Ocampo-Espindola, Marwan, N. (2021). [A unified and automated approach to attractor reconstruction. New Journal of Physics 23(3), 033017](https://iopscience.iop.org/article/10.1088/1367-2630/abe336).
-
     [^Uzal2011]: Uzal, L. C., Grinblat, G. L., Verdes, P. F. (2011). [Optimal reconstruction of dynamical systems: A noise amplification approach. Physical Review E 84, 016223](https://doi.org/10.1103/PhysRevE.84.016223).
 """
 struct L_statistic <: AbstractLoss
@@ -223,7 +224,7 @@ end
     * For `type = 4` the mean Kullback-Leibler Distance of the predicted and the true
       values over all components (dimensionality of the state space) is used.
 
-    ## Default settings
+    ## Defaults
     * When calling `PredictionLoss()` a PredictionLoss-object is constructed with
       fieldname `type = 1` (≡root mean squared prediction error over all components)
 """
@@ -249,7 +250,7 @@ end
     * `KNN::Int`: The number of considered nearest neighbors.
     * `Tw::Int` : The prediction horizon in sampling units.
 
-    ## Default settings
+    ## Defaults
     * When calling `local_model()` a local_model-object is constructed with a zeroth
       order prediction scheme, 2 nearest neighbors and a 1-step-ahead prediction.
     * When calling `local_model(method)` a local_model-object is constructed with a

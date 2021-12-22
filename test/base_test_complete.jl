@@ -1,9 +1,3 @@
-using MCDTS
-using DynamicalSystemsBase
-using Random
-using Test
-using DelayEmbeddings
-
 # Check Lorenz System
 Random.seed!(1234)
 ds = Systems.lorenz()

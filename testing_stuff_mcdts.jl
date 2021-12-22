@@ -51,6 +51,39 @@ grid()
 legend()
 
 
+# fiktive Zeitreihe
+timeseries = 1:100
+Ys = Dataset(timeseries) # Wenn man mehrere Zeitreihen hätte, dann würde Ys mehrere Dimensionen haben
+
+# First embedding cycle:
+
+# fiktive potentielle Delays aufgrund von irgendeiner Statistik oder loss oderso
+potential_delays = [5, 8 , 19]
+
+ts_number = (1, 1) # hier immer 1, weil wir haben nur eine Zeitreihe
+# Nehmen wir an wir benutzen als erste Komponente die ungelaggte Zeitreihe:
+delays1 = (0, potential_delays[1])
+delays2= (0, potential_delays[2])
+delays3 = (0, potential_delays[3])
+
+
+Y_trial_1 = genembed(Ys, delays1, ts_number)
+Y_trial_2 = genembed(Ys, delays2, ts_number)
+Y_trial_3 = genembed(Ys, delays3, ts_number)
+
+# So, jetzt sagen wir, dass in diesem Embedding Cycle der delay 8 der tollste war,
+# dann sähe der nächste embedding cycle so aus:
+
+# fiktive potentielle Delays aufgrund von irgendeiner Statistik oder loss oderso
+potential_delays = [1, 5]
+
+ts_number = (1, 1, 1) # hier immer 1, weil wir haben nur eine Zeitreihe
+
+delays1 = (delays2..., potential_delays[1])
+delays2 = (delays2..., potential_delays[2])
+
+Y_trial_1 = genembed(Ys, delays1, ts_number)
+Y_trial_2 = genembed(Ys, delays2, ts_number)
 
 ## coupled Logistic
 L = 3500

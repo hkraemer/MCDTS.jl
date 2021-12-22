@@ -34,7 +34,7 @@ end
 
 """
     get_potential_delays(optimalg::AbstractMCDTSOptimGoal, Ys::Dataset, τs, w::Int, τ_vals,
-                    ts_vals, L_old ; kwargs...]) → τ_pot, ts_pot, L_pot, flag
+                    ts_vals, L_old ; kwargs...]) → τ_pot, ts_pot, L_pot, flag, temps
 
     Compute the potential delay `τ_pot` and time series values `ts_pot`, which would
     each result in a potential Loss-statistic value `L_pot`, by using an
@@ -73,7 +73,7 @@ function get_potential_delays(optimalg::AbstractMCDTSOptimGoal, Yss::Dataset{D, 
 
     if isempty(τ_pot)
         flag = true
-        return Int[],Int[],eltype(L_pots)[], flag
+        return Int[],Int[],eltype(L_pots)[], flag, temps
     end
 
     taus, ts, Ls, converge, temps = get_embedding_params_according_to_loss(optimalg.Γ,
