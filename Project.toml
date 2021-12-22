@@ -4,15 +4,10 @@ authors = ["Maximilian Gelbrecht, K. Hauke Kraemer"]
 version = "1.0.2"
 
 [deps]
-ARFIMA = "9d0fb3db-ba49-4108-bc86-650b3813b6d5"
-ChaosTools = "608a59af-f2a3-5ad4-90b4-758bdf3122a7"
-DSP = "717857b8-e6f2-59f4-9121-6e50c889abd2"
 DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
 DelayEmbeddings = "5732040d-69e3-5649-938a-b6b4f237613f"
-DiffEqBase = "2b5f629d-d688-5b77-993f-72d75c75574e"
 Distances = "b4f34e82-e78d-54a5-968a-f98e89d6e8f7"
 Distributions = "31c24e10-a181-5473-b8eb-7969acd0382f"
-DynamicalSystems = "61744808-ddfa-5f27-97ff-6e42cc95d634"
 DynamicalSystemsBase = "6e36e845-645a-534a-86f2-f5d4aa5a06b4"
 GLM = "38e38edf-8417-5370-95a0-9cbb8c7f171a"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"

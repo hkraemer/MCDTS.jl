@@ -1,14 +1,3 @@
-using DynamicalSystems
-using RecurrenceAnalysis
-using DelayEmbeddings
-using Distances
-using Statistics
-using LinearAlgebra
-using Neighborhood
-using DataFrames
-using StatsBase
-using GLM
-using Revise
 
 """
     Perform the RecurrenceAnalysis of some reconstruction trajectories `Y₁`, `Y₂`,

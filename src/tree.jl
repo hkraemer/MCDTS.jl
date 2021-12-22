@@ -1,9 +1,3 @@
-using DynamicalSystemsBase
-using DelayEmbeddings
-using Revise
-import Base.show
-
-export mcdts_embedding
 
 """
     The MCDTS algorithm is implemented as a tree with different kind types encoding

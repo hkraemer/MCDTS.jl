@@ -1,5 +1,5 @@
 using MCDTS
-using DynamicalSystems
+using DynamicalSystemsBase
 using Random
 using Test
 using DelayEmbeddings

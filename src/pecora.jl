@@ -153,9 +153,6 @@ is between d0 < dj ≤ d. Here is how we find the nearest neighbor:
 
 =#
 
-using Distances, Statistics, StatsBase, Distributions
-using Neighborhood
-
 """
     pecora(s, τs, js; kwargs...) → ⟨ε★⟩, ⟨Γ⟩
 Compute the (average) continuity statistic `⟨ε★⟩` and undersampling statistic `⟨Γ⟩`
