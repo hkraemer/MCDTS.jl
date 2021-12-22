@@ -1,21 +1,20 @@
 name = "MCDTS"
 uuid = "8b172166-a5f3-45b7-b6bf-d03bacc35f61"
 authors = ["Maximilian Gelbrecht, K. Hauke Kraemer"]
-version = "1.0.0"
+version = "1.0.2"
 
 [deps]
 ARFIMA = "9d0fb3db-ba49-4108-bc86-650b3813b6d5"
+ChaosTools = "608a59af-f2a3-5ad4-90b4-758bdf3122a7"
 DSP = "717857b8-e6f2-59f4-9121-6e50c889abd2"
 DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
 DelayEmbeddings = "5732040d-69e3-5649-938a-b6b4f237613f"
+DiffEqBase = "2b5f629d-d688-5b77-993f-72d75c75574e"
 Distances = "b4f34e82-e78d-54a5-968a-f98e89d6e8f7"
 Distributions = "31c24e10-a181-5473-b8eb-7969acd0382f"
-Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
 DynamicalSystems = "61744808-ddfa-5f27-97ff-6e42cc95d634"
 DynamicalSystemsBase = "6e36e845-645a-534a-86f2-f5d4aa5a06b4"
 GLM = "38e38edf-8417-5370-95a0-9cbb8c7f171a"
-IJulia = "7073ff75-c697-5162-941a-fcdaad2a7d2a"
-JLD2 = "033835bb-8acc-5ee8-8aae-3f567f8a3819"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 Neighborhood = "645ca80c-8b79-4109-87ea-e1f58159d116"
 Pkg = "44cfe95a-1eb2-52ea-b672-e2afdf69b78f"
@@ -24,5 +23,14 @@ RecurrenceAnalysis = "639c3291-70d9-5ea2-8c5b-839eba1ee399"
 Revise = "295af30f-e4ad-537b-8983-00126c2a3abe"
 Statistics = "10745b16-79ce-11e8-11f9-7d13ad32a3b2"
 StatsBase = "2913bbd2-ae8a-5f71-8c99-4fb6c76f3a91"
-StructuredOptimization = "46cd3e9d-64ff-517d-a929-236bc1a1fc9d"
+
+[extras]
+ChaosTools = "608a59af-f2a3-5ad4-90b4-758bdf3122a7"
+DelimitedFiles = "8bb1440f-4735-579b-a4ab-409b98df4dab"
+Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[targets]
+application = ["DelimitedFiles"]
+docs = ["Documenter"]
+test = ["Test", "ChaosTools"]
