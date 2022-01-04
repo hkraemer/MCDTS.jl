@@ -4,11 +4,13 @@ abstract type AbstractMCDTSpredictionType end
 
 abstract type AbstractPredictionLoss{P} end
 
-abstract type AbstractPredictionMethod{T} end
+abstract type AbstractPredictionMethod end
 
 abstract type AbstractDelayPreselection end
 
 abstract type AbstractLoss end
+
+abstract type AbstractLocalPredictionMethod{T} <: AbstractPredictionMethod end
 
 """
     MCDTSOptimGoal <: AbstractMCDTSOptimGoal
@@ -239,7 +241,7 @@ end
 
 
 """
-    local_model <: AbstractPredictionMethod
+    local_model <: AbstractLocalPredictionMethod
 
     Constructor, which indicates the local state space prediction model.
 
@@ -258,7 +260,7 @@ end
     * When calling `local_model(method,KNN)` a local_model-object is constructed with a
      `method`-prediction scheme, `KNN` nearest neighbors and a 1-step-ahead prediction.
 """
-struct local_model{m} <: AbstractPredictionMethod{m}
+struct local_model{m} <: AbstractLocalPredictionMethod{m}
     method::String
     KNN::Int
     Tw::Int

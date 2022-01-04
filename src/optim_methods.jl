@@ -313,7 +313,7 @@ end
 * `metric`: Metric for NN search
 * `i_cycle`: Which embedding cycling we are predicting for
 """
-function make_prediction(pred_meth::AbstractPredictionMethod{:zeroth}, Y::AbstractDataset{D, ET}; K::Int = 3, w::Int = 1,
+function make_prediction(pred_meth::AbstractLocalPredictionMethod{:zeroth}, Y::AbstractDataset{D, ET}; K::Int = 3, w::Int = 1,
     Tw::Int = 1, metric = Euclidean(), i_cycle::Int=1) where {D, ET}
 
     NN = length(Y)-Tw;
@@ -337,7 +337,7 @@ function make_prediction(pred_meth::AbstractPredictionMethod{:zeroth}, Y::Abstra
     end
     return Dataset(prediction)
 end
-function make_prediction(pred_meth::AbstractPredictionMethod{:linear}, Y::AbstractDataset{D, ET}; K::Int = 3, w::Int = 1,
+function make_prediction(pred_meth::AbstractLocalPredictionMethod{:linear}, Y::AbstractDataset{D, ET}; K::Int = 3, w::Int = 1,
     Tw::Int = 1, metric = Euclidean(), i_cycle::Int=1) where {D, ET}
 
     K = 2*(size(Y,2)+1)
