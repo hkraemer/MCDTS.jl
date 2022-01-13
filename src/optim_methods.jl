@@ -267,7 +267,7 @@ function compute_loss(Γ::Prediction_error, Λ::AbstractDelayPreselection, dps::
         ts_trials = (ts_vals...,ts,)
         Y_trial = genembed(Ys, tau_trials, ts_trials)
         # make a in-sample prediction for Y_trial
-        prediction = make_prediction(PredictionMethod, Y_trial; w = w, metric = metric, i_cycle=length(τ_vals))
+        prediction = make_prediction(PredictionMethod, Y_trial; w = w, metric = metric, i_cycle=length(τ_vals), kwargs...)
         # compute loss/costs
         costs[i] = compute_costs_from_prediction(PredictionLoss, prediction, Y_trial, PredictionMethod.Tw)
     end
@@ -312,7 +312,7 @@ end
 * `metric`: Metric for NN search
 * `i_cycle`: Which embedding cycling we are predicting for
 """
-function make_prediction(pred_meth::AbstractLocalPredictionMethod{:zeroth}, Y::AbstractDataset{D, ET}; w::Int = 1, metric = Euclidean(), i_cycle::Int=1) where {D, ET}
+function make_prediction(pred_meth::AbstractLocalPredictionMethod{:zeroth}, Y::AbstractDataset{D, ET}; w::Int = 1, metric = Euclidean(), i_cycle::Int=1, kwargs...) where {D, ET}
 
     K = pred_meth.KNN
     Tw = pred_meth.Tw
@@ -339,7 +339,7 @@ function make_prediction(pred_meth::AbstractLocalPredictionMethod{:zeroth}, Y::A
     return Dataset(prediction)
 end
 function make_prediction(pred_meth::AbstractLocalPredictionMethod{:linear}, Y::AbstractDataset{D, ET}; K::Int = 3, w::Int = 1,
-    Tw::Int = 1, metric = Euclidean(), i_cycle::Int=1) where {D, ET}
+    Tw::Int = 1, metric = Euclidean(), i_cycle::Int=1, kwargs...) where {D, ET}
 
     K = 2*(size(Y,2)+1)
     NN = length(Y)-Tw;
