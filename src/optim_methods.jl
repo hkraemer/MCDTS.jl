@@ -338,8 +338,10 @@ function make_prediction(pred_meth::AbstractLocalPredictionMethod{:zeroth}, Y::A
     end
     return Dataset(prediction)
 end
-function make_prediction(pred_meth::AbstractLocalPredictionMethod{:linear}, Y::AbstractDataset{D, ET}; K::Int = 3, w::Int = 1,
-    Tw::Int = 1, metric = Euclidean(), i_cycle::Int=1, kwargs...) where {D, ET}
+function make_prediction(pred_meth::AbstractLocalPredictionMethod{:linear}, Y::AbstractDataset{D, ET}; w::Int = 1, metric = Euclidean(), i_cycle::Int=1, kwargs...) where {D, ET}
+
+    K = pred_meth.KNN
+    Tw = pred_meth.Tw
 
     K = 2*(size(Y,2)+1)
     NN = length(Y)-Tw;
