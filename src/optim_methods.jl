@@ -1,3 +1,4 @@
+import Base.push!
 
 ## Methods for Loss stats
 
