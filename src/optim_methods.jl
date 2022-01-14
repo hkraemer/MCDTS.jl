@@ -261,17 +261,19 @@ function compute_loss(Γ::Prediction_error, Λ::AbstractDelayPreselection, dps::
     max_idx = get_max_idx(Λ, dps, τ_vals, ts_vals, ts) # get the candidate delays
 
     costs = zeros(Float64, length(max_idx))
+    temps = []
     for (i,τ_idx) in enumerate(max_idx)
         # create candidate phase space vector for this peak/τ-value
         tau_trials = ((τ_vals.*(-1))...,(τs[τ_idx-1]*(-1)),)
         ts_trials = (ts_vals...,ts,)
         Y_trial = genembed(Ys, tau_trials, ts_trials)
         # make a in-sample prediction for Y_trial
-        prediction = make_prediction(PredictionMethod, Y_trial; w = w, metric = metric, i_cycle=length(τ_vals), kwargs...)
+        prediction, temp = make_prediction(PredictionMethod, Y_trial; w = w, metric = metric, i_cycle=length(τ_vals), kwargs...)
+        push!(temps, temp)
         # compute loss/costs
         costs[i] = compute_costs_from_prediction(PredictionLoss, prediction, Y_trial, PredictionMethod.Tw)
     end
-    return costs, max_idx, [nothing for i in max_idx]
+    return costs, max_idx, temps
 end
 
 
@@ -336,7 +338,7 @@ function make_prediction(pred_meth::AbstractLocalPredictionMethod{:zeroth}, Y::A
         # take the average as a prediction
         prediction[i,:] = mean(ϵ_ball; dims=1)
     end
-    return Dataset(prediction)
+    return Dataset(prediction), nothing
 end
 function make_prediction(pred_meth::AbstractLocalPredictionMethod{:linear}, Y::AbstractDataset{D, ET}; w::Int = 1, metric = Euclidean(), i_cycle::Int=1, kwargs...) where {D, ET}
 
@@ -382,7 +384,7 @@ function make_prediction(pred_meth::AbstractLocalPredictionMethod{:linear}, Y::A
             prediction[i,j] = Y[ns[i],:]'*ar_coeffs[j,:] + b[j]
         end
     end
-    return Dataset(prediction)
+    return Dataset(prediction), nothing
 end
 
 """
