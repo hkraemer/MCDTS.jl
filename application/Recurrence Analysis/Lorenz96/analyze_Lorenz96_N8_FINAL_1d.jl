@@ -9,7 +9,7 @@ pygui(true)
 using DelimitedFiles
 using Statistics
 N = 8
-cd("./application/artificial data/Lorenz96/Results/Final N8")
+cd("./application/Recurrence Analysis/Lorenz96/Results/Final N8")
 
 # determine the tde method; #1 Cao, #2 Kennel, #3 Hegger
 tde = 1

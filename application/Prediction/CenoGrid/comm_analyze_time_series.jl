@@ -7,7 +7,7 @@ using Statistics
 using PyPlot
 pygui(true)
 
-data = readdlm("./application/CENOGRID/data/detrended.txt")
+data = readdlm("./application/Prediction/CenoGrid/data/detrended.txt")
 
 t = data[:,1]
 O18 = data[:,2]
@@ -51,10 +51,10 @@ for i = 1:length(methods)
     if i == 6 || i == 7
         continue
     end
-    aa = readdlm("./application/CenoGrid/Prediction results/results_CENOGRID_taus_"*method_strings[i]*".csv")
+    aa = readdlm("./application/Prediction/CenoGrid/Prediction results/results_CENOGRID_taus_"*method_strings[i]*".csv")
     τs = [Int(aa[g]) for g = 1:length(aa)]
     if i == 5 || i == 7 || i == 9 || i == 11 || i == 13 || i == 15
-        bb = readdlm("./application/CENOGRID/Prediction results/results_CENOGRID_ts_"*method_strings[i]*".csv")
+        bb = readdlm("./application/Prediction/CenoGrid/Prediction results/results_CENOGRID_ts_"*method_strings[i]*".csv")
         ts = [Int(bb[g]) for g = 1:length(bb)]
     else
         ts = ones(Int,length(τs))
@@ -104,29 +104,29 @@ end
 
 
 ## Save the data
-writedlm("./application/CenoGrid/Prediction results/MEANs_zeroth.csv", MEANs_zeroth)
-writedlm("./application/CenoGrid/Prediction results/MEANs_linear.csv", MEANs_linear)
+writedlm("./application/Prediction/CenoGrid/Prediction results/MEANs_zeroth.csv", MEANs_zeroth)
+writedlm("./application/Prediction/CenoGrid/Prediction results/MEANs_linear.csv", MEANs_linear)
 
 for i = 1:length(methods)
-    writedlm("./application/CenoGrid/Prediction results/predictions_zeroth_$i.csv", predictions_zeroth[i,:,:])
-    writedlm("./application/CenoGrid/Prediction results/predictions_linear_$i.csv", predictions_linear[i,:,:])
-    writedlm("./application/CenoGrid/Prediction results/MSEs_zeroth_$i.csv", MSEs_zeroth[i,:,:])
-    writedlm("./application/CenoGrid/Prediction results/MSEs_linear_$i.csv", MSEs_linear[i,:,:])
+    writedlm("./application/Prediction/CenoGrid/Prediction results/predictions_zeroth_$i.csv", predictions_zeroth[i,:,:])
+    writedlm("./application/Prediction/CenoGrid/Prediction results/predictions_linear_$i.csv", predictions_linear[i,:,:])
+    writedlm("./application/Prediction/CenoGrid/Prediction results/MSEs_zeroth_$i.csv", MSEs_zeroth[i,:,:])
+    writedlm("./application/Prediction/CenoGrid/Prediction results/MSEs_linear_$i.csv", MSEs_linear[i,:,:])
 end
 
 ## Load Data
-MEANs_zeroth = readdlm("./application/CenoGrid/Prediction results/MEANs_zeroth.csv")
-MEANs_linear = readdlm("./application/CenoGrid/Prediction results/MEANs_linear.csv")
+MEANs_zeroth = readdlm("./application/Prediction/CenoGrid/Prediction results/MEANs_zeroth.csv")
+MEANs_linear = readdlm("./application/Prediction/CenoGrid/Prediction results/MEANs_linear.csv")
 
 MSEs_zeroth = zeros(length(method_strings),(T_steps-T_steps2),T_steps2)
 MSEs_linear = zeros(length(method_strings),(T_steps-T_steps2),T_steps2)
 predictions_zeroth = zeros(length(method_strings),(T_steps-T_steps2),T_steps2)
 predictions_linear = zeros(length(method_strings),(T_steps-T_steps2),T_steps2)
 for i = 1:length(methods)
-    predictions_zeroth[i,:,:] = readdlm("./application/CenoGrid/Prediction results/predictions_zeroth_$i.csv")
-    predictions_linear[i,:,:] = readdlm("./application/CenoGrid/Prediction results/predictions_linear_$i.csv")
-    MSEs_zeroth[i,:,:] = readdlm("./application/CenoGrid/Prediction results/MSEs_zeroth_$i.csv")
-    MSEs_linear[i,:,:] = readdlm("./application/CenoGrid/Prediction results/MSEs_linear_$i.csv")
+    predictions_zeroth[i,:,:] = readdlm("./application/Prediction/CenoGrid/Prediction results/predictions_zeroth_$i.csv")
+    predictions_linear[i,:,:] = readdlm("./application/Prediction/CenoGrid/Prediction results/predictions_linear_$i.csv")
+    MSEs_zeroth[i,:,:] = readdlm("./application/Prediction/CenoGrid/Prediction results/MSEs_zeroth_$i.csv")
+    MSEs_linear[i,:,:] = readdlm("./application/Prediction/CenoGrid/Prediction results/MSEs_linear_$i.csv")
 end
 
 

@@ -18,12 +18,12 @@ trial = 1
 tde = 1
 
 # bind variables
-params = readdlm("./application/artificial data/Lorenz96/Results/1 dimensional input/trial $(trial)/results_Lorenz96_N_$(N)_FNN_1d_params.csv")
+params = readdlm("./application/Recurrence Analysis/Lorenz96/Results/1 dimensional input/trial $(trial)/results_Lorenz96_N_$(N)_FNN_1d_params.csv")
 N,dt,total,ε,dmax,lmin,trials,taus,Tw,t_idx = params
-Fs = readdlm("./application/artificial data/Lorenz96/Results/1 dimensional input/trial $(trial)/results_Lorenz96_N_$(N)_FNN_1d_Fs.csv")
+Fs = readdlm("./application/Recurrence Analysis/Lorenz96/Results/1 dimensional input/trial $(trial)/results_Lorenz96_N_$(N)_FNN_1d_Fs.csv")
 
-tau_tde = Int.(readdlm("./application/artificial data/Lorenz96/Results/time delay embedding/trial 1/results_Lorenz96_N_8_1d_tau_tde$tde.csv"))
-tau_MCDTSs = readdlm("./application/artificial data/Lorenz96/Results/1 dimensional input/trial $(trial)/results_Lorenz96_N_$(N)_FNN_1d_tau_MCDTS.csv")
+tau_tde = Int.(readdlm("./application/Recurrence Analysis/Lorenz96/Results/time delay embedding/trial 1/results_Lorenz96_N_8_1d_tau_tde$tde.csv"))
+tau_MCDTSs = readdlm("./application/Recurrence Analysis/Lorenz96/Results/1 dimensional input/trial $(trial)/results_Lorenz96_N_$(N)_FNN_1d_tau_MCDTS.csv")
 # convert taus into right shape in case of PECUZAL and MCDTS
 tau_MCDTS = []
 for i = 1:size(tau_MCDTS,1)
@@ -31,25 +31,25 @@ for i = 1:size(tau_MCDTS,1)
     push!(tau_MCDTS, tau_MCDTSs[i,index])
 end
 
-ts_MCDTSs = readdlm("./application/artificial data/Lorenz96/Results/1 dimensional input/trial $(trial)/results_Lorenz96_N_$(N)_FNN_1d_ts_MCDTS.csv")
+ts_MCDTSs = readdlm("./application/Recurrence Analysis/Lorenz96/Results/1 dimensional input/trial $(trial)/results_Lorenz96_N_$(N)_FNN_1d_ts_MCDTS.csv")
 ts_MCDTS = []
 for i = 1:size(ts_MCDTS,1)
     index = isa.(ts_MCDTSs[i,:],Number)
     push!(ts_MCDTS, ts_MCDTSs[i,index])
 end
 
-optimal_d_tde = Int.(readdlm("./application/artificial data/Lorenz96/Results/time delay embedding/trial 1/results_Lorenz96_N_8_1d_optimal_d_tde$tde.csv"))
-optimal_d_mcdts = Int.(readdlm("./application/artificial data/Lorenz96/Results/1 dimensional input/trial $(trial)/results_Lorenz96_N_$(N)_FNN_1d_optimal_d_mcdts.csv"))
+optimal_d_tde = Int.(readdlm("./application/Recurrence Analysis/Lorenz96/Results/time delay embedding/trial 1/results_Lorenz96_N_8_1d_optimal_d_tde$tde.csv"))
+optimal_d_mcdts = Int.(readdlm("./application/Recurrence Analysis/Lorenz96/Results/1 dimensional input/trial $(trial)/results_Lorenz96_N_$(N)_FNN_1d_optimal_d_mcdts.csv"))
 
-L_tde = readdlm("./application/artificial data/Lorenz96/Results/time delay embedding/trial 1/results_Lorenz96_N_8_1d_L_tde$tde.csv")
-L_mcdts = readdlm("./application/artificial data/Lorenz96/Results/1 dimensional input/trial $(trial)/results_Lorenz96_N_$(N)_FNN_1d_FNN_mcdts.csv")
+L_tde = readdlm("./application/Recurrence Analysis/Lorenz96/Results/time delay embedding/trial 1/results_Lorenz96_N_8_1d_L_tde$tde.csv")
+L_mcdts = readdlm("./application/Recurrence Analysis/Lorenz96/Results/1 dimensional input/trial $(trial)/results_Lorenz96_N_$(N)_FNN_1d_FNN_mcdts.csv")
 
-RQA_tde = readdlm("./application/artificial data/Lorenz96/Results/time delay embedding/trial 1/results_Lorenz96_N_8_1d_RQA_tde$tde.csv")
-RQA_mcdts = readdlm("./application/artificial data/Lorenz96/Results/1 dimensional input/trial $(trial)/results_Lorenz96_N_$(N)_FNN_1d_RQA_mcdts.csv")
-RQA_ref = readdlm("./application/artificial data/Lorenz96/Results/Reference/results_Lorenz96_N_$(N)_ref_RQA_ref.csv")
+RQA_tde = readdlm("./application/Recurrence Analysis/Lorenz96/Results/time delay embedding/trial 1/results_Lorenz96_N_8_1d_RQA_tde$tde.csv")
+RQA_mcdts = readdlm("./application/Recurrence Analysis/Lorenz96/Results/1 dimensional input/trial $(trial)/results_Lorenz96_N_$(N)_FNN_1d_RQA_mcdts.csv")
+RQA_ref = readdlm("./application/Recurrence Analysis/Lorenz96/Results/Reference/results_Lorenz96_N_$(N)_ref_RQA_ref.csv")
 
 ##
-λs = readdlm("./application/artificial data/Lorenz96/Lyapunov spectrum/Lyaps_Lo96_N_8_4.csv")
+λs = readdlm("./application/Recurrence Analysis/Lorenz96/Lyapunov spectrum/Lyaps_Lo96_N_8_4.csv")
 λs = λs[1:2:end,:]
 pos_Lyap_idx = λs[:,1] .> 10^-3
 
