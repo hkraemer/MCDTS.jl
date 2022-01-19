@@ -5,7 +5,7 @@ This project implements the MCDTS algorithm outlined in the paper "Optimal state
 ## Usage
 
 *This repository serves the purpose of reproducibility only*. The proposed method will soon be part of the [DynamicalSystems.jl framework](https://juliadynamics.github.io/DynamicalSystems.jl/latest/) which will also contain sufficient documentation of the functionality. In order to reproduce the data, which has been used in the paper you have to
-set back this repository to commit 842037c6 (MCDTS version 0.9.10). We are still further developing this repo in order to incorporate more functionality and preparing the
+set back this repository to commit 842037 (MCDTS version 0.9.10). We are still further developing this repo in order to incorporate more functionality and preparing the
 code for a migration to [DynamicalSystems.jl](https://juliadynamics.github.io/DynamicalSystems.jl/latest/).
 
 If you do not want to wait that long, we give an example of the basic usage (for that old version we mentioned).
