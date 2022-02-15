@@ -822,7 +822,7 @@ end
     Compute the delay statistic according to the chosen method in `optimalg.Λ` (see [`MCDTSOptimGoal`](@ref))
 """
 function get_delay_statistic(Λ::Continuity_function, Ys, τs, w, τ_vals, ts_vals; metric = Euclidean(), kwargs... )
-    ε★, _ = pecora(Ys, Tuple(τ_vals), Tuple(ts_vals); delays = τs, w = w,
+    ε★, _ = DelayEmbeddings.pecora(Ys, Tuple(τ_vals), Tuple(ts_vals); delays = τs, w = w,
             samplesize = Λ.samplesize, K = Λ.K, metric = metric, α = Λ.α,
             p = Λ.p, undersampling = false)
     return ε★
