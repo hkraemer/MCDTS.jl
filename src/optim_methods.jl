@@ -93,29 +93,23 @@ end
 function get_embedding_params_according_to_loss(Γ::AbstractLoss, τ_pot, ts_pot, L_pot, temp, L_old)
     threshold = Γ.threshold
     if (minimum(L_pot) ≥ L_old)
-        flag = true
-        return Int[],Int[],eltype(L_pot)[], flag, nothing
+        return Int[], Int[], eltype(L_pot)[], true, nothing
     elseif (minimum(L_pot) ≤ threshold)
-        flag = true
         ind = L_pot .< L_old
-        return τ_pot[ind],ts_pot[ind],L_pot[ind],flag, temp[ind]
+        return τ_pot[ind], ts_pot[ind], L_pot[ind], true, temp[ind]
     else
-        flag = false
         ind = L_pot .< L_old
-        return τ_pot[ind],ts_pot[ind],L_pot[ind],flag, temp[ind]
+        return τ_pot[ind], ts_pot[ind], L_pot[ind],false, temp[ind]
     end
 end
 
 function get_embedding_params_according_to_loss(Γ::L_statistic, τ_pot, ts_pot, L_pot, temp, L_old)
     threshold = Γ.threshold
     if minimum(L_pot) > threshold
-        flag = true
-        ind = L_pot .≤ threshold
-        return τ_pot[ind], ts_pot[ind], L_pot[ind], flag, temp[ind]
+        return Int[], Int[], eltype(L_pot)[], true, nothing
     else
-        flag = false
         ind = L_pot .≤ threshold
-        return τ_pot[ind], ts_pot[ind], L_pot[ind], flag, temp[ind]
+        return τ_pot[ind], ts_pot[ind], L_pot[ind], false, temp[ind]
     end
 end
 
@@ -155,9 +149,13 @@ function pick_possible_embedding_params(Γ::AbstractLoss, Λ::AbstractDelayPrese
 
         # zero-padding of dps in order to also cover τ=0 (important for the multivariate case)
         L_trials, max_idx, temp = compute_loss(Γ, Λ, vec([0; dps[:,ts]]), Y_act, Ys, τs, w, ts, τ_vals, ts_vals; kwargs...)
-        tt = τs[max_idx.-1]
-        if typeof(tt)==Int
-            tt = [tt]
+        if isempty(max_idx)
+            tt = max_idx
+        else
+            tt = τs[max_idx.-1]
+            if typeof(tt)==Int
+                tt = [tt]
+            end
         end
         Base.push!(L_pots, L_trials)
         Base.push!(ts_pots, fill(ts,length(L_trials)))
@@ -184,6 +182,7 @@ function compute_loss(Γ::L_statistic, Λ::AbstractDelayPreselection, dps::Vecto
     s = Ys[:,ts]
 
     max_idx = get_max_idx(Λ, dps, τ_vals, ts_vals, ts) # get the candidate delays
+    isempty(max_idx) && return Float64[], Int64[], nothing
 
     L_decrease = zeros(Float64, length(max_idx))
     for (i,τ_idx) in enumerate(max_idx)
@@ -205,6 +204,7 @@ function compute_loss(Γ::FNN_statistic, Λ::AbstractDelayPreselection, dps::Vec
     s = Ys[:,ts]
 
     max_idx = get_max_idx(Λ, dps, τ_vals, ts_vals, ts) # get the candidate delays
+    isempty(max_idx) && return Float64[], Int64[], nothing
 
     FNN_trials = zeros(Float64, length(max_idx))
     ξ_trials = zeros(Float64, length(max_idx))
@@ -235,14 +235,15 @@ function compute_loss(Γ::CCM_ρ, Λ::AbstractDelayPreselection, dps::Vector{P},
     Y_other = DelayEmbeddings.standardize(Γ.timeseries)
 
     max_idx = get_max_idx(Λ, dps, τ_vals, ts_vals, ts) # get the candidate delays
+    isempty(max_idx) && return Float64[], Int64[], nothing
 
     ρ_CCM = zeros(Float64, length(max_idx))
 
     for (i,τ_idx) in enumerate(max_idx)
         # create candidate phase space vector for this peak/τ-value
-        tau_trials = ((τ_vals.*(-1))...,(τs[τ_idx-1]*(-1)),)
+        tau_trials = (τ_vals...,τs[τ_idx-1],)
         ts_trials = (ts_vals...,ts,)
-        Y_trial = genembed(Ys, tau_trials, ts_trials)
+        Y_trial = genembed(Ys, tau_trials.*(-1), ts_trials)
         # account for value-shift due to negative lags
         Ys_other = Y_other[1+maximum(tau_trials.*(-1)):length(Y_trial)+maximum(tau_trials.*(-1))]
         # compute ρ_CCM for Y_trial and Y_other
@@ -259,16 +260,18 @@ function compute_loss(Γ::Prediction_error, Λ::AbstractDelayPreselection, dps::
 
     PredictionLoss = Γ.PredictionType.loss
     PredictionMethod = Γ.PredictionType.method
+
     max_idx = get_max_idx(Λ, dps, τ_vals, ts_vals, ts) # get the candidate delays
+    isempty(max_idx) && return Float64[], Int64[], []
 
     costs = zeros(Float64, length(max_idx))
     temps = []
     for (i,τ_idx) in enumerate(max_idx)
         # create candidate phase space vector for this peak/τ-value
-        tau_trials = ((τ_vals.*(-1))...,(τs[τ_idx-1]*(-1)),)
+        tau_trials = (τ_vals...,τs[τ_idx-1],)
         ts_trials = (ts_vals...,ts,)
-        Y_trial = genembed(Ys, tau_trials, ts_trials)
-        # make a in-sample prediction for Y_trial
+        Y_trial = genembed(Ys, tau_trials.*(-1), ts_trials)
+        # make an in-sample prediction for Y_trial
         prediction, temp = make_prediction(PredictionMethod, Y_trial; w = w, metric = metric, i_cycle=length(τ_vals), kwargs...)
         push!(temps, temp)
         # compute loss/costs
@@ -288,15 +291,15 @@ end
     [`Range_function`](@ref).
 """
 function get_max_idx(Λ::Range_function, dps::Vector{T}, τ_vals, ts_vals, ts) where {T}
-
     max_idx = Vector(dps[2:end].+1)
     ts_idx = findall(e->e==ts, ts_vals) # do not consider already taken delays
     filter!(e->e∉(τ_vals[ts_idx] .+ 2), max_idx) # do not consider already taken delays
     return max_idx
 end
 function get_max_idx(Λ::Continuity_function, dps::Vector{T}, τ_vals, ts_vals, ts) where {T}
-
     _, max_idx = get_maxima(dps) # determine local maxima in delay_pre_selection_statistic
+    ts_idx = findall(e->e==ts, ts_vals) # do not consider already taken delays
+    filter!(e->e∉(τ_vals[ts_idx] .+ 2), max_idx) # do not consider already taken delays
     return max_idx
 end
 
@@ -308,12 +311,16 @@ end
     Compute a in-sample `Tw`-time-steps-ahead of the data `Y`, using the prediction
     method `pred_meth`. `w` is the Theiler window and `K` the nearest neighbors used.
 
-* `Y`: Dataset (Nt x N_embedd)
-* `K`: Nearest Neighbours
-* `w`: Theiler window
-* `Tw`: Prediction horizon
-* `metric`: Metric for NN search
-* `i_cycle`: Which embedding cycling we are predicting for
+    * `Y`: Dataset (Nt x N_embedd)
+    * `K`: Nearest Neighbours
+    * `w`: Theiler window
+    * `Tw`: Prediction horizon
+    * `metric`: Metric for NN search
+    * `i_cycle`: Which embedding cycling we are predicting for
+
+    Note: In case of a local linear prediction method `pred_meth` the number of
+    nearest neighbours used gets adapted to 2(D+1) - with D the embedding dimension,
+    if the provided `K` is lower than that number.")
 """
 function make_prediction(pred_meth::AbstractLocalPredictionMethod{:zeroth}, Y::AbstractDataset{D, ET}; w::Int = 1, metric = Euclidean(), i_cycle::Int=1, kwargs...) where {D, ET}
 
@@ -346,7 +353,9 @@ function make_prediction(pred_meth::AbstractLocalPredictionMethod{:linear}, Y::A
     K = pred_meth.KNN
     Tw = pred_meth.Tw
 
-    K = 2*(size(Y,2)+1)
+    if K < 2*(size(Y,2)+1)
+        K = 2*(size(Y,2)+1)
+    end
     NN = length(Y)-Tw;
     ns = 1:NN  # the fiducial point indices
     vs = Y[ns] # the fiducial points in the data set
@@ -822,9 +831,12 @@ end
     Compute the delay statistic according to the chosen method in `optimalg.Λ` (see [`MCDTSOptimGoal`](@ref))
 """
 function get_delay_statistic(Λ::Continuity_function, Ys, τs, w, τ_vals, ts_vals; metric = Euclidean(), kwargs... )
+    # ε★ = MCDTS.pecora(Ys, Tuple(τ_vals), Tuple(ts_vals); delays = τs, w = w,
+    #         samplesize = Λ.samplesize, K = Λ.K, metric = metric, α = Λ.α,
+    #         p = Λ.p, PRED = false)
     ε★, _ = DelayEmbeddings.pecora(Ys, Tuple(τ_vals), Tuple(ts_vals); delays = τs, w = w,
             samplesize = Λ.samplesize, K = Λ.K, metric = metric, α = Λ.α,
-            p = Λ.p, undersampling = false)
+            p = Λ.p)
     return ε★
 end
 
@@ -854,8 +866,8 @@ function get_maxima(s::Vector{T}) where {T}
         if flag
             if s[i+1] < s[first_point]
                 flag = false
-                push!(maximas, s[first_point])
-                push!(maximas_idx, first_point)
+                Base.push!(maximas, s[first_point])
+                Base.push!(maximas_idx, first_point)
             elseif s[i+1] > s[first_point]
                 flag = false
             end
@@ -867,7 +879,9 @@ function get_maxima(s::Vector{T}) where {T}
     end
     # make sure there is no empty vector returned
     if isempty(maximas)
-        maximas, maximas_idx = findmax(s)
+        maximas_s, maximas_idx_s = findmax(s)
+        Base.push!(maximas, maximas_s)
+        Base.push!(maximas_idx, maximas_idx_s)
     end
     return maximas, maximas_idx
 end

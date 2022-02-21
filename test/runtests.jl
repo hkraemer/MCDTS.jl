@@ -1,3 +1,6 @@
+import Pkg
+Pkg.activate(".")
+
 using MCDTS
 using Test
 using Random

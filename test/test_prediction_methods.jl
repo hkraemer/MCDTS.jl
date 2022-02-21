@@ -8,7 +8,7 @@ using PyPlot
 pygui(true)
 
 lo = Systems.lorenz()
-tr = trajectory(lo, 100; dt = 0.01, Ttr = 10)
+tr = trajectory(lo, 500; dt = 0.01, Ttr = 10)
 
 # Lyapunov exponent and time
 λ = ChaosTools.lyapunov(lo, 100000, dt=0.01; Ttr=1000)
@@ -22,6 +22,7 @@ w3 = DelayEmbeddings.estimate_delay(tr[:,3],"mi_min")
 theiler = maximum([w1,w2,w3])
 
 ## Predictions based on true data
+
 
 D = size(tr,2)
 # make predictions with different neighborhoodsizes and optimize w.r.t. this parameter
@@ -225,141 +226,199 @@ subplots_adjust(hspace=.6)
 
 
 ## Predictions based on embedding
-# T_steps = 12*lyap_time
-# x1 = tr[1:end-T_steps,1]
-# x2 = tr[end-T_steps+1:end,1]
-# y1 = tr[1:end-T_steps,2]
-# y2 = tr[end-T_steps+1:end,2]
-#
-# dmax = 10
-# # cao
-# 𝒟, τ_tde1, _ = optimal_traditional_de(x1, "afnn"; dmax = dmax, w = w1)
-# optimal_d_tde1 = size(𝒟, 2)
-# τ_cao = [(i-1)*τ_tde1 for i = 1:optimal_d_tde1]
-# Y_cao = MCDTS.genembed_for_prediction(x1, τ_cao)
-#
-# # kennel's method
-# 𝒟, τ_tde2, _ = optimal_traditional_de(x1, "fnn"; dmax = dmax, w = w1)
-# optimal_d_tde2 = size(𝒟, 2)
-# τ_kennel = [(i-1)*τ_tde2 for i = 1:optimal_d_tde2]
-# Y_kennel = MCDTS.genembed_for_prediction(x1, τ_kennel)
-#
-# # hegger's method
-# 𝒟, τ_tde3, _ = optimal_traditional_de(x1, "ifnn"; dmax = dmax, w = w1)
-# optimal_d_tde3 = size(𝒟, 2)
-# τ_hegger = [(i-1)*τ_tde3 for i = 1:optimal_d_tde3]
-# Y_hegger = MCDTS.genembed_for_prediction(x1, τ_hegger)
-#
-# # pecuzal
-# taus = 0:100
-# 𝒟, τ_pec, _, L, _ = pecuzal_embedding(x1; τs = taus, w = w1)
-# optimal_d_tde4 = size(𝒟, 2)
-# Y_pec = MCDTS.genembed_for_prediction(x1, τ_pec)
-#
-# # mcdts
-# trials = 80
-# tree = MCDTS.mc_delay(Dataset(x1), w1, (L)->(MCDTS.softmaxL(L,β=2.)), taus, trials; tws = 2:taus[end], max_depth = 15)
-# best_node = MCDTS.best_embedding(tree)
-# τ_mcdts = best_node.τs
-# Y_mcdts = MCDTS.genembed_for_prediction(x1, τ_mcdts)
-#
-# data_sample = Dataset(hcat(x1,y1))
-#
-# # pecuzal
-# 𝒟, τ_pec2, ts_pec2, L, _ = pecuzal_embedding(data_sample; τs = taus, w = w1)
-# Y_pec2 = MCDTS.genembed_for_prediction(data_sample, τ_pec2, ts_pec2)
-#
-# # mcdts
-# trials = 120
-# tree = MCDTS.mc_delay(data_sample, w1, (L)->(MCDTS.softmaxL(L,β=2.)), taus, trials; tws = 2:taus[end], max_depth = 15)
-# best_node = MCDTS.best_embedding(tree)
-# τ_mcdts2 = best_node.τs
-# ts_mcdts2 = best_node.ts
-# Y_mcdts2 = MCDTS.genembed_for_prediction(data_sample, τ_mcdts2, ts_mcdts2)
-#
-#
-# # make predictions
-# prediction_cao = deepcopy(Y_cao)
-# prediction_kennel = deepcopy(Y_kennel)
-# prediction_hegger = deepcopy(Y_hegger)
-# prediction_pec = deepcopy(Y_pec)
-# prediction_mcdts = deepcopy(Y_mcdts)
-# prediction_pec2 = deepcopy(Y_pec2)
-# prediction_mcdts2 = deepcopy(Y_mcdts2)
-#
-# # Neighbourhoodsize
-# K = 10
-#
-# for T = 1:T_steps
-#     println(T)
-#     # iterated one step
-#     predicted_cao, _ = MCDTS.local_linear_prediction_ar(prediction_cao, K; theiler = w1)
-#     push!(prediction_cao, predicted_cao)
-#     predicted_kennel, _ = MCDTS.local_linear_prediction_ar(prediction_kennel, K; theiler = w1)
-#     push!(prediction_cao, predicted_cao)
-#     predicted_hegger, _ = MCDTS.local_linear_prediction_ar(prediction_hegger, K; theiler = w1)
-#     push!(prediction_hegger, predicted_hegger)
-#     predicted_pec, _ = MCDTS.local_linear_prediction_ar(prediction_pec, K; theiler = w1)
-#     push!(prediction_pec, predicted_pec)
-#     predicted_mcdts, _ = MCDTS.local_linear_prediction_ar(prediction_mcdts, K; theiler = w1)
-#     push!(prediction_mcdts, predicted_mcdts)
-#     predicted_pec2, _ = MCDTS.local_linear_prediction_ar(prediction_pec2, K; theiler = w1)
-#     push!(prediction_pec2, predicted_pec2)
-#     predicted_mcdts2, _ = MCDTS.local_linear_prediction_ar(prediction_mcdts2, K; theiler = w1)
-#     push!(prediction_mcdts2, predicted_mcdts2)
-# end
-#
-# # Plot predictions
-# sp = length(tr)-T_steps
-# t2 = (-sp+1:T_steps)
-#
-# figure(figsize=(20,10))
-# subplot(5,1,1)
-# plot(t2[8000:end], tr[8000:end,1], ".-", label="true data")
-# plot(t2[end-T_steps+1:end], prediction_cao[end-T_steps+1:end,1], ".-", label="Cao")
-# title("x-component (iterated one-step)")
-# xlim(-5, 12)
-# ylim(-20,20)
-# xlabel("Lyapunov time units")
-# legend()
-# grid()
-#
-# subplot(5,1,2)
-# plot(t2[8000:end], tr[8000:end,1], ".-", label="true data")
-# plot(t2[end-T_steps+1:end], prediction_kennel[end-T_steps+1:end,1], ".-", label="Kennel")
-# title("x-component (iterated one-step)")
-# xlim(-5, 12)
-# ylim(-20,20)
-# xlabel("Lyapunov time units")
-# legend()
-# grid()
-#
-# subplot(5,1,3)
-# plot(t2[8000:end], tr[8000:end,1], ".-", label="true data")
-# plot(t2[end-T_steps+1:end], prediction_hegger[end-T_steps+1:end,1], ".-", label="Hegger")
-# title("x-component (iterated one-step)")
-# xlim(-5, 12)
-# ylim(-20,20)
-# xlabel("Lyapunov time units")
-# legend()
-# grid()
-#
-# subplot(5,1,4)
-# plot(t2[8000:end], tr[8000:end,1], ".-", label="true data")
-# plot(t2[end-T_steps+1:end], prediction_pec[end-T_steps+1:end,1], ".-", label="PECUZAL")
-# title("x-component (iterated one-step)")
-# xlim(-5, 12)
-# ylim(-20,20)
-# xlabel("Lyapunov time units")
-# legend()
-# grid()
-#
-# subplot(5,1,5)
-# plot(t2[8000:end], tr[8000:end,1], ".-", label="true data")
-# plot(t2[end-T_steps+1:end], prediction_mcdts[end-T_steps+1:end,1], ".-", label="MCDTS")
-# title("x-component (iterated one-step)")
-# xlim(-5, 12)
-# ylim(-20,20)
-# xlabel("Lyapunov time units")
-# legend()
-# grid()
+T_steps = 12*lyap_time
+x1 = tr[1:end-T_steps,1]
+x2 = tr[end-T_steps+1:end,1]
+y1 = tr[1:end-T_steps,2]
+y2 = tr[end-T_steps+1:end,2]
+
+dmax = 10
+# cao
+𝒟, τ_tde1, _ = optimal_traditional_de(x1, "afnn"; dmax = dmax, w = w1)
+optimal_d_tde1 = size(𝒟, 2)
+τ_cao = [(i-1)*τ_tde1 for i = 1:optimal_d_tde1]
+Y_cao = MCDTS.genembed_for_prediction(x1, τ_cao)
+
+# kennel's method
+𝒟, τ_tde2, _ = optimal_traditional_de(x1, "fnn"; dmax = dmax, w = w1)
+optimal_d_tde2 = size(𝒟, 2)
+τ_kennel = [(i-1)*τ_tde2 for i = 1:optimal_d_tde2]
+Y_kennel = MCDTS.genembed_for_prediction(x1, τ_kennel)
+
+# hegger's method
+𝒟, τ_tde3, _ = optimal_traditional_de(x1, "ifnn"; dmax = dmax, w = w1)
+optimal_d_tde3 = size(𝒟, 2)
+τ_hegger = [(i-1)*τ_tde3 for i = 1:optimal_d_tde3]
+Y_hegger = MCDTS.genembed_for_prediction(x1, τ_hegger)
+
+# pecuzal
+taus = 0:100
+𝒟, τ_pec, _, L, _ = pecuzal_embedding(x1; τs = taus, w = w1)
+optimal_d_tde4 = size(𝒟, 2)
+Y_pec = MCDTS.genembed_for_prediction(x1, τ_pec)
+
+# mcdts
+taus = 0:30
+trials = 50
+max_depth = 10
+Tw = 1 # prediction horizon
+KNN = 20 # nearest neighbors for pred method
+K = KNN
+PredMeth = MCDTS.local_model("zeroth", KNN, Tw)
+PredLoss = MCDTS.PredictionLoss(1)
+PredType = MCDTS.MCDTSpredictionType(PredLoss, PredMeth)
+optmodel = MCDTS.MCDTSOptimGoal(MCDTS.Prediction_error(PredType), MCDTS.Range_function())
+@time tree = mcdts_embedding(Dataset(x1), optmodel, w1, taus, trials; max_depth = max_depth, verbose=true)
+best_node = MCDTS.best_embedding(tree)
+τ_mcdts = best_node.τs
+#τ_mcdts = [0, 8, 1]
+Y_mcdts = MCDTS.genembed_for_prediction(x1, τ_mcdts)
+
+# Multivariate
+data_sample = Dataset(hcat(x1,y1))
+
+# pecuzal
+taus = 0:100
+𝒟, τ_pec2, ts_pec2, L, _ = pecuzal_embedding(data_sample; τs = taus, w = w1)
+Y_pec2 = MCDTS.genembed_for_prediction(data_sample, τ_pec2, ts_pec2)
+
+# mcdts
+trials = 80
+taus = 0:30
+@time tree = mcdts_embedding(data_sample, optmodel, w1, taus, trials; max_depth = max_depth, verbose=true)
+best_node = MCDTS.best_embedding(tree)
+τ_mcdts2 = best_node.τs
+ts_mcdts2 = best_node.ts
+#τ_mcdts2 = [0, 4, 6, 1, 3, 2]
+#ts_mcdts2 = [1, 2, 2, 1, 2, 1]
+Y_mcdts2 = MCDTS.genembed_for_prediction(data_sample, τ_mcdts2, ts_mcdts2)
+
+# mcdts with continuity function
+taus = 0:100
+trials = 50
+max_depth = 10
+Tw = 10 # prediction horizon
+KNN = 5 # nearest neighbors for pred method
+K = KNN
+PredMeth = MCDTS.local_model("zeroth", KNN, Tw)
+PredLoss = MCDTS.PredictionLoss(1)
+PredType = MCDTS.MCDTSpredictionType(PredLoss, PredMeth)
+optmodel = MCDTS.MCDTSOptimGoal(MCDTS.Prediction_error(PredType), MCDTS.Continuity_function())
+@time tree = mcdts_embedding(Dataset(x1), optmodel, w1, taus, trials; max_depth = max_depth, verbose=true)
+best_node = MCDTS.best_embedding(tree)
+τ_mcdts3 = best_node.τs
+τ_mcdts3 = [0, 18]
+Y_mcdts3 = MCDTS.genembed_for_prediction(x1, τ_mcdts)
+
+@time tree = mcdts_embedding(data_sample, optmodel, w1, taus, trials; max_depth = max_depth, verbose=true)
+best_node = MCDTS.best_embedding(tree)
+τ_mcdts4 = best_node.τs
+#τ_mcdts4 = [0, 8, 1]
+#ts_mcdts4 = [1, 2, 2, 1, 2, 1]
+Y_mcdts4 = MCDTS.genembed_for_prediction(x1, τ_mcdts)
+
+# make predictions
+prediction_cao = deepcopy(Y_cao)
+prediction_kennel = deepcopy(Y_kennel)
+prediction_hegger = deepcopy(Y_hegger)
+prediction_pec = deepcopy(Y_pec)
+prediction_mcdts = deepcopy(Y_mcdts)
+prediction_pec2 = deepcopy(Y_pec2)
+prediction_mcdts2 = deepcopy(Y_mcdts2)
+
+
+for T = 1:T_steps
+    println(T)
+    # iterated one step
+    predicted_cao, _ = MCDTS.local_zeroth_prediction(prediction_cao, K1; theiler = w1)
+    push!(prediction_cao, predicted_cao)
+    predicted_kennel, _ = MCDTS.local_zeroth_prediction(prediction_kennel, K1; theiler = w1)
+    push!(prediction_kennel, predicted_kennel)
+    predicted_hegger, _ = MCDTS.local_zeroth_prediction(prediction_hegger, K1; theiler = w1)
+    push!(prediction_hegger, predicted_hegger)
+    predicted_pec, _ = MCDTS.local_zeroth_prediction(prediction_pec, K1; theiler = w1)
+    push!(prediction_pec, predicted_pec)
+    predicted_mcdts, _ = MCDTS.local_zeroth_prediction(prediction_mcdts, K1; theiler = w1)
+    push!(prediction_mcdts, predicted_mcdts)
+    predicted_pec2, _ = MCDTS.local_zeroth_prediction(prediction_pec2, K1; theiler = w1)
+    push!(prediction_pec2, predicted_pec2)
+    predicted_mcdts2, _ = MCDTS.local_zeroth_prediction(prediction_mcdts2, K1; theiler = w1)
+    push!(prediction_mcdts2, predicted_mcdts2)
+end
+
+# Plot predictions
+sp = length(tr)-T_steps
+t2 = (-sp+1:T_steps) ./ lyap_time
+
+figure(figsize=(20,10))
+subplot(5,1,1)
+plot(t2[8000:end], tr[8000:end,1], ".-", label="true data")
+plot(t2[end-T_steps+1:end], prediction_cao[end-T_steps+1:end,1], ".-", label="Cao")
+title("x-component (iterated one-step)")
+xlim(-5, 12)
+ylim(-20,20)
+xlabel("Lyapunov time units")
+legend()
+grid()
+
+subplot(5,1,2)
+plot(t2[8000:end], tr[8000:end,1], ".-", label="true data")
+plot(t2[end-T_steps+1:end], prediction_kennel[end-T_steps+1:end,1], ".-", label="Kennel")
+title("x-component (iterated one-step)")
+xlim(-5, 12)
+ylim(-20,20)
+xlabel("Lyapunov time units")
+legend()
+grid()
+
+subplot(5,1,3)
+plot(t2[8000:end], tr[8000:end,1], ".-", label="true data")
+plot(t2[end-T_steps+1:end], prediction_hegger[end-T_steps+1:end,1], ".-", label="Hegger")
+title("x-component (iterated one-step)")
+xlim(-5, 12)
+ylim(-20,20)
+xlabel("Lyapunov time units")
+legend()
+grid()
+
+subplot(5,1,4)
+plot(t2[8000:end], tr[8000:end,1], ".-", label="true data")
+plot(t2[end-T_steps+1:end], prediction_pec[end-T_steps+1:end,1], ".-", label="PECUZAL")
+title("x-component (iterated one-step)")
+xlim(-5, 12)
+ylim(-20,20)
+xlabel("Lyapunov time units")
+legend()
+grid()
+
+subplot(5,1,5)
+plot(t2[8000:end], tr[8000:end,1], ".-", label="true data")
+plot(t2[end-T_steps+1:end], prediction_mcdts[end-T_steps+1:end,1], ".-", label="MCDTS")
+title("x-component (iterated one-step)")
+xlim(-5, 12)
+ylim(-20,20)
+xlabel("Lyapunov time units")
+legend()
+grid()
+
+figure(figsize=(20,10))
+
+subplot(5,1,1)
+plot(t2[8000:end], tr[8000:end,1], ".-", label="true data")
+plot(t2[end-T_steps+1:end], prediction_pec2[end-T_steps+1:end,1], ".-", label="PECUZAL mult.")
+title("x-component (iterated one-step)")
+xlim(-5, 12)
+ylim(-20,20)
+xlabel("Lyapunov time units")
+legend()
+grid()
+
+subplot(5,1,2)
+plot(t2[8000:end], tr[8000:end,1], ".-", label="true data")
+plot(t2[end-T_steps+1:end], prediction_mcdts2[end-T_steps+1:end,1], ".-", label="MCDTS mult.")
+title("x-component (iterated one-step)")
+xlim(-5, 12)
+ylim(-20,20)
+xlabel("Lyapunov time units")
+legend()
+grid()

@@ -53,7 +53,7 @@ MCDTSOptimGoal() = MCDTSOptimGoal(L_statistic(), Continuity_function())
       stops. Note that `ΔL` is a negative value therefore `threshold` must be a small
       negative number.
     * `KNN::Int`: the amount of nearest neighbors considered, in order to compute the
-     L-statistic, in particular `σ_k^2` (read algorithm description [`uzal_cost`]@ref).
+      L-statistic, in particular `σ_k^2` (read algorithm description [`uzal_cost`]@ref).
     * `tws::AbstractRange{Int}`: Customization of the sampling of the different time horizons
       (T's), when computing Uzal's L-statistics. Here any kind of integer ranges (starting at 2)
       are allowed.
