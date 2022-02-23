@@ -31,19 +31,29 @@ println("\nTesting MCDTS complete tree, Lorenz63 univariate:")
     @test best_node2.τs == best_node.τs
     @test best_node2.L > best_node.L
 
-    # L with tws and threshold
+    # L with tws and less fiducials for computation
     Random.seed!(1234)
-    optmodel3 = MCDTS.MCDTSOptimGoal(MCDTS.L_statistic(-0.5,3,tws), MCDTS.Continuity_function())
+    tws = 2:2:delays[end]
+    samplesize = 0.5
+    optmodel3 = MCDTS.MCDTSOptimGoal(MCDTS.L_statistic(0,3,tws,samplesize), MCDTS.Continuity_function())
     @time tree3 = mcdts_embedding(Dataset(data[:,1]), optmodel3, w1, delays, runs)
     best_node3 = MCDTS.best_embedding(tree3)
-    @test length(best_node3.τs) < length(best_node2.τs)
-    @test best_node3.τs == [0, 18]
-    @test best_node3.L > best_node2.L
+    @test best_node3.τs == best_node.τs
+    @test best_node.L - 0.1 < best_node3.L < best_node.L + 0.1
+
+    # L with tws and threshold
+    Random.seed!(1234)
+    optmodel4 = MCDTS.MCDTSOptimGoal(MCDTS.L_statistic(-0.5,3,tws), MCDTS.Continuity_function())
+    @time tree4 = mcdts_embedding(Dataset(data[:,1]), optmodel4, w1, delays, runs)
+    best_node4 = MCDTS.best_embedding(tree4)
+    @test length(best_node4.τs) < length(best_node2.τs)
+    @test best_node4.τs == [0, 18]
+    @test best_node4.L > best_node2.L
 
     # FNN with threshold
     Random.seed!(1234)
-    optmodel4 = MCDTS.MCDTSOptimGoal(MCDTS.FNN_statistic(0.05), MCDTS.Continuity_function())
-    @time tree = mcdts_embedding(Dataset(data[:,1]), optmodel4, w1, delays, runs)
+    optmodel5 = MCDTS.MCDTSOptimGoal(MCDTS.FNN_statistic(0.05), MCDTS.Continuity_function())
+    @time tree = mcdts_embedding(Dataset(data[:,1]), optmodel5, w1, delays, runs)
     best_node = MCDTS.best_embedding(tree)
 
     L_YY = MCDTS.compute_delta_L(data[:,1], best_node.τs, delays[end];  w = w1)
@@ -332,5 +342,3 @@ println("\nTesting MCDTS complete tree, Lorenz Prediction:")
     @test L_mcdts < 0.4199
 
 end
-
-true

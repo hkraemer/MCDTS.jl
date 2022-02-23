@@ -330,13 +330,13 @@ end
       pre-selects the potential delays in each embedding cycle as well as the the
       Loss-Statistic Γ, which determines the Loss to be minimized by MCDTS
       [^Kraemer2021b] (see [`MCDTSOptimGoal`](@ref)).
-    * `w` is the Theiler window (neighbors in time with index `w` close to the point,
+    * `w::Int` is the Theiler window (neighbors in time with index `w` close to the point,
       that are excluded from being true neighbors. `w=0` means to exclude only the
       point itself, and no temporal neighbors. In case of multivariate time series
       input choose `w` as the maximum of all `wᵢ's`. As a default in the convience
       call this is estimated with a mutual information minimum method of DelayEmbeddings.jl
     * `delays = 0:100`: The possible time lags
-    * `N::Int`: The number of tree expansions
+    * `N::Int = 40`: The number of tree expansions
 
     ## Keyword Arguments
     * `choose_func`: Function to choose next node in the tree with, default

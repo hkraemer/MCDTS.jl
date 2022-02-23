@@ -57,6 +57,8 @@ MCDTSOptimGoal() = MCDTSOptimGoal(L_statistic(), Continuity_function())
     * `tws::AbstractRange{Int}`: Customization of the sampling of the different time horizons
       (T's), when computing Uzal's L-statistics. Here any kind of integer ranges (starting at 2)
       are allowed.
+    * `samplesize::Real = 1.`: determine the fraction of all phase space points
+      to be considered in the computation of the L-statistic(s).
 
     ## Defaults
     * When calling `L_statistic()`, a L_statistic-object is created, which uses no
@@ -73,12 +75,14 @@ struct L_statistic <: AbstractLoss
     threshold::AbstractFloat
     KNN::Int
     tws::AbstractRange{Int}
+    samplesize::Real
     # Constraints and Defaults
-    L_statistic(x=0,y=3,z=2:100) = begin
+    L_statistic(x=0,y=3,z=2:100,s=1.) = begin
         @assert x <= 0 "Please provide a (small) negative number for the threshold of ΔL."
-        @assert y > 0
+        @assert y > 0 "Number of considered nearest neighbors must be positive."
         @assert z[1] == 2 "The considered range for the time horizon of the L-function must start at 2."
-        typeof(x) <: Int ? new(convert(AbstractFloat, x),y,z) : new(x,y,z)
+        @assert 0 < s ≤ 1. "The samplesize must be in the interval (0 1]."
+        typeof(x) <: Int ? new(convert(AbstractFloat, x),y,z,s) : new(x,y,z,s)
     end
 end
 
