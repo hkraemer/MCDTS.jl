@@ -203,6 +203,7 @@ function compute_loss(Γ::FNN_statistic, Λ::AbstractDelayPreselection, dps::Vec
 
     r = Γ.r
     s = Ys[:,ts]
+    samplesize = Γ.samplesize
 
     max_idx = get_max_idx(Λ, dps, τ_vals, ts_vals, ts) # get the candidate delays
     isempty(max_idx) && return Float64[], Int64[], nothing
@@ -214,14 +215,24 @@ function compute_loss(Γ::FNN_statistic, Λ::AbstractDelayPreselection, dps::Vec
     Y_act2 = Y_act[1:end-τs[maximum(max_idx)-1],:]
     Y_act2 = DelayEmbeddings.standardize(Y_act2)
     vtree = KDTree(Y_act2, metric)
-    _, NNdist_old = DelayEmbeddings.all_neighbors(vtree, Y_act2, 1:length(Y_act2), 1, w)
+
+    NN = length(Y_act2)
+    if samplesize==1
+        ns = 1:NN
+        Nfp = length(ns)
+    else
+        Nfp = Int(floor(samplesize*NN)) # number of considered fiducial points
+        ns = sample(vec(1:NN), Nfp, replace = false)  # indices of fiducial points
+    end
+
+    _, NNdist_old = DelayEmbeddings.all_neighbors(vtree, Y_act2[ns], ns, 1, w)
 
     for (i,τ_idx) in enumerate(max_idx)
         # create candidate phase space vector for this peak/τ-value
         Y_trial = DelayEmbeddings.hcat_lagged_values(Y_act,s,τs[τ_idx-1])
         Y_trial = DelayEmbeddings.standardize(Y_trial)
         vtree = KDTree(Y_trial, metric)
-        _, NNdist_new = DelayEmbeddings.all_neighbors(vtree, Y_trial, 1:length(Y_trial), 1, w)
+        _, NNdist_new = DelayEmbeddings.all_neighbors(vtree, Y_trial[ns], ns, 1, w)
         # compute FNN-statistic
         FNN_trials[i] = fnn_embedding_cycle(NNdist_old, NNdist_new[1:length(NNdist_old)], r)
     end
@@ -234,6 +245,7 @@ end
 function compute_loss(Γ::CCM_ρ, Λ::AbstractDelayPreselection, dps::Vector{P}, Y_act::Dataset{D, T}, Ys, τs, w::Int, ts::Int, τ_vals, ts_vals; metric=Euclidean(), kwargs...) where {P, D, T}
 
     Y_other = DelayEmbeddings.standardize(Γ.timeseries)
+    samplesize = Γ.samplesize
 
     max_idx = get_max_idx(Λ, dps, τ_vals, ts_vals, ts) # get the candidate delays
     isempty(max_idx) && return Float64[], Int64[], nothing
@@ -248,8 +260,7 @@ function compute_loss(Γ::CCM_ρ, Λ::AbstractDelayPreselection, dps::Vector{P},
         # account for value-shift due to negative lags
         Ys_other = Y_other[1+maximum(tau_trials.*(-1)):length(Y_trial)+maximum(tau_trials.*(-1))]
         # compute ρ_CCM for Y_trial and Y_other
-        ρ_CCM[i], _ = MCDTS.ccm(Y_trial, Ys_other; metric = metric, w = w)
-
+        ρ_CCM[i], _, _ = MCDTS.ccm(Y_trial, Ys_other; metric = metric, w = w, samplesize = samplesize)
     end
     return -ρ_CCM, max_idx, [nothing for i in max_idx]
 end
@@ -478,7 +489,7 @@ end
 
 
 """
-    ccm(X, y; kwargs...) → ρ, y_hat
+    ccm(X, y; kwargs...) → ρ, y_hat, y_idx
 
     Compute the convergent crossmapping (CCM) (Sugihara et al. 2012) of a
     vector time series `X` (an embedded time series `x`) on the time series `y`
@@ -489,7 +500,8 @@ end
     used to construct `X`.
 
     Returns the correlation coefficient of `y` and its predicted values for `y_hat`,
-    based on the nearest neighbour structure of `X`.
+    based on the nearest neighbour structure of `X`. `y_idx` are the corresponding
+    indices, which have been used for computing `y_hat`.
     It is said that 'y' causes 'x', if ρ increases with increasing time series
     length AND ρ is "quite high".
 
@@ -500,18 +512,20 @@ end
                           causal relationships. The output ρ is an array of size
                           `length(lags)`, the output Y_hat is the one corresponding
                           to a lag of zero.
+    * `samplesize::Real = 0.1`: fraction of all phase space points (=`length(X)`)
+                                to be considered (fiducial points v)
 
 """
 function ccm(X::Dataset{D,T},Y::Vector{T}; metric = Euclidean(), w::Int = 1,
-    lags::AbstractArray = [0]) where {D,T<:Real}
+    lags::AbstractArray = [0], samplesize::Real = 1.) where {D,T<:Real}
 
     K = D+1
     @assert length(X)==length(Y)
+    @assert 0 < samplesize ≤ 1. "`samplesize` for computing ρ-CCM must be ∈ (0,1]"
     XX = Matrix(X)
     N = length(X)
 
-    # for potential later extension to sampled batches of fraction samplesize
-    samplesize = 1
+    # consider subset of state space points
     NN = floor(Int, samplesize*N)
     if samplesize == 1
         ns = 1:N # the fiducial point indices
@@ -537,8 +551,8 @@ function ccm(X::Dataset{D,T},Y::Vector{T}; metric = Euclidean(), w::Int = 1,
         # compute Y_hat as a wheighted mean
         Y_hat[i] = sum(ws .* Y[NNidxs])
     end
-    ρ = Statistics.cor(Y_hat, Y)
-    return ρ, Dataset(Y_hat)
+    ρ = Statistics.cor(Y_hat, Y[ns])
+    return ρ, Dataset(Y_hat), ns
 end
 
 

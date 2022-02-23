@@ -52,14 +52,22 @@ println("\nTesting MCDTS complete tree, Lorenz63 univariate:")
 
     # FNN with threshold
     Random.seed!(1234)
-    optmodel5 = MCDTS.MCDTSOptimGoal(MCDTS.FNN_statistic(0.05), MCDTS.Continuity_function())
-    @time tree = mcdts_embedding(Dataset(data[:,1]), optmodel5, w1, delays, runs)
+    optmodel4 = MCDTS.MCDTSOptimGoal(MCDTS.FNN_statistic(0.05), MCDTS.Continuity_function())
+    @time tree = mcdts_embedding(Dataset(data[:,1]), optmodel4, w1, delays, runs)
     best_node = MCDTS.best_embedding(tree)
+    @test best_node.τs == [0, 18, 9]
 
     L_YY = MCDTS.compute_delta_L(data[:,1], best_node.τs, delays[end];  w = w1)
     L_YY2 = MCDTS.compute_delta_L(data[:,1], best_node2.τs, delays[end];  w = w1)
     @test L_YY == L_YY2
     @test length(best_node.τs) == 3
+
+    # FNN with threshold and less fid-points
+    Random.seed!(1234)
+    optmodel4 = MCDTS.MCDTSOptimGoal(MCDTS.FNN_statistic(0.05,2,0.8), MCDTS.Continuity_function())
+    @time tree = mcdts_embedding(Dataset(data[:,1]), optmodel4, w1, delays, runs)
+    best_node_less = MCDTS.best_embedding(tree)
+    @test best_node_less.τs == [0, 18, 9]
 
 end
 
@@ -119,11 +127,21 @@ println("\nTesting MCDTS complete tree, coupled Logistic, CCM:")
     ts_mcdts = best_node.ts
     L = best_node.L
 
+    # less fid points
+    Random.seed!(1234)
+    optmodel2 = MCDTS.MCDTSOptimGoal(MCDTS.CCM_ρ(test2,1,0.5), MCDTS.Range_function())
+    @time tree2 = mcdts_embedding(Dataset(test1), optmodel2, w1, taus1, trials)
+    best_node2 = MCDTS.best_embedding(tree2)
+    τ_mcdts2 = best_node2.τs
+    ts_mcdts2 = best_node2.ts
+    L2 = best_node2.L
+
     @test L < -0.95
-    @test length(τ_mcdts) ==  3
-    @test τ_mcdts[1] == 0
-    @test τ_mcdts[2] == 2
-    @test τ_mcdts[3] == 1
+    @test L - .01 < L2 < L + .01
+    @test length(τ_mcdts) ==  3 == length(τ_mcdts2)
+    @test τ_mcdts[1] == 0 == τ_mcdts2[1]
+    @test τ_mcdts[2] == 2 == τ_mcdts2[2]
+    @test τ_mcdts[3] == 1 == τ_mcdts2[3]
 
     Random.seed!(1234)
     optmodel2 = MCDTS.MCDTSOptimGoal(MCDTS.CCM_ρ(test1), MCDTS.Range_function())

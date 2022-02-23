@@ -82,7 +82,7 @@ struct L_statistic <: AbstractLoss
         @assert y > 0 "Number of considered nearest neighbors must be positive."
         @assert z[1] == 2 "The considered range for the time horizon of the L-function must start at 2."
         @assert 0 < s ≤ 1. "The samplesize must be in the interval (0 1]."
-        typeof(x) <: Int ? new(convert(AbstractFloat, x),y,z,s) : new(x,y,z,s)
+        typeof(x) <: Int ? new(convert(AbstractFloat, x), y, z, s) : new(x,y,z,s)
     end
 end
 
@@ -96,7 +96,9 @@ end
     * `threshold::Float`: A threshold for the tolerable cumulative FNN decrease
       for the current embedding. When the fraction of FNNs fall below this threshold
       in an embedding cycle the embedding stops.
-    * `r::Float`: The FNN-distance-expansion threshold (typically set to 2).
+    * `r::Float = 2`: The FNN-distance-expansion threshold (typically set to 2).
+    * `samplesize::Real = 1.`: determine the fraction of all phase space points
+      to be considered in the computation of the L-statistic(s).
 
     ## Defaults
     * When calling `FNN_statistic()`, a FNN_statistic-object is created, which uses no
@@ -109,12 +111,14 @@ end
 struct FNN_statistic <: AbstractLoss
     threshold::AbstractFloat
     r::AbstractFloat
+    samplesize::Real
     # Constraints and Defaults
-    FNN_statistic(x=0.,y=2.) = begin
-        @assert x >= 0
-        @assert y > 0
-        typeof(x) <: Int ? new(convert(AbstractFloat, x),y) : new(x,y)
-        typeof(y) <: Int ? new(x,convert(AbstractFloat, y)) : new(x,y)
+    FNN_statistic(x=0.,y=2.,z=1.) = begin
+        @assert x >= 0 "Threshold for FNN-statistic must be ≥ 0"
+        @assert y > 0 "FNN-distance-expansion threshold must be >0"
+        @assert 0 < z ≤ 1. "The samplesize must be in the interval (0 1]."
+        typeof(x) <: Int ? new(convert(AbstractFloat, x),y,z) : new(x,y,z)
+        typeof(y) <: Int ? new(x,convert(AbstractFloat,y),z) : new(x,y,z)
     end
 end
 
@@ -129,10 +133,12 @@ end
 
     ## Fieldnames
     * `timeseries`: The time series CCM should cross map to.
-    * `threshold::Float`: A threshold for the sufficient correlation of the
+    * `threshold:: = 1: A threshold for the sufficient correlation of the
       cross-mapped values and the true values from `Y_CMM` for the current embedding.
       When the correlation coefficient exeeds this threshold in an embedding cycle
       the embedding stops.
+    * `samplesize::Real = 1.`: determine the fraction of all phase space points
+     to be considered in the computation of CCM_ρ.
 
     ## Defaults
     * When calling `CCM_ρ(timeseries)`, a CCM_ρ-object is created, storing
@@ -145,11 +151,13 @@ end
 struct CCM_ρ <: AbstractLoss
     timeseries::Vector
     threshold::AbstractFloat
+    samplesize::Real
 
     # Constraints and Defaults
-    CCM_ρ(x,y=1.) = begin
-        @assert y > 0 && y <= 1
-        typeof(y) <: Int ? new(x,convert(AbstractFloat, -y)) : new(x,-y)
+    CCM_ρ(x,y=1.,z=1.) = begin
+        @assert 0 < y ≤ 1 "Threshold must be a ∈ (0 1]"
+        @assert 0 < z ≤ 1. "The samplesize must be in the interval (0 1]."
+        typeof(y) <: Int ? new(x,convert(AbstractFloat, -y),z) : new(x,-y,z)
     end
 end
 
