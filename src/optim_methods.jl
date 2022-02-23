@@ -272,7 +272,7 @@ function compute_loss(Γ::Prediction_error, Λ::AbstractDelayPreselection, dps::
         ts_trials = (ts_vals...,ts,)
         Y_trial = genembed(Ys, tau_trials.*(-1), ts_trials)
         # make an in-sample prediction for Y_trial
-        prediction, temp = make_prediction(PredictionMethod, Y_trial; w = w, metric = metric, i_cycle=length(τ_vals), kwargs...)
+        prediction, temp = make_insample_prediction(PredictionMethod, Y_trial; w = w, metric = metric, i_cycle=length(τ_vals), kwargs...)
         push!(temps, temp)
         # compute loss/costs
         costs[i] = compute_costs_from_prediction(PredictionLoss, prediction, Y_trial, PredictionMethod.Tw)
@@ -305,11 +305,12 @@ end
 
 
 """
-    make_prediction(pred_meth::AbstractPredictionMethod, Y::AbstractDataset{D, ET};
+    make_insample_prediction(pred_meth::AbstractPredictionMethod, Y::AbstractDataset{D, ET};
             K::Int = 3, w::Int = 1, Tw::Int = 1, metric = Euclidean()) → prediction
 
-    Compute a in-sample `Tw`-time-steps-ahead of the data `Y`, using the prediction
-    method `pred_meth`. `w` is the Theiler window and `K` the nearest neighbors used.
+    Compute an in-sample `Tw`-time-steps-ahead prediction of the data `Y`, using
+    the prediction method `pred_meth`. `w` is the Theiler window and `K` the nearest
+    neighbors used.
 
     * `Y`: Dataset (Nt x N_embedd)
     * `K`: Nearest Neighbours
@@ -322,12 +323,19 @@ end
     nearest neighbours used gets adapted to 2(D+1) - with D the embedding dimension,
     if the provided `K` is lower than that number.")
 """
-function make_prediction(pred_meth::AbstractLocalPredictionMethod{:zeroth}, Y::AbstractDataset{D, ET}; w::Int = 1, metric = Euclidean(), i_cycle::Int=1, kwargs...) where {D, ET}
+function make_insample_prediction(pred_meth::AbstractLocalPredictionMethod, Y::AbstractDataset{D, ET}; w::Int = 1, metric = Euclidean(), i_cycle::Int=1, kwargs...) where {D, ET}
 
-    K = pred_meth.KNN
-    Tw = pred_meth.Tw
+    Tw = pred_meth.Tw # total time horizon
+    prediction = Y  # intitial trajectory prediction is based on
+    for i = 1:Tw
+        prediction = insample_prediction(pred_meth::AbstractLocalPredictionMethod, prediction; w = w, K = pred_meth.KNN)
+    end
+    return Dataset(prediction), nothing
+end
 
-    NN = length(Y)-Tw;
+function insample_prediction(pred_meth::AbstractLocalPredictionMethod{:zeroth}, Y::AbstractDataset{D, ET}; w::Int = 1, metric = Euclidean(), K::Int=1, Tw::Int=1) where {D, ET}
+
+    NN = length(Y)-Tw
     ns = 1:NN  # the fiducial point indices
     vs = Y[ns] # the fiducial points in the data set
     vtree = KDTree(Y[1:end-Tw], metric)
@@ -346,22 +354,18 @@ function make_prediction(pred_meth::AbstractLocalPredictionMethod{:zeroth}, Y::A
         # take the average as a prediction
         prediction[i,:] = mean(ϵ_ball; dims=1)
     end
-    return Dataset(prediction), nothing
+    return Dataset(prediction)
 end
-function make_prediction(pred_meth::AbstractLocalPredictionMethod{:linear}, Y::AbstractDataset{D, ET}; w::Int = 1, metric = Euclidean(), i_cycle::Int=1, kwargs...) where {D, ET}
-
-    K = pred_meth.KNN
-    Tw = pred_meth.Tw
+function insample_prediction(pred_meth::AbstractLocalPredictionMethod{:linear}, Y::AbstractDataset{D, ET}; w::Int = 1, metric = Euclidean(), K::Int=1, Tw::Int=1) where {D, ET}
 
     if K < 2*(size(Y,2)+1)
         K = 2*(size(Y,2)+1)
     end
-    NN = length(Y)-Tw;
+    NN = length(Y)-Tw
     ns = 1:NN  # the fiducial point indices
     vs = Y[ns] # the fiducial points in the data set
     vtree = KDTree(Y[1:end-Tw], metric)
     allNNidxs, _ = DelayEmbeddings.all_neighbors(vtree, vs, ns, K, w)
-
     prediction = zeros(ET, NN, D)
     # loop over each fiducial point
     for (i,v) in enumerate(vs)
@@ -394,7 +398,7 @@ function make_prediction(pred_meth::AbstractLocalPredictionMethod{:linear}, Y::A
             prediction[i,j] = Y[ns[i],:]'*ar_coeffs[j,:] + b[j]
         end
     end
-    return Dataset(prediction), nothing
+    return Dataset(prediction)
 end
 
 """
@@ -405,6 +409,7 @@ function compute_costs_from_prediction(PredictionLoss::AbstractPredictionLoss{1}
                             Y::AbstractDataset{D, T}, Tw::Int) where {D, T}
 
     NN = length(Y)-Tw;
+    @assert length(prediction) == NN
     ns = 1:NN  # the fiducial point indices
     costs = zeros(T, NN, D)
     @inbounds for i = 1:NN
@@ -417,6 +422,7 @@ function compute_costs_from_prediction(PredictionLoss::AbstractPredictionLoss{2}
                             Y::AbstractDataset{D, T}, Tw::Int) where {D, T}
 
     NN = length(Y)-Tw;
+    @assert length(prediction) == NN
     ns = 1:NN  # the fiducial point indices
     costs = zeros(T, NN, D)
     @inbounds for i = 1:NN
@@ -429,6 +435,7 @@ function compute_costs_from_prediction(PredictionLoss::AbstractPredictionLoss{3}
                             Y::AbstractDataset{D, T}, Tw::Int) where {D, T}
 
     NN = length(Y)-Tw;
+    @assert length(prediction) == NN
     ns = 1:NN  # the fiducial point indices
     costs = zeros(D)
     for j = 1:D
@@ -440,6 +447,7 @@ function compute_costs_from_prediction(PredictionLoss::AbstractPredictionLoss{4}
                             Y::AbstractDataset{D, T}, Tw::Int) where {D, T}
 
     NN = length(Y)-Tw;
+    @assert length(prediction) == NN
     ns = 1:NN  # the fiducial point indices
     costs = zeros(D)
     for j = 1:D
@@ -448,295 +456,6 @@ function compute_costs_from_prediction(PredictionLoss::AbstractPredictionLoss{4}
     return mean(costs)
 end
 
-
-"""
-    zeroth_prediction_cost(Y::Dataset; kwargs...) → Cost
-
-    Compute the mean squared one-step prediction error `Cost` of the Dataset `Y`.
-    The prediction is based on [`local_zeroth_prediction`](@ref).
-
-    ## Keyword arguments
-
-    * `samplesize = 1.0`: Number of considered fiducial points v as a fraction of
-      input state space trajectory `Y`'s length, in order to average the conditional
-      variances and neighborhood sizes (read algorithm description) to produce `L`.
-    * `K = 3`: the amount of nearest neighbors considered, in order to compute the
-      mean squared prediction error (read algorithm description).
-    * `metric = Euclidean()`: metric used for finding nearest neigbhors in the input
-      state space trajectory `Y.
-    * `w = 1`: Theiler window (neighbors in time with index `w` close to the point,
-      that are excluded from being true neighbors). `w=0` means to exclude only the
-      point itself, and no temporal neighbors.
-    * `Tw = 1`: The time horizon for predictions. The `Cost` is the average error
-      over these timesteps.
-"""
-function zeroth_prediction_cost(Y::AbstractDataset{D, ET};
-        K::Int = 3, w::Int = 1, Tw::Int = 1,samplesize::Real = 1.0,
-        metric = Euclidean()) where {D, ET}
-
-    # select a random state space vector sample according to input samplesize
-    NN = length(Y)-Tw;
-    NNN = floor(Int, samplesize*NN)
-    if samplesize < 1
-        ns = sample(1:NN, NNN; replace=false) # the fiducial point indices
-    else
-        ns = 1:NN  # the fiducial point indices
-    end
-
-    vs = Y[ns] # the fiducial points in the data set
-
-    vtree = KDTree(Y[1:end-Tw], metric)
-    allNNidxs, _ = DelayEmbeddings.all_neighbors(vtree, vs, ns, K, w)
-
-    error = zeros(ET, NN, D)
-    # loop over each fiducial point
-    for (i,v) in enumerate(vs)
-        NNidxs = allNNidxs[i] # indices of k nearest neighbors to v
-        errors = zeros(ET, Tw, D)
-        for T = 1:Tw
-            ϵ_ball = zeros(ET, K, D) # preallocation
-            # determine neighborhood one time step ahead
-            @inbounds for (k, j) in enumerate(NNidxs)
-                ϵ_ball[k, :] .= Y[j + T]
-            end
-            # take the average as a prediction
-            prediction = zeros(ET, D)
-            prediction[:] = mean(ϵ_ball; dims=1)
-            errors[T,:] = (Vector(prediction) .- Vector(Y[ns[i]+T])).^2
-        end
-        error[i,:] = mean(errors; dims=1)
-    end
-    return sqrt.(mean(error; dims=1))
-end
-
-
-"""
-    zeroth_prediction_cost_KL(Y::Dataset; kwargs...) → Cost
-Compute the KL-divergence `Cost` of the Dataset `Y`.
-The prediction is based on [`local_zeroth_prediction`](@ref).
-
-## Keyword arguments
-
-* `samplesize = 1.0`: Number of considered fiducial points v as a fraction of
-  input state space trajectory `Y`'s length, in order to average the conditional
-  variances and neighborhood sizes (read algorithm description) to produce `L`.
-* `K = 3`: the amount of nearest neighbors considered, in order to compute the
-  mean squared prediction error (read algorithm description).
-* `metric = Euclidean()`: metric used for finding nearest neigbhors in the input
-  state space trajectory `Y.
-* `w = 1`: Theiler window (neighbors in time with index `w` close to the point,
-  that are excluded from being true neighbors). `w=0` means to exclude only the
-  point itself, and no temporal neighbors.
-* `Tw = 1`: The time horizon for predictions. The `Cost` is the average error
-  over these timesteps.
-
-"""
-function zeroth_prediction_cost_KL(Y::AbstractDataset{D, ET};
-        K::Int = 3, w::Int = 1, Tw::Int = 1,samplesize::Real = 1.0,
-        metric = Euclidean()) where {D, ET}
-
-    # select a random state space vector sample according to input samplesize
-    NN = length(Y)-Tw;
-    NNN = floor(Int, samplesize*NN)
-    if samplesize < 1
-        ns = sample(1:NN, NNN; replace=false) # the fiducial point indices
-    else
-        ns = 1:NN  # the fiducial point indices
-    end
-    vs = Y[ns] # the fiducial points in the data set
-    vtree = KDTree(Y[1:end-Tw], metric)
-    allNNidxs, _ = DelayEmbeddings.all_neighbors(vtree, vs, ns, K, w)
-
-    KL_distances = zeros(ET, Tw, D)
-
-    for T = 1:Tw
-        predictions = zeros(ET, NN, D)
-        # loop over each fiducial point
-        for (i,v) in enumerate(vs)
-            NNidxs = allNNidxs[i] # indices of k nearest neighbors to v
-
-            ϵ_ball = zeros(ET, K, D) # preallocation
-            # determine neighborhood one time step ahead
-            @inbounds for (k, j) in enumerate(NNidxs)
-                ϵ_ball[k, :] .= Y[j + T]
-            end
-            # take the average as a prediction
-            predictions[i,:] = mean(ϵ_ball; dims=1)
-
-        end
-        # compute KL-divergence for each component of the prediction
-        for j = 1:D
-            KL_distances[T,j] = compute_KL_divergence(Vector(predictions[:,j]),Y[ns .+ T,j])
-        end
-    end
-    return mean(KL_distances; dims=1)
-end
-
-"""
-    linear_prediction_cost_KL(Y::Dataset; kwargs...) → Cost
-Compute the KL-divergence `Cost` of the Dataset `Y`.
-The prediction is based on [`local_linear_prediction`](@ref).
-
-## Keyword arguments
-
-* `samplesize = 1.0`: Number of considered fiducial points v as a fraction of
-  input state space trajectory `Y`'s length, in order to average the conditional
-  variances and neighborhood sizes (read algorithm description) to produce `L`.
-* `K = 3`: the amount of nearest neighbors considered, in order to compute the
-  mean squared prediction error (read algorithm description).
-* `metric = Euclidean()`: metric used for finding nearest neigbhors in the input
-  state space trajectory `Y.
-* `w = 1`: Theiler window (neighbors in time with index `w` close to the point,
-  that are excluded from being true neighbors). `w=0` means to exclude only the
-  point itself, and no temporal neighbors.
-* `Tw = 1`: The time horizon for predictions. The `Cost` is the average error
-  over these timesteps.
-
-"""
-function linear_prediction_cost_KL(Y::AbstractDataset{D, ET};
-        K::Int = 3, w::Int = 1, Tw::Int = 1, samplesize::Real = 1.0,
-        metric = Euclidean()) where {D, ET}
-
-    # select a random state space vector sample according to input samplesize
-    NN = length(Y)-Tw;
-    NNN = floor(Int, samplesize*NN)
-    if samplesize < 1
-        ns = sample(1:NN, NNN; replace=false) # the fiducial point indices
-    else
-        ns = 1:NN  # the fiducial point indices
-    end
-    vs = Y[ns] # the fiducial points in the data set
-
-    vtree = KDTree(Y[1:end-Tw], metric)
-    allNNidxs, _ = DelayEmbeddings.all_neighbors(vtree, vs, ns, K, w)
-
-    KL_distances = zeros(ET, Tw, D)
-
-    for T = 1:Tw
-        predictions = zeros(ET, NN, D)
-        # loop over each fiducial point
-        for (i,v) in enumerate(vs)
-            NNidxs = allNNidxs[i] # indices of k nearest neighbors to v
-            A = ones(K,D) # datamatrix for later linear equation to solve for AR-process
-            ϵ_ball = zeros(ET, K, D) # preallocation
-            # determine neighborhood one time step ahead
-            @inbounds for (k, j) in enumerate(NNidxs)
-                ϵ_ball[k, :] .= Y[j + T]
-                A[k,:] = Y[j]
-            end
-
-            b  = zeros(D)
-            ar_coeffs = zeros(D, D)
-            namess = ["X"*string(z) for z = 1:D]
-            ee = Meta.parse.(namess)
-            formula_expression = Term(:Y) ~ sum(term.(ee))
-
-            for j = 1:D
-                data = DataFrame()
-                for (cnt,var) in enumerate(namess)
-                    data[!, var] = A[:,cnt]
-                end
-                data.Y = ϵ_ball[:,j]
-
-                ols = lm(formula_expression, data)
-                b[j] = coef(ols)[1]
-                for k = 1:D
-                    ar_coeffs[j,k] = coef(ols)[k+1]
-                end
-                predictions[i,j] = Y[ns[i],:]'*ar_coeffs[j,:] + b[j]
-            end
-
-        end
-        # compute KL-divergence for each component of the prediction
-        for j = 1:D
-            KL_distances[T,j] = compute_KL_divergence(Vector(predictions[:,j]),Y[ns .+ T,j])
-        end
-    end
-    return mean(KL_distances; dims=1)
-
-end
-
-
-"""
-    linear_prediction_cost(Y::Dataset; kwargs...) → Cost
-Compute the mean squared one-step prediction error `Cost` of the Dataset `Y`.
-The prediction is based on [`local_linear_prediction`](@ref).
-
-## Keyword arguments
-
-* `samplesize = 1.0`: Number of considered fiducial points v as a fraction of
-  input state space trajectory `Y`'s length, in order to average the conditional
-  variances and neighborhood sizes (read algorithm description) to produce `L`.
-* `K = 3`: the amount of nearest neighbors considered, in order to compute the
-  mean squared prediction error (read algorithm description).
-* `metric = Euclidean()`: metric used for finding nearest neigbhors in the input
-  state space trajectory `Y.
-* `w = 1`: Theiler window (neighbors in time with index `w` close to the point,
-  that are excluded from being true neighbors). `w=0` means to exclude only the
-  point itself, and no temporal neighbors.
-* `Tw = 1`: The time horizon for predictions. The `Cost` is the average error
-  over these timesteps.
-
-"""
-function linear_prediction_cost(Y::AbstractDataset{D, ET};
-        K::Int = 3, w::Int = 1, Tw::Int = 1, samplesize::Real = 1.0,
-        metric = Euclidean()) where {D, ET}
-
-    # select a random state space vector sample according to input samplesize
-    NN = length(Y)-Tw;
-    NNN = floor(Int, samplesize*NN)
-    if samplesize < 1
-        ns = sample(1:NN, NNN; replace=false) # the fiducial point indices
-    else
-        ns = 1:NN  # the fiducial point indices
-    end
-
-    vs = Y[ns] # the fiducial points in the data set
-
-    vtree = KDTree(Y[1:end-Tw], metric)
-    allNNidxs, _ = DelayEmbeddings.all_neighbors(vtree, vs, ns, K, w)
-
-    error = zeros(ET, NN, D)
-    # loop over each fiducial point
-    for (i,v) in enumerate(vs)
-        NNidxs = allNNidxs[i] # indices of k nearest neighbors to v
-        errors = zeros(ET, Tw, D)
-        for T = 1:Tw
-            A = ones(K,D) # datamatrix for later linear equation to solve for AR-process
-            ϵ_ball = zeros(ET, K, D) # preallocation
-            # determine neighborhood one time step ahead
-            @inbounds for (k, j) in enumerate(NNidxs)
-                ϵ_ball[k, :] .= Y[j + T]
-                A[k,:] = Y[j]
-            end
-            # make local linear model of the last point of the trajectory
-            prediction = zeros(D)
-            b  = zeros(D)
-            ar_coeffs = zeros(D, D)
-            namess = ["X"*string(z) for z = 1:D]
-            ee = Meta.parse.(namess)
-            formula_expression = Term(:Y) ~ sum(term.(ee))
-
-            for j = 1:D
-                data = DataFrame()
-                for (cnt,var) in enumerate(namess)
-                    data[!, var] = A[:,cnt]
-                end
-                data.Y = ϵ_ball[:,j]
-
-                ols = lm(formula_expression, data)
-                b[j] = coef(ols)[1]
-                for k = 1:D
-                    ar_coeffs[j,k] = coef(ols)[k+1]
-                end
-                prediction[j] = Y[ns[i],:]'*ar_coeffs[j,:] + b[j]
-            end
-            errors[T,:] = (prediction .- Y[ns[i]+T]).^2
-        end
-        error[i,:] = mean(errors; dims=1)
-    end
-    return vec(sqrt.(mean(error; dims=1)))
-end
 
 """
     Compute the Kullback-Leibler-Divergence of the two Vectors `a` and `b`.
@@ -831,6 +550,10 @@ end
     Compute the delay statistic according to the chosen method in `optimalg.Λ` (see [`MCDTSOptimGoal`](@ref))
 """
 function get_delay_statistic(Λ::Continuity_function, Ys, τs, w, τ_vals, ts_vals; metric = Euclidean(), kwargs... )
+
+    # TODO: We have to figure out whether this makes a difference. To me it is not clear yet
+    # why ε★ behaves differently when negative delays are used. I thought it is
+    # symmetric.
     # ε★ = MCDTS.pecora(Ys, Tuple(τ_vals), Tuple(ts_vals); delays = τs, w = w,
     #         samplesize = Λ.samplesize, K = Λ.K, metric = metric, α = Λ.α,
     #         p = Λ.p, PRED = false)
@@ -839,7 +562,6 @@ function get_delay_statistic(Λ::Continuity_function, Ys, τs, w, τ_vals, ts_va
             p = Λ.p)
     return ε★
 end
-
 function get_delay_statistic(Λ::Range_function, Ys, τs, w, τ_vals, ts_vals; kwargs... )
     return repeat(Vector(1:length(τs)), outer = [1,size(Ys,2)])
 end

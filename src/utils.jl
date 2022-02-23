@@ -230,48 +230,6 @@ end
 moving_average(vs,n) = [sum(@view vs[i:(i+n-1)])/n for i in 1:(length(vs)-(n-1))]
 
 """
-    local_zeroth_prediction(Y::Dataset, K::Int = 5; kwargs...) → x_pred, e_expect
-
-Perform a "zeroth" order prediction for the time horizon `Tw` (default = 1). Based
-on `K` nearest neighbours of the last point of the given trajectory `Y`, the
-`Tw`-step ahead prediction is simply the mean of the images of these `K`-nearest
-neighbours. The output `x_pred` is, thus, the `Tw`-step ahead prediction vector.
-The function also returns `e_expect`, the expected error on the prediction `x_pred`,
-computed as the mean of the RMS-errors of all `K`-neighbours-errors.
-
-Keywords:
-* `metric = Euclidean()`: Metric used for distance computation
-* `theiler::Int = 1`: Theiler window for excluding serially correlated points from
-   the nearest neighbour search.
-* `Tw::Int = 1`: The prediction time in sampling units. If `Tw > 1`, a multi-step
-  prediction is performed.
-
-"""
-function local_zeroth_prediction(Y::Dataset{D,T}, K::Int = 5;
-    metric = Euclidean(), theiler::Int = 1, Tw::Int = 1) where {D,T}
-
-    NN = length(Y)
-    ns = 1:NN
-    vs = Y[ns]
-    vtree = KDTree(Y[1:length(Y)-Tw,:], metric)
-    allNNidxs, _ = DelayEmbeddings.all_neighbors(vtree, vs, ns, K, theiler)
-
-    ϵ_ball = zeros(T, K, D) # preallocation
-    # loop over each fiducial point
-    NNidxs = allNNidxs[end] # indices of k nearest neighbors to v
-    # determine neighborhood `Tw` time steps ahead
-    @inbounds for (i, j) in enumerate(NNidxs)
-        ϵ_ball[i, :] .= Y[j + Tw]
-    end
-    # take the average as a prediction
-    prediction = mean(ϵ_ball; dims=1)
-    # predicted prediction error
-    error_predict = sum((ϵ_ball .- prediction).^2; dims=1)
-
-    return vec(prediction), vec(error_predict)
-end
-
-"""
     local_random_analogue_prediction(Y::Dataset, K::Int; kwargs...) → Y_predict
 Compute a one step ahead prediction `Y_predict` of the input `Y`, based on `K`
 nearest neighbors. Here the prediction is a random pick from all `K`-nearest
@@ -306,36 +264,6 @@ function local_random_analogue_prediction(Y::Dataset{D,T}, K::Int = 5;
     return vec(prediction)
 end
 
-"""
-    iterated_local_zeroth_prediction(Y::Dataset, K::Int = 5, Tw::Int = 2; kwargs...) → Y_predict
-Perform an iterated one step forecast over `Tw` time steps using the local zeroth
-prediction algorithm. `Y_predict` is a Dataset of length `Tw` and dimension like
-`Y`.
-
-Keywords:
-* `metric = Euclidean()`: Metric used for distance computation
-* `theiler::Int = 1`: Theiler window for excluding serially correlated points from
-   the nearest neighbour search.
-* `verbose::Bool = false`: When set to `true`, the function prints the actual time
-  step, which it is computing.
-"""
-function iterated_local_zeroth_prediction(Y::Dataset{D,T}, K::Int = 5, Tw::Int = 2;
-    metric = Euclidean(), theiler::Int = 1, verbose::Bool = false) where {D,T}
-
-    @assert Tw > 1 "Time horizon must be a positive integer"
-    N = length(Y)
-    predicted_trajectory = deepcopy(Y)
-    for Th = 1:Tw
-        if verbose
-            println("Compute prediction for time step $Th")
-        end
-        # iterated one step
-        predicted, _ = MCDTS.local_zeroth_prediction(predicted_trajectory, K;
-                                            theiler = theiler, metric = metric)
-        push!(predicted_trajectory, predicted)
-    end
-    return Dataset(predicted_trajectory[N+1:end])
-end
 
 """
     iterated_local_zeroth_prediction_embed(Y::Dataset, τs::Vector, K::Int = 5, Tw::Int = 2; kwargs...) → Y_predict
@@ -405,6 +333,78 @@ function rw_norm(x::Vector{T}, Tw::Int) where {T}
 end
 
 """
+    local_zeroth_prediction(Y::Dataset, K::Int = 5; kwargs...) → x_pred, e_expect
+
+    Perform a "zeroth" order prediction for the time horizon `Tw` (default = 1). Based
+    on `K` nearest neighbours of the last point of the given trajectory `Y`, the
+    `Tw`-step ahead prediction is simply the mean of the images of these `K`-nearest
+    neighbours. The output `x_pred` is, thus, the `Tw`-step ahead prediction vector.
+    The function also returns `e_expect`, the expected error on the prediction `x_pred`,
+    computed as the mean of the RMS-errors of all `K`-neighbours-errors.
+
+    Keywords:
+    * `metric = Euclidean()`: Metric used for distance computation
+    * `theiler::Int = 1`: Theiler window for excluding serially correlated points from
+       the nearest neighbour search.
+    * `Tw::Int = 1`: The prediction time in sampling units. If `Tw > 1`, a multi-step
+      prediction is performed.
+
+"""
+function local_zeroth_prediction(Y::Dataset{D,T}, K::Int = 5;
+    metric = Euclidean(), theiler::Int = 1, Tw::Int = 1) where {D,T}
+
+    NN = length(Y)
+    ns = 1:NN
+    vs = Y[ns]
+    vtree = KDTree(Y[1:length(Y)-Tw,:], metric)
+    allNNidxs, _ = DelayEmbeddings.all_neighbors(vtree, vs, ns, K, theiler)
+
+    ϵ_ball = zeros(T, K, D) # preallocation
+    # consider NNs of the very last point of the trajectory
+    NNidxs = allNNidxs[end] # indices of k nearest neighbors to v
+    # determine neighborhood `Tw` time steps ahead
+    @inbounds for (i, j) in enumerate(NNidxs)
+        ϵ_ball[i, :] .= Y[j + Tw]
+    end
+    # take the average as a prediction
+    prediction = mean(ϵ_ball; dims=1)
+    # predicted prediction error
+    error_predict = sum((ϵ_ball .- prediction).^2; dims=1)
+
+    return vec(prediction), vec(error_predict)
+end
+
+"""
+    iterated_local_zeroth_prediction(Y::Dataset, K::Int = 5, Tw::Int = 2; kwargs...) → Y_predict
+    Perform an iterated one step forecast over `Tw` time steps using the local zeroth
+    prediction algorithm. `Y_predict` is a Vector of dimension like `Y`.
+
+    Keywords:
+    * `metric = Euclidean()`: Metric used for distance computation
+    * `theiler::Int = 1`: Theiler window for excluding serially correlated points from
+       the nearest neighbour search.
+    * `verbose::Bool = false`: When set to `true`, the function prints the actual time
+      step, which it is computing.
+"""
+function iterated_local_zeroth_prediction(Y::Dataset{D,T}, K::Int = 5, Tw::Int = 2;
+    metric = Euclidean(), theiler::Int = 1, verbose::Bool = false) where {D,T}
+
+    @assert Tw > 0 "Time horizon must be a positive integer"
+    N = length(Y)
+    predicted_trajectory = deepcopy(Y)
+    for Th = 1:Tw
+        if verbose
+            println("Compute prediction for time step $Th")
+        end
+        # iterated one step
+        predicted, _ = MCDTS.local_zeroth_prediction(predicted_trajectory, K;
+                                            theiler = theiler, metric = metric)
+        push!(predicted_trajectory, predicted)
+    end
+    return predicted_trajectory[N+1:end]
+end
+
+"""
     local_linear_prediction(Y::Dataset, K::Int = 5; kwargs...) → x_pred, e_expect
 
     Perform a prediction for the time horizon `Tw` (default = 1) by a locally linear
@@ -432,8 +432,10 @@ function local_linear_prediction(Y::Dataset{D,T}, K::Int = 5;
 
     ϵ_ball = zeros(T, K, D) # preallocation
     A = ones(K,D) # datamatrix for later linear equation to solve for AR-process
-    # loop over each fiducial point
+    # consider NNs of the very last point of the trajectory
     NNidxs = allNNidxs[end] # indices of k nearest neighbors to v
+    println("GG")
+    println("neighbours: $NNidxs")
     # determine neighborhood `Tw` time steps ahead
     @inbounds for (i, j) in enumerate(NNidxs)
         ϵ_ball[i, :] .= Y[j + Tw]
@@ -473,8 +475,7 @@ end
     iterated_local_linear_prediction(Y::Dataset, K::Int = 5, Tw::Int = 2; kwargs...) → Y_predict
 
     Perform an iterated one step forecast over `Tw` time steps using the local linear
-    prediction algorithm. `Y_predict` is a Dataset of length `Tw` and dimension like
-    `Y`.
+    prediction algorithm. `Y_predict` is a Vector of dimension like `Y`.
 
     Keywords:
     * `metric = Euclidean()`: Metric used for distance computation
@@ -486,7 +487,7 @@ end
 function iterated_local_linear_prediction(Y::Dataset{D,T}, K::Int = 5, Tw::Int = 2;
     metric = Euclidean(), theiler::Int = 1, verbose::Bool = false) where {D,T}
 
-    @assert Tw > 1 "Time horizon must be a positive integer"
+    @assert Tw > 0 "Time horizon must be a positive integer"
     N = length(Y)
     predicted_trajectory = deepcopy(Y)
     for Th = 1:Tw
@@ -498,8 +499,10 @@ function iterated_local_linear_prediction(Y::Dataset{D,T}, K::Int = 5, Tw::Int =
                                             theiler = theiler, metric = metric)
         push!(predicted_trajectory, predicted)
     end
-    return Dataset(predicted_trajectory[N+1:end])
+    return predicted_trajectory[N+1:end]
 end
+
+
 
 """
     iterated_local_linear_prediction_embed(Y::Dataset, τs::Vector, K::Int = 5, Tw::Int = 2; kwargs...) → Y_predict

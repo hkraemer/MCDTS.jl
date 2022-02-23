@@ -9,10 +9,10 @@ import Base.show
 
 export mcdts_embedding
 
-include("pecora.jl")
+#include("pecora.jl")   # maybe this one is not needed anymore
 include("optim.jl")
 include("tree.jl")
 include("optim_methods.jl")
-include("data_analysis_functions.jl")
+include("utils.jl")
 
 end # module

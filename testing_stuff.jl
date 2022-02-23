@@ -8,60 +8,53 @@ pygui(true)
 lo = Systems.lorenz()
 tr = trajectory(lo, 500; dt = 0.01, Ttr = 10)
 
-s = tr[1:4000,1]
-
-dds = 0:100
-ee = MCDTS.pecora(s, (0,18), (1,1); w = 17, delays = dds)
+s = tr[1:20000,:]
 
 figure()
-plot(dds, ee)
+plot3D(s[:,1],s[:,2],s[:,3])
+
+
+figure()
+plot(s[:,1])
+
+Y = s
+Tw = 1
+NN = length(Y)-Tw
+prediction = Y  # intitial trajectory
+prediction1 = MCDTS.insample_zeroth_prediction(prediction1; w = 15, K = 3)
+prediction2 = MCDTS.insample_linear_prediction(prediction2; w = 15, K = 1)
+
+prediction1, _ = MCDTS.make_insample_prediction(MCDTS.local_model("zeroth", 3, 6), Y; w = 15)
+prediction2, _ = MCDTS.make_insample_prediction(MCDTS.local_model("linear", 3, 6), Y; w = 15)
+
+
+N = length(s)
+NN = length(prediction1)
+
+figure()
+plot(1:N,s[:,1])
+plot(7:N,prediction1[:,1], label="zeroth")
+plot(7:N,prediction2[:,1], label="linear")
+legend()
 grid()
 
-ee2 = MCDTS.pecora(s, (0,18), (1,1); w = 17, delays = dds, PRED=true)
-
-figure()
-plot(dds, ee2)
-grid()
-
-
-τs = (0,2)
-js = (1,1)
-
-using DelayEmbeddings
-using Distances
-using StatsBase
-using Neighborhood
+predicted_hegger, _ = MCDTS.local_linear_prediction(prediction_hegger, K1; theiler = w1)
+push!(prediction_hegger, predicted_hegger)
 
 metric = Euclidean()
-delays = dds
-vspace = DelayEmbeddings.genembed(s, τs, js)
-vtree = KDTree(vspace.data[1:end-maximum(abs.(delays))], metric)
 
-vspace = MCDTS.genembed_for_prediction(s, τs, js)
-# indices of random fiducial points (with valid time range w.r.t. T)
-ns = vec(1:(length(vspace)-maximum(abs.(delays))))
+Y = prediction_hegger
+NN = length(Y)
+ns = 1:NN
+vs = Y[ns]
+vtree = KDTree(Y[1:length(Y)-1,:], metric)
+allNNidxs, _ = DelayEmbeddings.all_neighbors(vtree, vs, ns, K, theiler)
 
-
-s = collect(1:100)
-τs = [0, 18, 4]
-js = [1, 1, 1]
-vspace1 = genembed(s, τs.*(-1), js) # takes positive τs's and converts internally
-vspace2 = MCDTS.genembed_for_prediction(s, τs, js)
-
-
-
-τ_vals = [0, 18, 9]
-ts_vals = [1,1,1]
-τs = delays
-w = w1
-metric = Euclidean()
-
-
-ε★, _ = DelayEmbeddings.pecora(Dataset(data[:,1]), Tuple(τ_vals), Tuple(ts_vals); delays = τs, w = w,
-        metric = metric)
-
-using PyPlot
-pygui(true)
+ϵ_ball = zeros(T, K, D) # preallocation
+A = ones(K,D) # datamatrix for later linear equation to solve for AR-process
+# consider NNs of the very last point of the trajectory
+NNidxs = allNNidxs[end-1]
 
 figure()
-plot(delays,ε★)
+plot(Y[end-700:end,1])
+ylim([-20, 20])

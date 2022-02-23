@@ -284,12 +284,12 @@ println("\nTesting MCDTS complete tree, Lorenz Prediction:")
     @test L_mcdts < 0.0159
 
 
-    # Prediction Range-function, zeroth predictor first comp-MSE, Tw = 5
+    # Prediction Range-function, zeroth predictor first comp-MSE, Tw = 60
     delays = 0:5
     runs = 10
 
     Random.seed!(1234)
-    Tw = 5 #prediction horizon
+    Tw = 60 #prediction horizon
     KNN = 3 # nearest neighbors for pred method
 
     PredMeth = MCDTS.local_model("zeroth", KNN, Tw)
@@ -301,9 +301,35 @@ println("\nTesting MCDTS complete tree, Lorenz Prediction:")
     best_node = MCDTS.best_embedding(tree)
     τ_mcdts = best_node.τs
     L_mcdts = best_node.L
-    @test length(τ_mcdts) == 2
-    @test τ_mcdts[2] == 5
-    @test L_mcdts < 0.0237
+    @test length(τ_mcdts) == 4
+    @test τ_mcdts[2] == 2
+    @test τ_mcdts[3] == 5
+    @test τ_mcdts[4] == 4
+    @test L_mcdts < 0.9999
+
+
+    # Prediction Continuity-function, linear predictor first all-comp-MSE, Tw = 50
+    delays = 0:80
+    runs = 10
+    Random.seed!(1234)
+    Tw = 50 #prediction horizon
+    KNN = 4 # nearest neighbors for pred method
+
+    PredMeth = MCDTS.local_model("zeroth", KNN, Tw)
+    PredLoss = MCDTS.PredictionLoss(2)
+    PredType = MCDTS.MCDTSpredictionType(PredLoss, PredMeth)
+    optmodel = MCDTS.MCDTSOptimGoal(MCDTS.Prediction_error(PredType), MCDTS.Continuity_function())
+
+    @time tree = mcdts_embedding(Dataset(x1), optmodel, w1, delays, runs; max_depth = max_depth)
+    best_node = MCDTS.best_embedding(tree)
+    τ_mcdts = best_node.τs
+    L_mcdts = best_node.L
+    @test length(τ_mcdts) == 5
+    @test τ_mcdts[2] == 58
+    @test τ_mcdts[3] == 71
+    @test τ_mcdts[4] == 13
+    @test τ_mcdts[5] == 26
+    @test L_mcdts < 0.4199
 
 end
 
