@@ -70,17 +70,17 @@ function get_potential_delays(optimalg::AbstractMCDTSOptimGoal, Yss::Dataset{D, 
     τ_pot = reduce(vcat, τ_pots)
     ts_pot = reduce(vcat, ts_pots)
     L_pot = reduce(vcat, L_pots)
-    temps = reduce(vcat, temps)
+    temp = reduce(vcat, temps)
 
     if isempty(τ_pot)
         flag = true
-        return Int[],Int[],eltype(L_pots)[], flag, temps
+        return Int[],Int[],eltype(L_pots)[], flag, []
     end
 
-    taus, ts, Ls, converge, temps = get_embedding_params_according_to_loss(optimalg.Γ,
-                                            τ_pot, ts_pot, L_pot, temps, L_old)
+    taus, ts, Ls, converge, temp = get_embedding_params_according_to_loss(optimalg.Γ,
+                                            τ_pot, ts_pot, L_pot, temp, L_old)
 
-    return taus, ts, Ls, converge, temps
+    return taus, ts, Ls, converge, temp
 end
 
 """
@@ -183,7 +183,7 @@ function compute_loss(Γ::L_statistic, Λ::AbstractDelayPreselection, dps::Vecto
     s = Ys[:,ts]
 
     max_idx = get_max_idx(Λ, dps, τ_vals, ts_vals, ts) # get the candidate delays
-    isempty(max_idx) && return Float64[], Int64[], nothing
+    isempty(max_idx) && return Float64[], Int64[], []
 
     L_decrease = zeros(Float64, length(max_idx))
     for (i,τ_idx) in enumerate(max_idx)
@@ -206,10 +206,9 @@ function compute_loss(Γ::FNN_statistic, Λ::AbstractDelayPreselection, dps::Vec
     samplesize = Γ.samplesize
 
     max_idx = get_max_idx(Λ, dps, τ_vals, ts_vals, ts) # get the candidate delays
-    isempty(max_idx) && return Float64[], Int64[], nothing
+    isempty(max_idx) && return Float64[], Int64[], []
 
     FNN_trials = zeros(Float64, length(max_idx))
-    ξ_trials = zeros(Float64, length(max_idx))
 
     # compute nearest-neighbor-distances for actual trajectory
     Y_act2 = Y_act[1:end-τs[maximum(max_idx)-1],:]
@@ -248,7 +247,7 @@ function compute_loss(Γ::CCM_ρ, Λ::AbstractDelayPreselection, dps::Vector{P},
     samplesize = Γ.samplesize
 
     max_idx = get_max_idx(Λ, dps, τ_vals, ts_vals, ts) # get the candidate delays
-    isempty(max_idx) && return Float64[], Int64[], nothing
+    isempty(max_idx) && return Float64[], Int64[], []
 
     ρ_CCM = zeros(Float64, length(max_idx))
 
@@ -264,6 +263,7 @@ function compute_loss(Γ::CCM_ρ, Λ::AbstractDelayPreselection, dps::Vector{P},
     end
     return -ρ_CCM, max_idx, [nothing for i in max_idx]
 end
+
 
 """
     Return the loss based on a `Tw`-step-ahead local-prediction.
@@ -285,7 +285,7 @@ function compute_loss(Γ::Prediction_error, Λ::AbstractDelayPreselection, dps::
         Y_trial = genembed(Ys, tau_trials.*(-1), ts_trials)
         # make an in-sample prediction for Y_trial
         prediction, temp = make_insample_prediction(PredictionMethod, Y_trial; w = w, metric = metric, i_cycle=length(τ_vals), kwargs...)
-        push!(temps, temp)
+        Base.push!(temps, temp)
         # compute loss/costs
         costs[i] = compute_costs_from_prediction(PredictionLoss, prediction, Y_trial, PredictionMethod.Tw)
     end
@@ -344,7 +344,7 @@ function make_insample_prediction(pred_meth::AbstractLocalPredictionMethod, Y::A
     end
     return Dataset(prediction), nothing
 end
-
+ 
 function insample_prediction(pred_meth::AbstractLocalPredictionMethod{:zeroth}, Y::AbstractDataset{D, ET}; w::Int = 1, metric = Euclidean(), K::Int=1, Tw::Int=1) where {D, ET}
 
     NN = length(Y)-Tw

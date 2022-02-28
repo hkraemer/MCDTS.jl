@@ -26,7 +26,7 @@ get_ts(n::Root) = Int[]
 
 function Base.show(io::IO,n::Root)
 
-    if n.children == nothing
+    if isnothing(n.children)
         return print(io,string("Embedding tree, no tree search yet performed"))
     else
         best_node = best_embedding(n)
@@ -58,7 +58,7 @@ mutable struct Node{T,S} <: AbstractTreeElement
     temp::S
 end
 
-N_children(n::AbstractTreeElement) = n.children == nothing ? 0 : length(n.children)
+N_children(n::AbstractTreeElement) = isnothing(n.children) ? 0 : length(n.children)
 get_τs(n::Node) = n.τs
 get_ts(n::Node) = n.ts
 get_children_Ls(n::AbstractTreeElement) = [n.children[i].L for i in 1:N_children(n)]
@@ -226,7 +226,7 @@ function expand!(n::Root, optimalg::AbstractMCDTSOptimGoal, data::Dataset{D, T},
     for i=1:max_depth # loops until converged or max_depth is reached
         # next embedding step
         # only if it was not already computed
-        if current_node.children == nothing
+        if isnothing(current_node.children)
             τs, ts, Ls, converged, temps = next_embedding(current_node, optimalg, data, w, delays; kwargs...)
 
             if converged
@@ -292,7 +292,7 @@ function best_embedding(r::Root)
     current_node = r
     while not_finished
 
-        if current_node.children == nothing
+        if isnothing(current_node.children)
             not_finished = false
             return current_node
         else

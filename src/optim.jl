@@ -57,7 +57,7 @@ MCDTSOptimGoal() = MCDTSOptimGoal(L_statistic(), Continuity_function())
     * `tws::AbstractRange{Int}`: Customization of the sampling of the different time horizons
       (T's), when computing Uzal's L-statistics. Here any kind of integer ranges (starting at 2)
       are allowed.
-    * `samplesize::Real = 1.`: determine the fraction of all phase space points
+    * `samplesize::Real = 1.`: the fraction of all phase space points
       to be considered in the computation of the L-statistic(s).
 
     ## Defaults
@@ -97,7 +97,7 @@ end
       for the current embedding. When the fraction of FNNs fall below this threshold
       in an embedding cycle the embedding stops.
     * `r::Float = 2`: The FNN-distance-expansion threshold (typically set to 2).
-    * `samplesize::Real = 1.`: determine the fraction of all phase space points
+    * `samplesize::Real = 1.`: the fraction of all phase space points
       to be considered in the computation of the L-statistic(s).
 
     ## Defaults
@@ -137,7 +137,7 @@ end
       cross-mapped values and the true values from `Y_CMM` for the current embedding.
       When the correlation coefficient exeeds this threshold in an embedding cycle
       the embedding stops.
-    * `samplesize::Real = 1.`: determine the fraction of all phase space points
+    * `samplesize::Real = 1.`: the fraction of all phase space points
      to be considered in the computation of CCM_ρ.
 
     ## Defaults
@@ -154,7 +154,7 @@ struct CCM_ρ <: AbstractLoss
     samplesize::Real
 
     # Constraints and Defaults
-    CCM_ρ(x,y=1.,z=1.) = begin
+    CCM_ρ(x,y=1.0,z=1) = begin
         @assert 0 < y ≤ 1 "Threshold must be a ∈ (0 1]"
         @assert 0 < z ≤ 1. "The samplesize must be in the interval (0 1]."
         typeof(y) <: Int ? new(x,convert(AbstractFloat, -y),z) : new(x,-y,z)
@@ -174,24 +174,29 @@ end
       for the current embedding. When the prediction error, specified in
       `PredictionType`, falls below this threshold in an embedding cycle the
       embedding stops.
+    * `samplesize::Real = 1.`: the fraction of all phase space points
+      to be considered in the computation of the prediction error under the given
+      `PredictionType`.
 
     ## Defaults
     * When calling `Prediction_error()`, a Prediction_error-object is created,
-      which uses the threshold 0, i.e. no threshold and a zeroth-order predictor
+      which uses the threshold 0, i.e. no threshold, a zeroth-order predictor
       (see [`MCDTSpredictionType`](@ref), [`PredictionLoss`](@ref) &
-      [`local_model`](@ref))
+      [`local_model`](@ref)) and a full phase space sample (samplesize=1).
 """
 struct Prediction_error <: AbstractLoss
     PredictionType::AbstractMCDTSpredictionType
     threshold::AbstractFloat
+    samplesize::Real
     # Constraints and Defaults
-    Prediction_error(x,y) = begin
-        @assert y >= 0
+    Prediction_error(x ,y=0, z=1) = begin
+        @assert y ≥ 0 "A positive threshold for the prediciton loss must be chosen."
+        @assert 0 < z ≤ 1. "The samplesize must be in the interval (0 1]."
+        new(x, y, z)
     end
-    Prediction_error(x) = new(x,0.)
-    Prediction_error() = new(MCDTSpredictionType(),0.)
-end
 
+end
+Prediction_error() = Prediction_error(MCDTSpredictionType(), 0, 1)
 
 """
     MCDTSpredictionType <: AbstractMCDTSpredictionType
@@ -229,13 +234,14 @@ end
 
     ## Fieldnames
     * `type::Int` is an integer, which encodes the type of prediction error:
-    * For `type = 1` the root mean squared prediction error over the first component,
+
+    - For `type = 1` the root mean squared prediction error over the first component,
       i.e. the timeseries, which needs to be predicted, is used. (default)
-    * For `type = 2` the root mean squared prediction error over all components
+    - For `type = 2` the root mean squared prediction error over all components
       (dimensionality of the state space) is used.
-    * For `type = 3` the mean Kullback-Leibler Distance of the predicted and the true
+    - For `type = 3` the mean Kullback-Leibler Distance of the predicted and the true
       values of the first component, i.e. the timeseries, which needs to be predicted, is used.
-    * For `type = 4` the mean Kullback-Leibler Distance of the predicted and the true
+    - For `type = 4` the mean Kullback-Leibler Distance of the predicted and the true
       values over all components (dimensionality of the state space) is used.
 
     ## Defaults
@@ -311,16 +317,15 @@ end
 """
 struct Continuity_function <: AbstractDelayPreselection
     K::Int
-    samplesize
-    α
-    p
+    samplesize::Real
+    α::Real
+    p::Real
     # Constraints and Defaults
     Continuity_function(k=13,x=1.,y=0.05,z=0.5) = begin
         @assert k > 7 "At least 8 nearest neighbors must be in the δ-ball, in order to gurantee a valid statistic."
         @assert 0. < x ≤ 1. "Please select a valid `samplesize`, which denotes a fraction of considered fiducial points, i.e. `samplesize` ∈ (0 1]"
         @assert 1. > y > 0.
         @assert 1. > z > 0.
-        @assert typeof(x) <:Real && typeof(y) <:Real && typeof(z) <:Real
         new(k,x,y,z)
     end
 end

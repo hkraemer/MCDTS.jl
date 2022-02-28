@@ -148,8 +148,8 @@ function compute_delta_L(s::Vector{T}, τs::Vector{Int}, T_max::Int;
         # embedding one cycle
         Y_next = DelayEmbeddings.hcat_lagged_values(Y_act, tss, τ)
         # compute ΔL for this cycle
-        ΔL += uzal_cost_pecuzal_mcdts(Y_act, Y_next, T_max; K = KNN, w = w,
-                                                    metric = metric, tws = tws)
+        ΔL += uzal_cost_pecuzal_mcdts(Y_act, Y_next, T_max; K = KNN, w,
+                                                    metric, tws)
         Y_act = Y_next
     end
     return ΔL
@@ -167,8 +167,8 @@ function compute_delta_L(Y::Dataset{D, T}, τs::Vector{Int}, js::Vector{Int},
         # embedding one cycle
         Y_next = DelayEmbeddings.hcat_lagged_values(Y_act, ts[:,js[i+1]], τ)
         # compute ΔL for this cycle
-        ΔL += uzal_cost_pecuzal_mcdts(Y_act, Y_next, T_max; K = KNN, w = w,
-                                                    metric = metric, tws = tws)
+        ΔL += uzal_cost_pecuzal_mcdts(Y_act, Y_next, T_max; K = KNN, w,
+                                                    metric, tws)
         Y_act = Y_next
     end
     return ΔL
@@ -297,7 +297,7 @@ function iterated_local_zeroth_prediction_embed(Y::Dataset{D,T}, τs::Vector, K:
         end
         # iterated one step
         predicted, _ = MCDTS.local_zeroth_prediction(predicted_trajectory, K;
-                                            theiler = theiler, metric = metric)
+                                            theiler, metric)
         for i = 2:d
             predicted[i] = predicted_trajectory[end-τs[i],1]
         end
@@ -398,7 +398,7 @@ function iterated_local_zeroth_prediction(Y::Dataset{D,T}, K::Int = 5, Tw::Int =
         end
         # iterated one step
         predicted, _ = MCDTS.local_zeroth_prediction(predicted_trajectory, K;
-                                            theiler = theiler, metric = metric)
+                                            theiler, metric)
         push!(predicted_trajectory, predicted)
     end
     return predicted_trajectory[N+1:end]
@@ -434,8 +434,7 @@ function local_linear_prediction(Y::Dataset{D,T}, K::Int = 5;
     A = ones(K,D) # datamatrix for later linear equation to solve for AR-process
     # consider NNs of the very last point of the trajectory
     NNidxs = allNNidxs[end] # indices of k nearest neighbors to v
-    println("GG")
-    println("neighbours: $NNidxs")
+
     # determine neighborhood `Tw` time steps ahead
     @inbounds for (i, j) in enumerate(NNidxs)
         ϵ_ball[i, :] .= Y[j + Tw]
@@ -496,7 +495,7 @@ function iterated_local_linear_prediction(Y::Dataset{D,T}, K::Int = 5, Tw::Int =
         end
         # iterated one step
         predicted, _ = MCDTS.local_linear_prediction(predicted_trajectory, K;
-                                            theiler = theiler, metric = metric)
+                                            theiler, metric)
         push!(predicted_trajectory, predicted)
     end
     return predicted_trajectory[N+1:end]
@@ -536,7 +535,7 @@ function iterated_local_linear_prediction_embed(Y::Dataset{D,T}, τs::Vector, K:
         end
         # iterated one step
         predicted, _ = MCDTS.local_linear_prediction(predicted_trajectory, K;
-                                            theiler = theiler, metric = metric)
+                                            theiler, metric)
         for i = 2:d
             predicted[i] = predicted_trajectory[end-τs[i],1]
         end
