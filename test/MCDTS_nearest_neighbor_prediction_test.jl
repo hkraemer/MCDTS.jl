@@ -119,6 +119,29 @@ println("\nTesting MCDTS complete tree, Lorenz Prediction:")
     L_mcdts5 = best_node.L
     @test τ_mcdts5 == [0, 2]
     @test ts_mcdts5 == [1, 2]
+    @test 0.027 < L_mcdts5 < 0.028
+
+
+    # multivariate prediction range-function, zeroth predictor first-comp-MSE, less fiducials
+    
+    Random.seed!(1234)
+    Tw = 1 #prediction horizon
+    KNN = 3 # nearest neighbors for pred method
+    samplesize = 0.5
+
+    PredMeth = MCDTS.local_model("zeroth", KNN, Tw)
+    PredLoss = MCDTS.PredictionLoss(1)
+    PredType = MCDTS.MCDTSpredictionType(PredLoss, PredMeth)
+    optmodel = MCDTS.MCDTSOptimGoal(MCDTS.Prediction_error(PredType,0,samplesize), MCDTS.Range_function())
+    
+    tree = mcdts_embedding(data_sample, optmodel, w1, delays, runs; max_depth = max_depth)
+    best_node = MCDTS.best_embedding(tree)
+    τ_mcdts5 = best_node.τs
+    ts_mcdts5 = best_node.ts
+    L_mcdts5 = best_node.L
+    @test τ_mcdts5 == [0, 4, 2]
+    @test ts_mcdts5 == [1, 1, 1]
+    @test 0.616 < L_mcdts5 < 0.617
     
     # Prediction Continuity-function, zeroth predictor first comp-MSE
     delays = 0:100
@@ -212,6 +235,26 @@ println("\nTesting MCDTS complete tree, Lorenz Prediction:")
     L_mcdts = best_node.L
     @test τ_mcdts == [0, 9, 5]
     @test 0.033 < L_mcdts < 0.034
+
+    # Prediction Continuity-function, linear predictor first all-comp-MSE, Tw = 50, more neighbors, less fiducials
+    delays = 0:80
+    runs = 10
+    Random.seed!(1234)
+    Tw = 5 #prediction horizon
+    KNN = 6 # nearest neighbors for pred method
+    samplesize = 0.5
+
+    PredMeth = MCDTS.local_model("linear", KNN, Tw)
+    PredLoss = MCDTS.PredictionLoss(2)
+    PredType = MCDTS.MCDTSpredictionType(PredLoss, PredMeth)
+    optmodel = MCDTS.MCDTSOptimGoal(MCDTS.Prediction_error(PredType,0,samplesize), MCDTS.Continuity_function())
+
+    tree = mcdts_embedding(Dataset(x1), optmodel, w1, delays, runs; max_depth = max_depth)
+    best_node = MCDTS.best_embedding(tree)
+    τ_mcdts = best_node.τs
+    L_mcdts = best_node.L
+    @test τ_mcdts == [0, 9, 5]
+    @test 0.164 < L_mcdts < 0.165
 
 end
 end

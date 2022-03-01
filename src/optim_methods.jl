@@ -272,6 +272,7 @@ function compute_loss(Γ::Prediction_error, Λ::AbstractDelayPreselection, dps::
 
     PredictionLoss = Γ.PredictionType.loss
     PredictionMethod = Γ.PredictionType.method
+    samplesize = Γ.samplesize
 
     max_idx = get_max_idx(Λ, dps, τ_vals, ts_vals, ts) # get the candidate delays
     isempty(max_idx) && return Float64[], Int64[], []
@@ -284,7 +285,7 @@ function compute_loss(Γ::Prediction_error, Λ::AbstractDelayPreselection, dps::
         ts_trials = (ts_vals...,ts,)
         Y_trial = genembed(Ys, tau_trials.*(-1), ts_trials)
         # make an in-sample prediction for Y_trial
-        prediction, ns, temp = insample_prediction(PredictionMethod, Y_trial; w = w, metric = metric, i_cycle=length(τ_vals), kwargs...)
+        prediction, ns, temp = insample_prediction(PredictionMethod, Y_trial; samplesize, w, metric, i_cycle=length(τ_vals), kwargs...)
         Base.push!(temps, temp)
         # compute loss/costs
         costs[i] = compute_costs_from_prediction(PredictionLoss, prediction, Y_trial, PredictionMethod.Tw, ns)
@@ -318,7 +319,7 @@ end
 
 """
     insample_prediction(pred_meth::AbstractPredictionMethod, Y::AbstractDataset{D, ET};
-            K::Int = 3, w::Int = 1, Tw::Int = 1, metric = Euclidean()) → prediction
+            samplesize::Real = 1, K::Int = 3, w::Int = 1, Tw::Int = 1, metric = Euclidean()) → prediction
 
     Compute an in-sample `Tw`-time-steps-ahead prediction of the data `Y`, using
     the prediction method `pred_meth`. `w` is the Theiler window and `K` the nearest
@@ -329,17 +330,17 @@ end
     * `w`: Theiler window
     * `Tw`: Prediction horizon
     * `metric`: Metric for NN search
+    * `samplesize`: fraction of considered points in the trajectory
     * `i_cycle`: Which embedding cycling we are predicting for
 
     Note: In case of a local linear prediction method `pred_meth` the number of
     nearest neighbours used gets adapted to 2(D+1) - with D the embedding dimension,
     if the provided `K` is lower than that number.")
 """
-function insample_prediction(pred_meth::AbstractLocalPredictionMethod, Y::AbstractDataset{D, ET}; w::Int = 1, metric = Euclidean(), i_cycle::Int=1, kwargs...) where {D, ET}
+function insample_prediction(pred_meth::AbstractLocalPredictionMethod, Y::AbstractDataset{D, ET}; samplesize::Real= 1, w::Int = 1, metric = Euclidean(), i_cycle::Int=1, kwargs...) where {D, ET}
 
     Tw = pred_meth.Tw # total time horizon
     NN = length(Y)-Tw
-    samplesize=1
     if samplesize==1
         ns = 1:NN
         Nfp = length(ns)
