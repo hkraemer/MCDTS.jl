@@ -284,10 +284,10 @@ function compute_loss(Γ::Prediction_error, Λ::AbstractDelayPreselection, dps::
         ts_trials = (ts_vals...,ts,)
         Y_trial = genembed(Ys, tau_trials.*(-1), ts_trials)
         # make an in-sample prediction for Y_trial
-        prediction, temp = insample_prediction(PredictionMethod, Y_trial; w = w, metric = metric, i_cycle=length(τ_vals), kwargs...)
+        prediction, ns, temp = insample_prediction(PredictionMethod, Y_trial; w = w, metric = metric, i_cycle=length(τ_vals), kwargs...)
         Base.push!(temps, temp)
         # compute loss/costs
-        costs[i] = compute_costs_from_prediction(PredictionLoss, prediction, Y_trial, PredictionMethod.Tw)
+        costs[i] = compute_costs_from_prediction(PredictionLoss, prediction, Y_trial, PredictionMethod.Tw, ns)
     end
     return costs, max_idx, temps
 end
@@ -339,40 +339,48 @@ function insample_prediction(pred_meth::AbstractLocalPredictionMethod, Y::Abstra
 
     Tw = pred_meth.Tw # total time horizon
     NN = length(Y)-Tw
-    ns = 1:NN # fiducial points
+    samplesize=1
+    if samplesize==1
+        ns = 1:NN
+        Nfp = length(ns)
+    else
+        Nfp = Int(floor(samplesize*NN)) # number of considered fiducial points
+        ns = sample(vec(1:NN), Nfp, replace = false)  # indices of fiducial points
+    end
     prediction_new = deepcopy(Y[ns,:]) # intitial trajectory up to the prediction time horizon
     prediction_old = deepcopy(Y) # intitial trajectory prediction is based on 
     for i = 1:Tw
         insample_prediction!(pred_meth, prediction_old, prediction_new, ns; w, K = pred_meth.KNN, Tw_step = i)
     end
-    return prediction_new, nothing
+    return prediction_new, ns, nothing
 end
  
 function insample_prediction!(pred_meth::AbstractLocalPredictionMethod{:zeroth}, prediction_old::AbstractDataset{D, ET}, 
-                prediction_new::AbstractDataset{D, ET}, ns::AbstractRange = 1:length(prediction); 
+                prediction_new::AbstractDataset{D, ET}, ns::Union{AbstractRange, AbstractVector}; 
                 w::Int = 1, metric = Euclidean(), K::Int=1, Tw_step::Int=1) where {D, ET}
 
     NN = length(prediction_new)
-    vtree = KDTree(prediction_old[1:NN+Tw_step-1], metric)  
-    allNNidxs, _ = DelayEmbeddings.all_neighbors(vtree, prediction_new[ns], ns, K, w)
+    vtree = KDTree(prediction_old[1:NN+Tw_step-1], metric)
+    ns_act = ns .+ (Tw_step -1)  
+    allNNidxs, _ = DelayEmbeddings.all_neighbors(vtree, prediction_old[ns_act], ns_act, K, w)
     ϵ_ball = zeros(ET, K, D) # preallocation
     # loop over each fiducial point
-    for (i,v) in enumerate(ns)
+    for (i,v) in enumerate(ns_act)
         NNidxs = allNNidxs[i] # indices of k nearest neighbors to v
 
         # determine neighborhood one time step ahead
         @inbounds for (k, j) in enumerate(NNidxs)
-            ϵ_ball[k, :] .= prediction_old[j + 1] # consider 1-step ahead prediction
+            ϵ_ball[k, :] .= prediction_old[j+1] # consider 1-step ahead prediction
         end
         # take the average as a prediction
         prediction_new[i] = mean(ϵ_ball; dims=1)
     end
-    for i = 1:NN
-        prediction_old[i+Tw_step] = prediction_new[i] # update trajectory with the predicted values
+    for (i,v) in enumerate(ns_act)
+        prediction_old[v+1] = prediction_new[i] # update trajectory with the predicted 1-step ahead values
     end 
 end
 function insample_prediction!(pred_meth::AbstractLocalPredictionMethod{:linear}, prediction_old::AbstractDataset{D, ET}, 
-                prediction_new::AbstractDataset{D, ET}, ns::AbstractRange = 1:length(prediction);
+                prediction_new::AbstractDataset{D, ET}, ns::Union{AbstractRange, AbstractVector};
                 w::Int = 1, metric = Euclidean(), K::Int=1, Tw_step::Int=1) where {D, ET}
 
     if K < 2*(D+1)
@@ -380,14 +388,15 @@ function insample_prediction!(pred_meth::AbstractLocalPredictionMethod{:linear},
     end
     NN = length(prediction_new)
     vtree = KDTree(prediction_old[1:NN+Tw_step-1], metric)  
-    allNNidxs, _ = DelayEmbeddings.all_neighbors(vtree, prediction_new[ns], ns, K, w)
+    ns_act = ns .+ (Tw_step -1) 
+    allNNidxs, _ = DelayEmbeddings.all_neighbors(vtree, prediction_old[ns_act], ns_act, K, w)
     prediction = zeros(ET, D) # preallocation
     ϵ_ball = zeros(ET, K, D) # preallocation
     b  = zeros(D) # preallocation
     ar_coeffs = zeros(D, D) # preallocation
 
     # loop over each fiducial point
-    for (i,v) in enumerate(ns)
+    for (i,v) in enumerate(ns_act)
         NNidxs = allNNidxs[i] # indices of k nearest neighbors to v
         A = ones(K,D) # datamatrix for later linear equation to solve for AR-process
         # determine neighborhood one time step ahead
@@ -412,12 +421,12 @@ function insample_prediction!(pred_meth::AbstractLocalPredictionMethod{:linear},
             for k = 1:D
                 ar_coeffs[j,k] = coef(ols)[k+1]
             end
-            prediction[j] = prediction_old[ns[i],:]'*ar_coeffs[j,:] + b[j]
+            prediction[j] = prediction_old[v,:]'*ar_coeffs[j,:] + b[j]
         end
         prediction_new[i] = prediction
     end
-    for i = 1:NN
-        prediction_old[i+Tw_step] = prediction_new[i] # update trajectory with the predicted values
+    for (i,v) in enumerate(ns_act)
+        prediction_old[v+1] = prediction_new[i] # update trajectory with the predicted values
     end 
 end
 
@@ -426,37 +435,34 @@ end
     by PredictionLoss
 """
 function compute_costs_from_prediction(PredictionLoss::AbstractPredictionLoss{1}, prediction::AbstractDataset{D, T},
-                            Y::AbstractDataset{D, T}, Tw::Int) where {D, T}
+                            Y::AbstractDataset{D, T}, Tw::Int, ns::Union{AbstractRange,AbstractVector}) where {D, T}
 
-    NN = length(Y)-Tw;
-    @assert length(prediction) == NN
-    ns = 1:NN  # the fiducial point indices
+    NN = length(ns)
+    @assert length(prediction) == length(ns)
     costs = zeros(T, NN, D)
-    @inbounds for i = 1:NN
-        costs[i,:] = (Vector(prediction[i]) .- Vector(Y[ns[i]+Tw])).^2
+    @inbounds for (i,v) in enumerate(ns)
+        costs[i,:] = (Vector(prediction[i]) .- Vector(Y[v+Tw])).^2
     end
     c = sqrt.(mean(costs; dims=1))
     return c[1]
 end
 function compute_costs_from_prediction(PredictionLoss::AbstractPredictionLoss{2}, prediction::AbstractDataset{D, T},
-                            Y::AbstractDataset{D, T}, Tw::Int) where {D, T}
+                            Y::AbstractDataset{D, T}, Tw::Int, ns::Union{AbstractRange,AbstractVector}) where {D, T}
 
-    NN = length(Y)-Tw;
-    @assert length(prediction) == NN
-    ns = 1:NN  # the fiducial point indices
+    NN = length(ns)
+    @assert length(prediction) == length(ns)
     costs = zeros(T, NN, D)
-    @inbounds for i = 1:NN
-        costs[i,:] = (Vector(prediction[i]) .- Vector(Y[ns[i]+Tw])).^2
+    @inbounds for (i,v) in enumerate(ns)
+        costs[i,:] = (Vector(prediction[i]) .- Vector(Y[v+Tw])).^2
     end
     c = sqrt.(mean(costs; dims=1))
     return mean(c)
 end
 function compute_costs_from_prediction(PredictionLoss::AbstractPredictionLoss{3}, prediction::AbstractDataset{D, T},
-                            Y::AbstractDataset{D, T}, Tw::Int) where {D, T}
+                            Y::AbstractDataset{D, T}, Tw::Int, ns::Union{AbstractRange,AbstractVector}) where {D, T}
 
-    NN = length(Y)-Tw;
-    @assert length(prediction) == NN
-    ns = 1:NN  # the fiducial point indices
+    NN = length(ns)
+    @assert length(prediction) == length(ns)
     costs = zeros(D)
     for j = 1:D
         costs[j] = compute_KL_divergence(Vector(prediction[:,j]),Y[ns .+ Tw,j])
@@ -464,11 +470,10 @@ function compute_costs_from_prediction(PredictionLoss::AbstractPredictionLoss{3}
     return costs[1]
 end
 function compute_costs_from_prediction(PredictionLoss::AbstractPredictionLoss{4}, prediction::AbstractDataset{D, T},
-                            Y::AbstractDataset{D, T}, Tw::Int) where {D, T}
+                            Y::AbstractDataset{D, T}, Tw::Int, ns::Union{AbstractRange,AbstractVector}) where {D, T}
 
-    NN = length(Y)-Tw;
-    @assert length(prediction) == NN
-    ns = 1:NN  # the fiducial point indices
+    NN = length(ns)
+    @assert length(prediction) == length(ns)
     costs = zeros(D)
     for j = 1:D
         costs[j] = compute_KL_divergence(Vector(prediction[:,j]),Y[ns .+ Tw,j])
