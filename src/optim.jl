@@ -268,27 +268,37 @@ end
      `KNN`-nearest neighbors) or `"linear"` (local linear regression on the
      `KNN`-nearest neighbors).
     * `KNN::Int`: The number of considered nearest neighbors.
-    * `Tw::Int` : The prediction horizon in sampling units.
+    * `Tw_out::Int` : The prediction horizon in sampling units for the out-of-sample prediction.
+    * `Tw_in::Int` : The prediction horizon in sampling units for the in-sample prediction.
+    * `trials::Int` : The number of different out-of-sample prediction trials.
 
     ## Defaults
     * When calling `local_model()` a local_model-object is constructed with a zeroth
-      order prediction scheme, 2 nearest neighbors and a 1-step-ahead prediction.
+      order prediction scheme, 2 nearest neighbors, a 1-step-ahead in-sample prediction, 
+      a 10-step-ahead out-of-sample prediction and 20 out-of-sample trials.
     * When calling `local_model(method)` a local_model-object is constructed with a
-      `method`-prediction scheme, 2 nearest neighbors and a 1-step-ahead prediction.
+      `method`-prediction scheme, 2 nearest neighbors, a 1-step-ahead in-sample prediction, 
+      a 10-step-ahead out-of-sample prediction and 20 out-of-sample trials.
     * When calling `local_model(method,KNN)` a local_model-object is constructed with a
-     `method`-prediction scheme, `KNN` nearest neighbors and a 1-step-ahead prediction.
+     `method`-prediction scheme, `KNN` nearest neighbors, a 1-step-ahead in-sample prediction, 
+     a 10-step-ahead out-of-sample prediction and 20 out-of-sample trials.
 """
 struct local_model{m} <: AbstractLocalPredictionMethod{m}
     method::String
     KNN::Int
-    Tw::Int
+    Tw_out::Int
+    Tw_in::Int
+    trials::Int
+    
     # Constraints and Defaults
-    local_model(x="zeroth", y=2, z=1) = begin
+    local_model(x="zeroth", y=2, z=10, zz=1, zzz=20) = begin
         @assert x in ["zeroth", "linear"]
         @assert y > 0
         @assert z > 0
+        @assert zz > 0
+        @assert zzz > 0
         m = Symbol(x)
-        new{m}(x,y,z)
+        new{m}(x,y,z,zz,zzz)
     end
 end
 

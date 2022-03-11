@@ -1,8 +1,12 @@
+import Pkg
+Pkg.activate(".")
+
 using MCDTS
 using DelayEmbeddings
 using DynamicalSystemsBase
 using DelimitedFiles
 using ChaosTools
+using Random
 
 using PyPlot
 pygui(true)
@@ -226,6 +230,7 @@ subplots_adjust(hspace=.6)
 
 
 ## Predictions based on embedding
+
 T_steps = 12*lyap_time
 x1 = tr[1:end-T_steps,1]
 x2 = tr[end-T_steps+1:end,1]
@@ -253,11 +258,11 @@ Y_hegger = genembed(x1, τ_hegger.*(-1))
 
 # pecuzal
 taus = 0:100
-𝒟, τ_pec, _, L, _ = pecuzal_embedding(x1; τs = taus, w = w1)
-optimal_d_tde4 = size(𝒟, 2)
+#𝒟, τ_pec, _, L, _ = pecuzal_embedding(x1; τs = taus, w = w1)
+#optimal_d_tde4 = size(𝒟, 2)
 τ_pec = [0, 18, 9]
 Y_pec = genembed(x1, τ_pec.*(-1))
-
+##
 # mcdts
 Random.seed!(1234)
 taus = 0:30
@@ -266,14 +271,15 @@ max_depth = 10
 Tw = 50 # prediction horizon
 KNN = 8 # nearest neighbors for pred method
 K = KNN
+samplesize = 0.2
 PredMeth = MCDTS.local_model("zeroth", KNN, Tw)
 PredLoss = MCDTS.PredictionLoss(1)
 PredType = MCDTS.MCDTSpredictionType(PredLoss, PredMeth)
-optmodel = MCDTS.MCDTSOptimGoal(MCDTS.Prediction_error(PredType), MCDTS.Range_function())
+optmodel = MCDTS.MCDTSOptimGoal(MCDTS.Prediction_error(PredType,0,samplesize), MCDTS.Range_function())
 @time tree = mcdts_embedding(Dataset(x1), optmodel, w1, taus, trials; max_depth = max_depth, verbose=true)
 best_node = MCDTS.best_embedding(tree)
 τ_mcdts = best_node.τs
-τ_mcdts = [0, 11, 20]
+#τ_mcdts = [0, 11, 20]
 Y_mcdts = genembed(x1, τ_mcdts.*(-1))
 
 # Multivariate
@@ -282,47 +288,49 @@ data_sample = Dataset(hcat(x1,y1))
 # pecuzal
 taus = 0:100
 𝒟, τ_pec2, ts_pec2, L, _ = pecuzal_embedding(data_sample; τs = taus, w = w1)
-τ_pec2 = [0, 18, 9] # fictive
-ts_pec2 = [1, 1, 2] # fictive
+#τ_pec2 = [0, 18, 9] # fictive
+#ts_pec2 = [1, 1, 2] # fictive
 Y_pec2 = genembed(data_sample, τ_pec2.*(-1), ts_pec2)
 
 # mcdts
 Random.seed!(1234)
-trials = 50
+trials = 10
 taus = 0:30
 @time tree = mcdts_embedding(data_sample, optmodel, w1, taus, trials; max_depth = max_depth, verbose=true)
 best_node = MCDTS.best_embedding(tree)
 τ_mcdts2 = best_node.τs
 ts_mcdts2 = best_node.ts
-τ_mcdts2 = [0, 4, 5, 2, 3, 1]
-ts_mcdts2 = [1, 2, 2, 1, 2, 1]
+τ_mcdts2 = [0,0,11]
+ts_mcdts2 = [1,2,2]
 Y_mcdts2 = genembed(data_sample, τ_mcdts2.*(-1), ts_mcdts2)
 
 # mcdts with continuity function
 taus = 0:100
-trials = 50
+trials = 30
 max_depth = 10
 Tw = 50 # prediction horizon
 KNN = 8 # nearest neighbors for pred method
 K = KNN
-PredMeth = MCDTS.local_model("linear", KNN, Tw)
+samplesize = 0.2
+PredMeth = MCDTS.local_model("zeroth", KNN, Tw)
 PredLoss = MCDTS.PredictionLoss(1)
 PredType = MCDTS.MCDTSpredictionType(PredLoss, PredMeth)
-optmodel = MCDTS.MCDTSOptimGoal(MCDTS.Prediction_error(PredType), MCDTS.Continuity_function())
+optmodel = MCDTS.MCDTSOptimGoal(MCDTS.Prediction_error(PredType,0,samplesize), MCDTS.Continuity_function())
 @time tree = mcdts_embedding(Dataset(x1), optmodel, w1, taus, trials; max_depth = max_depth, verbose=true)
 best_node = MCDTS.best_embedding(tree)
 τ_mcdts3 = best_node.τs
-τ_mcdts3 = [0, 58, 71]
+#τ_mcdts3 = [0, 18, 9]
 Y_mcdts3 = genembed(x1, τ_mcdts3.*(-1))
 
 @time tree = mcdts_embedding(data_sample, optmodel, w1, taus, trials; max_depth = max_depth, verbose=true)
 best_node = MCDTS.best_embedding(tree)
 τ_mcdts4 = best_node.τs
-τ_mcdts4 = [0, 8, 1] #fictive
-ts_mcdts4 = [1, 2, 2] #fictive
-Y_mcdts4 = MCDTS.genembed(x1, τ_mcdts4.*(-1))
+ts_mcdts4 = best_node.ts
+#τ_mcdts4 = [0, 8, 0] 
+#ts_mcdts4 = [1, 2, 2] 
+Y_mcdts4 = MCDTS.genembed(x1, τ_mcdts4.*(-1), ts_mcdts4)
 
-# make predictions
+## make predictions based on these embedding models
 prediction_cao = deepcopy(Y_cao)
 prediction_kennel = deepcopy(Y_kennel)
 prediction_hegger = deepcopy(Y_hegger)
@@ -376,7 +384,7 @@ for T = 1:T_steps
     # push!(prediction_mcdts4, predicted_mcdts4)
 end
 
-# Plot predictions
+## Plot predictions
 sp = length(tr)-T_steps
 t2 = (-sp+1:T_steps) ./ lyap_time
 begin
