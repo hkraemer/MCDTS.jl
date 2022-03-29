@@ -30,7 +30,7 @@ function Base.show(io::IO,n::Root)
     else
         best_node = best_embedding(n)
 
-        return print(io,string("Embedding tree with current best embedding: L=",best_node.L," - full embd. τ=",best_node.τs," ,i_ts=",best_node.ts))
+        return print(io,string("Embedding tree with current best embedding: L=",L(best_node)," - full embd. τ=",best_node.τs," ,i_ts=",best_node.ts))
     end
 end
 
