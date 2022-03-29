@@ -281,7 +281,7 @@ data_sample = Dataset(hcat(x1,y1))
 
 # pecuzal
 taus = 0:100
-𝒟, τ_pec2, ts_pec2, L, _ = pecuzal_embedding(data_sample; τs = taus, w = w1)
+𝒟, τ_pec2, ts_pec2, Lval, _ = pecuzal_embedding(data_sample; τs = taus, w = w1)
 τ_pec2 = [0, 18, 9] # fictive
 ts_pec2 = [1, 1, 2] # fictive
 Y_pec2 = genembed(data_sample, τ_pec2.*(-1), ts_pec2)

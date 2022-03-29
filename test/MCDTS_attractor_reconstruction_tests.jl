@@ -14,7 +14,7 @@ println("\nTesting MCDTS complete tree, Lorenz63 univariate:")
     tree = mcdts_embedding(Dataset(data[:,1]), pecuzal, w1, delays, runs)
     best_node = MCDTS.best_embedding(tree)
     @test best_node.τs == [0, 9, 42, 20]
-    @test -0.94 < best_node.L < -0.929
+    @test -0.94 < L(best_node) < -0.929
 
     # L with tws
     Random.seed!(1234)
@@ -23,7 +23,7 @@ println("\nTesting MCDTS complete tree, Lorenz63 univariate:")
     tree2 = mcdts_embedding(Dataset(data[:,1]), optmodel2, w1, delays, runs)
     best_node2 = MCDTS.best_embedding(tree2)
     @test best_node2.τs == best_node.τs
-    @test best_node2.L > best_node.L
+    @test L(best_node2) > L(best_node)
 
     # L with tws and less fiducials for computation
     Random.seed!(1234)
@@ -33,7 +33,7 @@ println("\nTesting MCDTS complete tree, Lorenz63 univariate:")
     tree3 = mcdts_embedding(Dataset(data[:,1]), optmodel3, w1, delays, runs)
     best_node3 = MCDTS.best_embedding(tree3)
     @test best_node3.τs == best_node.τs
-    @test best_node.L - 0.1 < best_node3.L < best_node.L + 0.1
+    @test L(best_node) - 0.1 < L(best_node3) < L(best_node) + 0.1
 
     # L with tws and threshold
     Random.seed!(1234)
@@ -42,7 +42,7 @@ println("\nTesting MCDTS complete tree, Lorenz63 univariate:")
     best_node4 = MCDTS.best_embedding(tree4)
     @test length(best_node4.τs) < length(best_node2.τs)
     @test best_node4.τs == [0, 9]
-    @test best_node4.L > best_node2.L
+    @test L(best_node4) > L(best_node2)
 
     # FNN with threshold
     Random.seed!(1234)
@@ -84,7 +84,7 @@ println("\nTesting MCDTS complete tree, Lorenz63 multivariate:")
     @test best_node.ts == [1, 1, 1, 1]
     @test best_node2.τs == [0, 22, 16, 7]
     @test best_node2.ts == [1, 2, 2, 1]
-    @test -0.92 < best_node.L < -0.91
+    @test -0.92 < L(best_node) < -0.91
     @test -0.43 < L_YY < -0.42
     
     # less fid points

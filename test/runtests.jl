@@ -6,6 +6,7 @@ using Test
 using Random
 using DynamicalSystemsBase
 using DelayEmbeddings
+import MCDTS.L
 
 # Check Lorenz System
 Random.seed!(1234)

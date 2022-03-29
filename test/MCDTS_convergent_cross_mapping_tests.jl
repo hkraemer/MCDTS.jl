@@ -2,9 +2,9 @@ println("\nTesting MCDTS complete tree, coupled Logistic, CCM:")
 @time begin
 @testset "MCDTS single rollout on univariate Logistic map data" begin
 
-    L = 3500
-    x = zeros(L)
-    y = zeros(L)
+    Lval = 3500
+    x = zeros(Lval)
+    y = zeros(Lval)
     r = 3.8
     r2 = 3.5
     βxy = 0.02
@@ -12,7 +12,7 @@ println("\nTesting MCDTS complete tree, coupled Logistic, CCM:")
     x[1]=0.4
     y[1]=0.2
 
-    for i = 2:L
+    for i = 2:Lval
         x[i]=x[i-1]*(r-r*x[i-1]-βxy*y[i-1])
         y[i]=y[i-1]*(r2-r2*y[i-1]-βyx*x[i-1])
     end
@@ -32,7 +32,7 @@ println("\nTesting MCDTS complete tree, coupled Logistic, CCM:")
     best_node = MCDTS.best_embedding(tree)
     τ_mcdts = best_node.τs
     ts_mcdts = best_node.ts
-    L = best_node.L
+    Lval = L(best_node)
 
     # less fid points
     Random.seed!(1234)
@@ -41,10 +41,10 @@ println("\nTesting MCDTS complete tree, coupled Logistic, CCM:")
     best_node2 = MCDTS.best_embedding(tree2)
     τ_mcdts2 = best_node2.τs
     ts_mcdts2 = best_node2.ts
-    L2 = best_node2.L
+    L2 = L(best_node2)
 
-    @test L < -0.95
-    @test L - .01 < L2 < L + .01
+    @test Lval < -0.95
+    @test Lval - .01 < L2 < Lval + .01
     @test length(τ_mcdts) ==  3 == length(τ_mcdts2)
     @test τ_mcdts[1] == 0 == τ_mcdts2[1]
     @test τ_mcdts[2] == 2 == τ_mcdts2[2]
@@ -56,9 +56,9 @@ println("\nTesting MCDTS complete tree, coupled Logistic, CCM:")
     best_node = MCDTS.best_embedding(tree2)
     τ_mcdts = best_node.τs
     ts_mcdts = best_node.ts
-    L = best_node.L
+    Lval = L(best_node)
 
-    @test L < -0.997
+    @test Lval < -0.997
     @test length(τ_mcdts) ==  3
     @test τ_mcdts[1] == 0
     @test τ_mcdts[2] == 1

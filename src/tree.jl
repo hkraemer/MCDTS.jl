@@ -25,7 +25,6 @@ get_τs(n::Root) = Int[]
 get_ts(n::Root) = Int[]
 
 function Base.show(io::IO,n::Root)
-
     if isnothing(n.children)
         return print(io,string("Embedding tree, no tree search yet performed"))
     else
@@ -41,30 +40,36 @@ end
     A node of the tree. Each node contains its children and information about the current embedding.
 
     ## Fieldnames:
-    * `τ::Int`: The delay value of this node
-    * `L::T`: The value of the cumulative ΔL statistic at this node
+    * `embedding_pars::EmbeddingPars`: saves delay value, time series number and value of loss funciton, see `EmbeddingPars`. 
     * `τs::Array{Int,1}`: The complete vector with all τs chosen along this path up until this node
     * `ts::Array{Int,1}`: The complex vector which of the possibly multivariate time series is used at each embedding step i
     * `children::Union{Array{Node,1},Nothing}`: The children of this node
-    * `temp::S`: additional "work"/"temporary" array/field that can be manipulated and saved by the optimization e.g. to reuse prior computations
 """
-mutable struct Node{T,S} <: AbstractTreeElement
-    τ::Int
-    t::Int
-    L::T
+mutable struct Node{T} <: AbstractTreeElement
+    embedding_pars::T
     τs::Array{Int,1}
     ts::Array{Int,1}
     children::Union{Array{Node,1},Nothing}
-    temp::S
 end
 
 N_children(n::AbstractTreeElement) = isnothing(n.children) ? 0 : length(n.children)
 get_τs(n::Node) = n.τs
 get_ts(n::Node) = n.ts
-get_children_Ls(n::AbstractTreeElement) = [n.children[i].L for i in 1:N_children(n)]
-get_children_τs(n::AbstractTreeElement) = [n.children[i].τ for i in 1:N_children(n)]
-get_children_ts(n::AbstractTreeElement) = [n.children[i].t for i in 1:N_children(n)]
-Base.show(io::IO,n::Node) = print(io,string("Node with τ=",n.τ,", i_t=",n.t," ,L=",n.L," - full embd. τ=",n.τs," ,i_ts=",n.ts))
+
+L(n::Node) = L(n.embedding_pars)
+τ(n::Node) = τ(n.embedding_pars)
+t(n::Node) = t(n.embedding_pars)
+temp(n::Node) = temp(n.embedding_pars)
+
+get_children_Ls(n::AbstractTreeElement) = L.(n.children)
+get_children_τs(n::AbstractTreeElement) = τ.(n.children)
+get_children_ts(n::AbstractTreeElement) = t.(n.children)
+
+function update_L!(n::Node, L) 
+    n.embedding_pars.L = L 
+end
+
+Base.show(io::IO,n::Node) = print(io,string("Node with τ=",τ(n),", i_t=",t(n)," ,L=",L(n)," - full embd. τ=",n.τs," ,i_ts=",n.ts))
 
 """
     choose_children(n::AbstractTreeElement, τ::Int, t:Int)
@@ -102,9 +107,7 @@ end
     * See [`mcdts_embedding`](@ref) for a list of all keywords.
 
     ## Returns
-    * `τ_pot`: Next delay
-    * `ts_pot`: Index of the time series used (in case of multivariate time series)
-    * `L_pot`: L statistic of next embedding step with delay `τ_pot` from `ts_pot`.
+    * `embedding_pars::Vector{EmbeddingPars}`: Next delays, indices of time series and L statisitic
     * `flag`: Did the embedding converge? i.e. L can not be further minimized anymore
 
 """
@@ -113,20 +116,20 @@ function next_embedding(n::Node, optimalg::AbstractMCDTSOptimGoal, Ys::Dataset{D
 
     τs_old = get_τs(n)
     ts_old = get_ts(n)
-    L_old = n.L
+    L_old = L(n)
     # do the next embedding step
-    τ_pot, ts_pot, L_pot, flag, temp = get_potential_delays(optimalg, Ys, τs, w,
-                    Tuple(τs_old), Tuple(ts_old), L_old; temp=n.temp, kwargs...)
+    embedding_pars, flag = get_potential_delays(optimalg, Ys, τs, w,
+                    Tuple(τs_old), Tuple(ts_old), L_old; temp=temp(n), kwargs...)
 
-    return τ_pot, ts_pot, L_pot, flag, temp
+    return embedding_pars, flag
 end
 
 function next_embedding(n::Root, optimalg::AbstractMCDTSOptimGoal, Ys::Dataset{D, T},
                                         w::Int, τs; kwargs...) where {D, T<:Real}
     # initialize first embedding step
-    τ_pot, ts_pot, L_pot, temp = init_embedding_params(optimalg.Γ, size(Ys,2))
+    embedding_pars = init_embedding_params(optimalg.Γ, size(Ys,2))
 
-    return τ_pot, ts_pot, L_pot, false, temp
+    return embedding_pars, false
 end
 
 
@@ -227,15 +230,15 @@ function expand!(n::Root, optimalg::AbstractMCDTSOptimGoal, data::Dataset{D, T},
         # next embedding step
         # only if it was not already computed
         if isnothing(current_node.children)
-            τs, ts, Ls, converged, temps = next_embedding(current_node, optimalg, data, w, delays; kwargs...)
+            embedding_pars, converged = next_embedding(current_node, optimalg, data, w, delays; kwargs...)
 
             if converged
                 break
             else
                 # spawn children
                 children = Node[]
-                for j = 1:length(τs)
-                    push!(children, (τs[j],ts[j],Ls[j], temps[j]), optimalg.Γ, current_node)
+                for j = 1:length(embedding_pars)
+                    push!(children, embedding_pars[j], optimalg.Γ, current_node)
                 end
                 current_node.children = children
             end
@@ -247,7 +250,7 @@ function expand!(n::Root, optimalg::AbstractMCDTSOptimGoal, data::Dataset{D, T},
         end
     end
     # now backprop the values (actually we go to top to bottom, but we know were to end because we got the correct τs and ts)
-    backprop!(n, current_node.τs, current_node.ts, current_node.L)
+    backprop!(n, current_node.τs, current_node.ts, L(current_node))
 end
 
 """
@@ -257,7 +260,7 @@ end
     All children-nodes L-values get set to the final value achieved in this run.
     This function is ususally called be [`expand!`](@ref).
 """
-function backprop!(n::Root,τs,ts,L_min)
+function backprop!(n::Root, τs, ts, L_min)
 
     if n.Lmin > L_min
         n.Lmin = L_min
@@ -267,8 +270,8 @@ function backprop!(n::Root,τs,ts,L_min)
     for i=1:length(τs)
         # the initial embedding step is left out of the backprop
         current_node = choose_children(current_node,τs[i],ts[i])
-        if current_node.L > L_min
-            current_node.L = L_min
+        if L(current_node) > L_min
+            update_L!(current_node, L_min)
         end
     end
 end
