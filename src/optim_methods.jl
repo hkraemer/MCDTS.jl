@@ -10,16 +10,16 @@ import Base.push!
 
 Adds new `children`/nodes to the tree below `current_node` with embedding parameters saved in `n`, as a tuple (τ, t, Ls, temp), according to the loss `Γ`. 
 """ 
-function push!(children::Union{Array{Node,1},Nothing}, n::EmbeddingPars, Γ::AbstractLoss, current_node::AbstractTreeElement)
+function push!(children::Array{Node,1}, n::EmbeddingPars, Γ::AbstractLoss, current_node::AbstractTreeElement)
     Base.push!(children, Node(n, [get_τs(current_node); τ(n)], [get_ts(current_node); t(n)], nothing))
 end
 
 # L-function is computed as increments of the last value, that's why here it has to be added to the total in this function
-function push!(children::Union{Array{Node,1},Nothing}, n::EmbeddingPars, Γ::L_statistic, current_node::Root)
+function push!(children::Array{Node,1}, n::EmbeddingPars, Γ::L_statistic, current_node::Root)
     Base.push!(children, Node(EmbeddingPars(τ=τ(n),t=t(n),L=(current_node.Lmin+L(n)),temp=temp(n)), [get_τs(current_node); τ(n)], [get_ts(current_node); t(n)], nothing))
 end 
 
-function push!(children::Union{Array{Node,1},Nothing}, n::EmbeddingPars, Γ::L_statistic, current_node::Node)
+function push!(children::Array{Node,1}, n::EmbeddingPars, Γ::L_statistic, current_node::Node)
     Base.push!(children, Node(EmbeddingPars(τ=τ(n),t=t(n),L=(L(current_node)+L(n)), temp=temp(n)), [get_τs(current_node); τ(n)], [get_ts(current_node); t(n)], nothing))
 end 
 
