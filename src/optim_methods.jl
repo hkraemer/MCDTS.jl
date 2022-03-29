@@ -6,9 +6,9 @@ import Base.push!
 # FNN, CCM & Prediction
 
 """
-    push!(children::Union{Array{Node,1},Nothing}, n, Γ::AbstractLoss, current_node::AbstractTreeElement)    
+    push!(children::Union{Array{Node,1},Nothing}, n::EmbeddingPars, Γ::AbstractLoss, current_node::AbstractTreeElement)    
 
-Adds new `children`/nodes to the tree below `current_node` with embedding parameters saved in `n`, as a tuple (τ, t, Ls, temp), according to the loss `Γ`. 
+Adds new `children`/nodes to the tree below `current_node` with embedding parameters `n`, according to the loss `Γ`. 
 """ 
 function push!(children::Array{Node,1}, n::EmbeddingPars, Γ::AbstractLoss, current_node::AbstractTreeElement)
     Base.push!(children, Node(n, [get_τs(current_node); τ(n)], [get_ts(current_node); t(n)], nothing))
@@ -46,9 +46,9 @@ end
     get_potential_delays(optimalg::AbstractMCDTSOptimGoal, Ys::Dataset, τs, w::Int, τ_vals,
                     ts_vals, L_old ; kwargs...]) → τ_pot, ts_pot, L_pot, flag, temps
 
-    Compute the potential delay `τ_pot` and time series values `ts_pot`, which would
-    each result in a potential Loss-statistic value `L_pot`, by using an
-    embedding method specified in `optimalg` [^Kraemer2021b] (see [`MCDTSOptimGoal`](@ref))
+    Computes an vector of potential embedding parameters: the potential delay `τ_pot` and 
+    time series values `ts_pot`, which would each result in a potential Loss-statistic value 
+    `L_pot`, by using an embedding method specified in `optimalg` [^Kraemer2021b] (see [`MCDTSOptimGoal`](@ref))
     and for a range of possible delay values `τs`. The input dataset `Ys` can be
     multivariate. `w` is the Theiler window (neighbors in time with index `w` close
     to the point, that are excluded from being true neighbors. `w=0` means to
@@ -111,7 +111,7 @@ function get_embedding_params_according_to_loss(Γ::L_statistic, embedding_pars:
     threshold = Γ.threshold
     L_pot = L.(embedding_pars)
     if minimum(L_pot) > threshold
-        return [], true
+        return EmbeddingPars[], true
     else
         ind = L_pot .≤ threshold
         return embedding_pars[ind], false
