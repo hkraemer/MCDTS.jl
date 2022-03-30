@@ -177,6 +177,11 @@ end
     * `samplesize::Real = 1.`: the fraction of all phase space points
       to be considered in the computation of the prediction error under the given
       `PredictionType`.
+    * `error_wheights::Vector{Real} = [0 1]`: The wheights for determining the prediction 
+      error. The first element of this Vector is the wheight for the insample prediction
+      error and the second elements corresponds to the wheight for the out-of-sample
+      prediction error. By default only the out-of-sample error will be used (i.e. wheights [0 1]).
+      For specifying the prediction horizon see [`local_model`](@ref)  
 
     ## Defaults
     * When calling `Prediction_error()`, a Prediction_error-object is created,
@@ -188,15 +193,19 @@ struct Prediction_error <: AbstractLoss
     PredictionType::AbstractMCDTSpredictionType
     threshold::AbstractFloat
     samplesize::Real
+    error_wheights::Vector{Real}
     # Constraints and Defaults
-    Prediction_error(x ,y=0, z=1) = begin
+    Prediction_error(x ,y=0, z=1, zz=[0;1.]) = begin
         @assert y ≥ 0 "A positive threshold for the prediciton loss must be chosen."
         @assert 0 < z ≤ 1. "The samplesize must be in the interval (0 1]."
-        new(x, y, z)
+        @assert length(zz) == 2 && 0 <= zz[1] ≤ 1 && 0 <= zz[2] ≤ 1 "The errorweights 
+        must be passed in a vector of length 2. The elements of this vector need to be 
+        in the interval [0 1]."
+        new(x, y, z, zz)
     end
 
 end
-Prediction_error() = Prediction_error(MCDTSpredictionType(), 0, 1)
+Prediction_error() = Prediction_error(MCDTSpredictionType())
 
 """
     MCDTSpredictionType <: AbstractMCDTSpredictionType
@@ -268,27 +277,37 @@ end
      `KNN`-nearest neighbors) or `"linear"` (local linear regression on the
      `KNN`-nearest neighbors).
     * `KNN::Int`: The number of considered nearest neighbors.
-    * `Tw::Int` : The prediction horizon in sampling units.
+    * `Tw_out::Int` : The prediction horizon in sampling units for the out-of-sample prediction.
+    * `Tw_in::Int` : The prediction horizon in sampling units for the in-sample prediction.
+    * `trials::Int` : The number of different out-of-sample prediction trials.
 
     ## Defaults
     * When calling `local_model()` a local_model-object is constructed with a zeroth
-      order prediction scheme, 2 nearest neighbors and a 1-step-ahead prediction.
+      order prediction scheme, 2 nearest neighbors, a 1-step-ahead in-sample prediction, 
+      a 10-step-ahead out-of-sample prediction and 20 out-of-sample trials.
     * When calling `local_model(method)` a local_model-object is constructed with a
-      `method`-prediction scheme, 2 nearest neighbors and a 1-step-ahead prediction.
+      `method`-prediction scheme, 2 nearest neighbors, a 1-step-ahead in-sample prediction, 
+      a 10-step-ahead out-of-sample prediction and 20 out-of-sample trials.
     * When calling `local_model(method,KNN)` a local_model-object is constructed with a
-     `method`-prediction scheme, `KNN` nearest neighbors and a 1-step-ahead prediction.
+     `method`-prediction scheme, `KNN` nearest neighbors, a 1-step-ahead in-sample prediction, 
+     a 10-step-ahead out-of-sample prediction and 20 out-of-sample trials.
 """
 struct local_model{m} <: AbstractLocalPredictionMethod{m}
     method::String
     KNN::Int
-    Tw::Int
+    Tw_out::Int
+    Tw_in::Int
+    trials::Int
+    
     # Constraints and Defaults
-    local_model(x="zeroth", y=2, z=1) = begin
+    local_model(x="zeroth", y=2, z=10, zz=1, zzz=20) = begin
         @assert x in ["zeroth", "linear"]
         @assert y > 0
         @assert z > 0
+        @assert zz > 0
+        @assert zzz > 0
         m = Symbol(x)
-        new{m}(x,y,z)
+        new{m}(x,y,z,zz,zzz)
     end
 end
 

@@ -140,7 +140,7 @@ end
     determines if the first step is chosen uniform (`choose_mode==0`) or with the
     `func` (`choose_mode==1`).
 """
-function choose_next_node(n::Node, func, Lmin_global=-Inf, choose_mode=1)
+function choose_next_node(n::Node, func, Lmin_global=-Inf, choose_mode=0)
     N = N_children(n)
     if N == 0
         return nothing
@@ -150,7 +150,6 @@ function choose_next_node(n::Node, func, Lmin_global=-Inf, choose_mode=1)
         Ls = get_children_Ls(n)
         # check if any is smaller than the global min
         Lmins = findall(Ls .< Lmin_global)
-
         if isempty(Lmins)
             return n.children[func(Ls)]
         else
@@ -159,7 +158,7 @@ function choose_next_node(n::Node, func, Lmin_global=-Inf, choose_mode=1)
     end
 end
 
-function choose_next_node(n::Root, func, Lmin_global=-Inf, i_trial::Int=1, choose_mode=0)
+function choose_next_node(n::Root, func, Lmin_global=-Inf, choose_mode=0)
     N = N_children(n)
     if N == 0
         return nothing
@@ -348,7 +347,7 @@ end
     * `metric`: norm for distance computation (default is `Euclidean()`)
 
     [^Kraemer2021]: Kraemer, K.H., Datseris, G., Kurths, J., Kiss, I.Z., Ocampo-Espindola, Marwan, N. (2021). [A unified and automated approach to attractor reconstruction. New Journal of Physics 23(3), 033017](https://iopscience.iop.org/article/10.1088/1367-2630/abe336).
-    [^Kraemer2021b]: Kraemer, K.H., Gelbrecht, M., Pavithran, I., Sujith, R. I. and Marwan, N. (2021). [Optimal state space reconstruction via Monte Carlo Decision Tree Search. Submitted to Nonlinear Dynamics](https://doi.org/10.21203/rs.3.rs-899760/v1)
+    [^Kraemer2022]: Kraemer, K.H., Gelbrecht, M., Pavithran, I., Sujith, R. I. and Marwan, N. (2022). [Optimal state space reconstruction via Monte Carlo decision tree search. Nonlinear Dynamics](https://doi.org/10.1007/s11071-022-07280-2)
 """
 function mcdts_embedding(data::Dataset, optimalg::AbstractMCDTSOptimGoal, w::Int,
                             delays::AbstractRange{D}, N::Int=40; verbose::Bool = false, kwargs...) where {D}
@@ -377,7 +376,7 @@ function mcdts_embedding(data::Dataset, N::Int=40; kwargs...)
     # estimate Theiler window
     w = []
     for i=1:size(data,2)
-        push!(w,DelayEmbeddings.estimate_delay(data[:,i],"mi_min"))
+        Base.push!(w,DelayEmbeddings.estimate_delay(data[:,i],"mi_min"))
     end
     w=maximum(w)
 
