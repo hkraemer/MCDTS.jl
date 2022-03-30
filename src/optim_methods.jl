@@ -277,24 +277,34 @@ function compute_loss(Γ::Prediction_error, Λ::AbstractDelayPreselection, dps::
     PredictionLoss = Γ.PredictionType.loss
     PredictionMethod = Γ.PredictionType.method
     samplesize = Γ.samplesize
+    error_wheights = Γ.error_wheights
 
     max_idx = get_max_idx(Λ, dps, τ_vals, ts_vals, ts) # get the candidate delays
     isempty(max_idx) && return Float64[], Int64[], []
 
-    costs = zeros(Float64, length(max_idx))
-    temps = []
+    costs_insample = zeros(Float64, length(max_idx))
+    costs_out_of_sample = zeros(Float64, length(max_idx))
     for (i,τ_idx) in enumerate(max_idx)
         # create candidate phase space vector for this peak/τ-value
         tau_trials = (τ_vals...,τs[τ_idx-1],)
         ts_trials = (ts_vals...,ts,)
         Y_trial = genembed(Ys, tau_trials.*(-1), ts_trials)
-        # make an in-sample prediction for Y_trial
-        prediction, ns, temp = insample_prediction(PredictionMethod, Y_trial; samplesize, w, metric, i_cycle=length(τ_vals), kwargs...)
-        Base.push!(temps, temp)
-        # compute loss/costs
-        costs[i] = compute_costs_from_prediction(PredictionLoss, prediction, Y_trial, PredictionMethod.Tw, ns)
+        Y_trial1 = deepcopy(Y_trial)
+
+        # make an in-sample prediction for Y_trial (if needed)
+        if error_wheights[1]>0
+            prediction_insample, ns, temp = insample_prediction(PredictionMethod, Y_trial; samplesize, w, metric, i_cycle=length(τ_vals), kwargs...)
+            # compute loss/costs
+            costs_insample[i] = compute_costs_from_prediction(PredictionLoss, prediction_insample, Y_trial, PredictionMethod.Tw_in, ns)
+        end
+        # make an out-of-sample prediction for Y_trial (if needed)
+        if error_wheights[2]>0
+            costs_out_of_sample[i] = out_of_sample_prediction(PredictionMethod, PredictionLoss, Y_trial; w, metric, i_cycle=length(τ_vals), kwargs...)
+        end
     end
-    return costs, max_idx, temps
+    costs = error_wheights[1]*costs_insample .+ error_wheights[2]*costs_out_of_sample
+
+    return costs, max_idx, [nothing for i in max_idx]
 end
 
 
@@ -335,7 +345,7 @@ end
     * `Tw`: Prediction horizon
     * `metric`: Metric for NN search
     * `samplesize`: fraction of considered points in the trajectory
-    * `i_cycle`: Which embedding cycling we are predicting for
+    * `i_cycle`: Which embedding cycling we are predicting for (for future use)
 
     Note: In case of a local linear prediction method `pred_meth` the number of
     nearest neighbours used gets adapted to 2(D+1) - with D the embedding dimension,
@@ -343,7 +353,7 @@ end
 """
 function insample_prediction(pred_meth::AbstractLocalPredictionMethod, Y::AbstractDataset{D, ET}; samplesize::Real= 1, w::Int = 1, metric = Euclidean(), i_cycle::Int=1, kwargs...) where {D, ET}
 
-    Tw = pred_meth.Tw # total time horizon
+    Tw = pred_meth.Tw_in # total time horizon
     NN = length(Y)-Tw
     if samplesize==1
         ns = 1:NN
@@ -435,6 +445,71 @@ function insample_prediction!(pred_meth::AbstractLocalPredictionMethod{:linear},
     end 
 end
 
+
+"""
+    out_of_sample_prediction(pred_meth::AbstractLocalPredictionMethod, pred_loss::AbstractPredictionLoss, Y::AbstractDataset{D, ET};
+            K::Int = 3, w::Int = 1, Tw::Int = 1, metric = Euclidean()) → average_cost
+
+    Compute an out-of-sample `Tw`-time-steps-ahead prediction of the data `Y`, using
+    the prediction method `pred_meth`. `w` is the Theiler window and `K` the nearest
+    neighbors used.
+
+    * `Y`: Dataset (Nt x N_embedd)
+    * `K`: Nearest Neighbours
+    * `w`: Theiler window
+    * `Tw`: Prediction horizon
+    * `metric`: Metric for NN search
+    * `i_cycle`: Which embedding cycling we are predicting for (for future use)
+
+    Note: In case of a local linear prediction method `pred_meth` the number of
+    nearest neighbours used gets adapted to 2(D+1) - with D the embedding dimension,
+    if the provided `K` is lower than that number.")
+"""
+function out_of_sample_prediction(pred_meth::AbstractLocalPredictionMethod, pred_loss::AbstractPredictionLoss, 
+        Y::AbstractDataset{D, ET}; w::Int = 1, metric = Euclidean(), i_cycle::Int=1, kwargs...) where {D, ET}
+
+    Tw = pred_meth.Tw_out
+    num_of_trials = pred_meth.trials
+    N = length(Y)
+    NN = N-Tw
+
+    # split data into training (90%) and test set (10%)
+    N_train = Int(ceil(NN*0.9))
+    N_test = NN-N_train
+
+    if num_of_trials ≥ N_test
+        println("The test set has not sufficient size to satisfy the given number of out-of-sample trials. This has been adjusted now.")
+        num_of_trials = N_test
+    end
+
+    ns = sample(vec(N_train+1:N_train+N_test), num_of_trials, replace = false)  # starting indices of trial
+    costs = zeros(num_of_trials)
+    Threads.@threads for i = 1:num_of_trials
+        costs[i] = cost_from_out_of_sample_prediction(pred_meth, pred_loss, Y, ns[i]; w, Tw, metric, kwargs...)
+    end
+    # return the average of the costs for each trial
+    return mean(costs)
+end
+
+"""
+    Compute costs for the out-of-sample prediction
+"""
+function cost_from_out_of_sample_prediction(pred_meth::AbstractLocalPredictionMethod{:zeroth}, pred_loss::AbstractPredictionLoss, 
+        Y::AbstractDataset{D, ET}, ns::Int; w::Int = 1, Tw::Int = 1, metric = Euclidean(), verbose::Bool=false, kwargs...) where {D, ET}
+
+    predicted = iterated_local_zeroth_prediction(Y[1:ns], pred_meth.KNN, Tw; metric, theiler = w, verbose)
+    # compute loss/costs
+    return compute_costs_from_prediction(pred_loss, predicted, Y[ns+1:ns+Tw], 0, 1:length(ns+1:ns+Tw))
+end
+function cost_from_out_of_sample_prediction(pred_meth::AbstractLocalPredictionMethod{:linear}, pred_loss::AbstractPredictionLoss, 
+        Y::AbstractDataset{D, ET}, ns::Int; w::Int = 1, Tw::Int = 1, metric = Euclidean(), verbose::Bool=false, kwargs...) where {D, ET}
+
+    predicted = iterated_local_linear_prediction(Y[1:ns], pred_meth.KNN, Tw; metric, theiler = w, verbose)
+    # compute loss/costs
+    return compute_costs_from_prediction(pred_loss, predicted, Y[ns+1:ns+Tw], 0, 1:length(ns+1:ns+Tw))
+end
+
+
 """
     Compute the in-sample prediction costs based on the loss-metric determined
     by PredictionLoss
@@ -486,6 +561,180 @@ function compute_costs_from_prediction(PredictionLoss::AbstractPredictionLoss{4}
     return mean(costs)
 end
 
+
+"""
+    local_zeroth_prediction(Y::Dataset, K::Int = 5; kwargs...) → x_pred, e_expect
+
+    Perform a "zeroth" order prediction for the time horizon `Tw` (default = 1). Based
+    on `K` nearest neighbours of the last point of the given trajectory `Y`, the
+    `Tw`-step ahead prediction is simply the mean of the images of these `K`-nearest
+    neighbours. The output `x_pred` is, thus, the `Tw`-step ahead prediction vector.
+    The function also returns `e_expect`, the expected error on the prediction `x_pred`,
+    computed as the mean of the RMS-errors of all `K`-neighbours-errors.
+
+    Keywords:
+    * `metric = Euclidean()`: Metric used for distance computation
+    * `theiler::Int = 1`: Theiler window for excluding serially correlated points from
+       the nearest neighbour search.
+    * `Tw::Int = 1`: The prediction time in sampling units. If `Tw > 1`, a multi-step
+      prediction is performed.
+
+"""
+function local_zeroth_prediction(Y::Dataset{D,T}, K::Int = 5;
+    metric = Euclidean(), theiler::Int = 1, Tw::Int = 1) where {D,T}
+
+    NN = length(Y)
+    ns = 1:NN
+    vs = Y[ns]
+    vtree = KDTree(Y[1:length(Y)-Tw,:], metric)
+    allNNidxs, _ = DelayEmbeddings.all_neighbors(vtree, vs, ns, K, theiler)
+
+    ϵ_ball = zeros(T, K, D) # preallocation
+    # consider NNs of the very last point of the trajectory
+    NNidxs = allNNidxs[end] # indices of k nearest neighbors to v
+    # determine neighborhood `Tw` time steps ahead
+    @inbounds for (i, j) in enumerate(NNidxs)
+        ϵ_ball[i, :] .= Y[j + Tw]
+    end
+    # take the average as a prediction
+    prediction = mean(ϵ_ball; dims=1)
+    # predicted prediction error
+    error_predict = sum((ϵ_ball .- prediction).^2; dims=1)
+
+    return vec(prediction), vec(error_predict)
+end
+
+"""
+    iterated_local_zeroth_prediction(Y::Dataset, K::Int = 5, Tw::Int = 2; kwargs...) → Y_predict
+    Perform an iterated one step forecast over `Tw` time steps using the local zeroth
+    prediction algorithm. `Y_predict` is a Vector of dimension like `Y`.
+
+    Keywords:
+    * `metric = Euclidean()`: Metric used for distance computation
+    * `theiler::Int = 1`: Theiler window for excluding serially correlated points from
+       the nearest neighbour search.
+    * `verbose::Bool = false`: When set to `true`, the function prints the actual time
+      step, which it is computing.
+"""
+function iterated_local_zeroth_prediction(Y::Dataset{D,T}, K::Int = 5, Tw::Int = 2;
+    metric = Euclidean(), theiler::Int = 1, verbose::Bool = false) where {D,T}
+
+    @assert Tw > 0 "Time horizon must be a positive integer"
+    N = length(Y)
+    predicted_trajectory = deepcopy(Y)
+    for Th = 1:Tw
+        if verbose
+            println("Compute prediction for time step $Th")
+        end
+        # iterated one step
+        predicted, _ = local_zeroth_prediction(predicted_trajectory, K;
+                                            theiler, metric)
+        Base.push!(predicted_trajectory, predicted)
+    end
+    return predicted_trajectory[N+1:end]
+end
+
+
+"""
+    local_linear_prediction(Y::Dataset, K::Int = 5; kwargs...) → x_pred, e_expect
+
+    Perform a prediction for the time horizon `Tw` (default = 1) by a locally linear
+    fit. Based on `K` nearest neighbours of the last point of the given trajectory
+    `Y`, we fit a linear model to these points and their `Tw`-step ahead images. The
+    output `x_pred` is, thus, the `Tw`-step ahead prediction vector.
+    The function also returns `e_expect`, the expected error on the prediction `x_pred`,
+    computed as the mean of the RMS-errors of all `K`-neighbours-errors.
+
+    Keywords:
+    * `metric = Euclidean()`: Metric used for distance computation
+    * `theiler::Int = 1`: Theiler window for excluding serially correlated points from
+       the nearest neighbour search.
+    * `Tw::Int = 1`: The prediction time in sampling units. If `Tw > 1`, a multi-step
+      prediction is performed.
+"""
+function local_linear_prediction(Y::Dataset{D,T}, K::Int = 5;
+    metric = Euclidean(), theiler::Int = 1, Tw::Int = 1) where {D,T}
+
+    if K < 2*(D+1)
+        K = 2*(D+1)
+    end
+
+    NN = length(Y)
+    ns = 1:NN
+    vs = Y[ns]
+    vtree = KDTree(Y[1:length(Y)-Tw,:], metric)
+    allNNidxs, _ = DelayEmbeddings.all_neighbors(vtree, vs, ns, K, theiler)
+
+    ϵ_ball = zeros(T, K, D) # preallocation
+    A = ones(K,D) # datamatrix for later linear equation to solve for AR-process
+    # consider NNs of the very last point of the trajectory
+    NNidxs = allNNidxs[end] # indices of k nearest neighbors to v
+
+    # determine neighborhood `Tw` time steps ahead
+    @inbounds for (i, j) in enumerate(NNidxs)
+        ϵ_ball[i, :] .= Y[j + Tw]
+        A[i,:] = Y[j]
+    end
+
+    # make local linear model of the last point of the trajectory
+    prediction = zeros(D)
+    b  = zeros(D)
+    ar_coeffs = zeros(D, D)
+    namess = ["X"*string(i) for i = 1:D]
+    ee = Meta.parse.(namess)
+    formula_expression = Term(:Y) ~ sum(term.(ee))
+
+    for i = 1:D
+        data = DataFrame()
+        for (cnt,var) in enumerate(namess)
+            data[!, var] = A[:,cnt]
+        end
+        data.Y = ϵ_ball[:,i]
+
+        ols = lm(formula_expression, data)
+        b[i] = coef(ols)[1]
+        for j = 1:D
+            ar_coeffs[i,j] = coef(ols)[j+1]
+        end
+        prediction[i] = Y[NN,:]'*ar_coeffs[i,:] + b[i]
+    end
+
+    # predicted prediction error
+    error_predict = sum((ϵ_ball .- prediction').^2; dims=1)
+
+    return vec(prediction), vec(error_predict)
+end
+
+"""
+    iterated_local_linear_prediction(Y::Dataset, K::Int = 5, Tw::Int = 2; kwargs...) → Y_predict
+
+    Perform an iterated one step forecast over `Tw` time steps using the local linear
+    prediction algorithm. `Y_predict` is a Vector of dimension like `Y`.
+
+    Keywords:
+    * `metric = Euclidean()`: Metric used for distance computation
+    * `theiler::Int = 1`: Theiler window for excluding serially correlated points from
+       the nearest neighbour search.
+    * `verbose::Bool = false`: When set to `true`, the function prints the actual time
+      step, which it is computing.
+"""
+function iterated_local_linear_prediction(Y::Dataset{D,T}, K::Int = 5, Tw::Int = 2;
+    metric = Euclidean(), theiler::Int = 1, verbose::Bool = false) where {D,T}
+
+    @assert Tw > 0 "Time horizon must be a positive integer"
+    N = length(Y)
+    predicted_trajectory = deepcopy(Y)
+    for Th = 1:Tw
+        if verbose
+            println("Compute prediction for time step $Th")
+        end
+        # iterated one step
+        predicted, _ = local_linear_prediction(predicted_trajectory, K;
+                                            theiler, metric)
+        Base.push!(predicted_trajectory, predicted)
+    end
+    return predicted_trajectory[N+1:end]
+end
 
 """
     Compute the Kullback-Leibler-Divergence of the two Vectors `a` and `b`.
