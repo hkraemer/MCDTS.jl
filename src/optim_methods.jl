@@ -99,7 +99,7 @@ function get_embedding_params_according_to_loss(Γ::AbstractLoss, τ_pot, ts_pot
         return τ_pot[ind], ts_pot[ind], L_pot[ind], true, temp[ind]
     else
         ind = L_pot .< L_old
-        return τ_pot[ind], ts_pot[ind], L_pot[ind],false, temp[ind]
+        return τ_pot[ind], ts_pot[ind], L_pot[ind], false, temp[ind]
     end
 end
 
@@ -273,13 +273,13 @@ function compute_loss(Γ::Prediction_error, Λ::AbstractDelayPreselection, dps::
     PredictionLoss = Γ.PredictionType.loss
     PredictionMethod = Γ.PredictionType.method
     samplesize = Γ.samplesize
+    error_wheights = Γ.error_wheights
 
     max_idx = get_max_idx(Λ, dps, τ_vals, ts_vals, ts) # get the candidate delays
     isempty(max_idx) && return Float64[], Int64[], []
 
     costs_insample = zeros(Float64, length(max_idx))
     costs_out_of_sample = zeros(Float64, length(max_idx))
-    temps = []
     for (i,τ_idx) in enumerate(max_idx)
         # create candidate phase space vector for this peak/τ-value
         tau_trials = (τ_vals...,τs[τ_idx-1],)
@@ -287,20 +287,20 @@ function compute_loss(Γ::Prediction_error, Λ::AbstractDelayPreselection, dps::
         Y_trial = genembed(Ys, tau_trials.*(-1), ts_trials)
         Y_trial1 = deepcopy(Y_trial)
 
-        # make an in-sample prediction for Y_trial
-        prediction_insample, ns, temp = insample_prediction(PredictionMethod, Y_trial; samplesize, w, metric, i_cycle=length(τ_vals), kwargs...)
-        Base.push!(temps, temp)
-        # compute loss/costs
-        costs_insample[i] = compute_costs_from_prediction(PredictionLoss, prediction_insample, Y_trial, PredictionMethod.Tw_in, ns)
-        # make an out-of-sample prediction for Y_trial
-        costs_out_of_sample[i] = out_of_sample_prediction(PredictionMethod, PredictionLoss, Y_trial; w, metric, i_cycle=length(τ_vals), kwargs...)
+        # make an in-sample prediction for Y_trial (if needed)
+        if error_wheights[1]>0
+            prediction_insample, ns, temp = insample_prediction(PredictionMethod, Y_trial; samplesize, w, metric, i_cycle=length(τ_vals), kwargs...)
+            # compute loss/costs
+            costs_insample[i] = compute_costs_from_prediction(PredictionLoss, prediction_insample, Y_trial, PredictionMethod.Tw_in, ns)
+        end
+        # make an out-of-sample prediction for Y_trial (if needed)
+        if error_wheights[2]>0
+            costs_out_of_sample[i] = out_of_sample_prediction(PredictionMethod, PredictionLoss, Y_trial; w, metric, i_cycle=length(τ_vals), kwargs...)
+        end
     end
-    # TODO: How to wheight this properly?
-    println("in-sample: $costs_insample")
-    println("out-sample: $costs_out_of_sample")
-    costs = 0.5.*costs_insample .+ 0.5*costs_out_of_sample
+    costs = error_wheights[1]*costs_insample .+ error_wheights[2]*costs_out_of_sample
 
-    return costs, max_idx, temps
+    return costs, max_idx, [nothing for i in max_idx]
 end
 
 
@@ -478,8 +478,7 @@ function out_of_sample_prediction(pred_meth::AbstractLocalPredictionMethod, pred
         num_of_trials = N_test
     end
 
-    ns = sample(vec(N_train+1:N_train+N_test), num_of_trials, replace = false)  # starting indices of trials
-
+    ns = sample(vec(N_train+1:N_train+N_test), num_of_trials, replace = false)  # starting indices of trial
     costs = zeros(num_of_trials)
     Threads.@threads for i = 1:num_of_trials
         costs[i] = cost_from_out_of_sample_prediction(pred_meth, pred_loss, Y, ns[i]; w, Tw, metric, kwargs...)

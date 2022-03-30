@@ -177,6 +177,11 @@ end
     * `samplesize::Real = 1.`: the fraction of all phase space points
       to be considered in the computation of the prediction error under the given
       `PredictionType`.
+    * `error_wheights::Vector{Real} = [0 1]`: The wheights for determining the prediction 
+      error. The first element of this Vector is the wheight for the insample prediction
+      error and the second elements corresponds to the wheight for the out-of-sample
+      prediction error. By default only the out-of-sample error will be used (i.e. wheights [0 1]).
+      For specifying the prediction horizon see [`local_model`](@ref)  
 
     ## Defaults
     * When calling `Prediction_error()`, a Prediction_error-object is created,
@@ -188,15 +193,19 @@ struct Prediction_error <: AbstractLoss
     PredictionType::AbstractMCDTSpredictionType
     threshold::AbstractFloat
     samplesize::Real
+    error_wheights::Vector{Real}
     # Constraints and Defaults
-    Prediction_error(x ,y=0, z=1) = begin
+    Prediction_error(x ,y=0, z=1, zz=[0;1.]) = begin
         @assert y ≥ 0 "A positive threshold for the prediciton loss must be chosen."
         @assert 0 < z ≤ 1. "The samplesize must be in the interval (0 1]."
-        new(x, y, z)
+        @assert length(zz) == 2 && 0 <= zz[1] ≤ 1 && 0 <= zz[2] ≤ 1 "The errorweights 
+        must be passed in a vector of length 2. The elements of this vector need to be 
+        in the interval [0 1]."
+        new(x, y, z, zz)
     end
 
 end
-Prediction_error() = Prediction_error(MCDTSpredictionType(), 0, 1)
+Prediction_error() = Prediction_error(MCDTSpredictionType())
 
 """
     MCDTSpredictionType <: AbstractMCDTSpredictionType

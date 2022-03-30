@@ -376,7 +376,7 @@ function mcdts_embedding(data::Dataset, N::Int=40; kwargs...)
     # estimate Theiler window
     w = []
     for i=1:size(data,2)
-        push!(w,DelayEmbeddings.estimate_delay(data[:,i],"mi_min"))
+        Base.push!(w,DelayEmbeddings.estimate_delay(data[:,i],"mi_min"))
     end
     w=maximum(w)
 
