@@ -34,6 +34,43 @@ function Base.show(io::IO,n::Root)
     end
 end
 
+
+# provides a simple struct that saves one tuple of embedding parameters 
+
+abstract type AbstractEmbeddingPars end
+
+"""
+    EmbeddingPars{S,T}
+
+`EmbeddingPars` save information of a single embedding cycle. 
+
+# Fields
+
+    * `τ`
+    * `t`
+    * `L` value of loss function 
+    * `temp` (optional) additional information
+
+"""
+Base.@kwdef mutable struct EmbeddingPars{S,T} <: AbstractEmbeddingPars 
+    τ::Integer 
+    t::Integer 
+    L::S  
+    temp::T=nothing
+end 
+
+τ(e::EmbeddingPars) = e.τ
+t(e::EmbeddingPars) = e.t
+L(e::EmbeddingPars) = e.L 
+temp(e::EmbeddingPars) = e.temp
+τ(n::Nothing) = nothing
+t(n::Nothing) = nothing
+L(n::Nothing) = nothing 
+temp(n::Nothing) = nothing
+Base.show(io::IO, e::EmbeddingPars) = string("τ=",τ(e),", t=",t(e),", L=",L(e))
+
+
+
 """
     mutable struct Node{T}
 
@@ -59,8 +96,8 @@ get_ts(n::Node) = n.ts
 L(n::Node) = L(n.embedding_pars)
 τ(n::Node) = τ(n.embedding_pars)
 t(n::Node) = t(n.embedding_pars)
-τs(n:Node) = get_τs(n::Node)    # for convenience
-ts(n:Node) = get_ts(n::Node)    # for convenience
+τs(n::Node) = get_τs(n)    # for convenience
+ts(n::Node) = get_ts(n)    # for convenience
 temp(n::Node) = temp(n.embedding_pars)
 
 get_children_Ls(n::AbstractTreeElement) = L.(n.children)
@@ -333,7 +370,7 @@ end
       each cycle. Specifically it sets the delay pre-selection statistic Λ, which
       pre-selects the potential delays in each embedding cycle as well as the the
       Loss-Statistic Γ, which determines the Loss to be minimized by MCDTS
-      [^Kraemer2021b] (see [`MCDTSOptimGoal`](@ref)).
+      [^Kraemer2022] (see [`MCDTSOptimGoal`](@ref)).
     * `w::Int` is the Theiler window (neighbors in time with index `w` close to the point,
       that are excluded from being true neighbors. `w=0` means to exclude only the
       point itself, and no temporal neighbors. In case of multivariate time series
