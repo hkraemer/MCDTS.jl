@@ -59,6 +59,8 @@ get_ts(n::Node) = n.ts
 L(n::Node) = L(n.embedding_pars)
 τ(n::Node) = τ(n.embedding_pars)
 t(n::Node) = t(n.embedding_pars)
+τs(n:Node) = get_τs(n::Node)    # for convenience
+ts(n:Node) = get_ts(n::Node)    # for convenience
 temp(n::Node) = temp(n.embedding_pars)
 
 get_children_Ls(n::AbstractTreeElement) = L.(n.children)

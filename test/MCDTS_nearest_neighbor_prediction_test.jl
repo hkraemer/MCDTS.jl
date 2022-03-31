@@ -43,7 +43,7 @@ println("\nTesting MCDTS complete tree, Lorenz Prediction:")
     tree = mcdts_embedding(Dataset(x1), optmodel, w1, delays, runs; max_depth = max_depth)
     best_node = MCDTS.best_embedding(tree)
     τ_mcdts = best_node.τs
-    L_mcdts = best_node.L
+    L_mcdts = L(best_node)
     @test length(τ_mcdts) == 4
     @test τ_mcdts == [0, 1, 3, 5]
     @test 0.043 < L_mcdts < 0.045
@@ -66,7 +66,7 @@ println("\nTesting MCDTS complete tree, Lorenz Prediction:")
     tree = mcdts_embedding(Dataset(x1), optmodel, w1, delays, runs; max_depth = max_depth)
     best_node = MCDTS.best_embedding(tree)
     τ_mcdts2 = best_node.τs
-    L_mcdts2 = best_node.L
+    L_mcdts2 = L(best_node)
     @test τ_mcdts2 == [0,5,1,2,3,4]
     @test 0.0002 < L_mcdts2 < 0.0003
 
@@ -85,7 +85,7 @@ println("\nTesting MCDTS complete tree, Lorenz Prediction:")
     tree = mcdts_embedding(Dataset(x1), optmodel, w1, delays, runs; max_depth = max_depth)
     best_node = MCDTS.best_embedding(tree)
     τ_mcdts3 = best_node.τs
-    L_mcdts3 = best_node.L
+    L_mcdts3 = L(best_node)
     @test τ_mcdts3 == [0,4]
     @test 0.069 < L_mcdts3 < 0.07
 
@@ -105,7 +105,7 @@ println("\nTesting MCDTS complete tree, Lorenz Prediction:")
     tree = mcdts_embedding(Dataset(x1), optmodel, w1, delays, runs; max_depth = max_depth)
     best_node = MCDTS.best_embedding(tree)
     τ_mcdts4 = best_node.τs
-    L_mcdts4 = best_node.L
+    L_mcdts4 = L(best_node)
     @test τ_mcdts4 == [0, 1, 3]
     @test 0.034 < L_mcdts4 < 0.035
 
@@ -238,7 +238,7 @@ println("\nTesting MCDTS complete tree, Lorenz Prediction:")
     tree = mcdts_embedding(Dataset(x1), optmodel, w1, delays, runs; max_depth = max_depth)
     best_node = MCDTS.best_embedding(tree)
     τ_mcdts = best_node.τs
-    L_mcdts = best_node.L
+    L_mcdts = L(best_node)
     @test τ_mcdts == [0, 26, 7, 21]
     @test 0.09 < L_mcdts < 0.1
 
